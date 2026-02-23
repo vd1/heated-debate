@@ -22,8 +22,18 @@ mkdir -p "$LOGDIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOGFILE="$LOGDIR/debate_${TIMESTAMP}.md"
 
+trap 'echo "\nLog saved to $LOGFILE"' EXIT
+
 log() {
     printf '%s\n' "$1" | tee -a "$LOGFILE"
+}
+
+check_response() {
+    local agent=$1 response=$2 round=$3
+    if [[ -z "$response" ]]; then
+        log "**ERROR: $agent returned empty response in round $round — aborting.**"
+        exit 1
+    fi
 }
 
 log "# Heated Debate — $TIMESTAMP"
@@ -50,14 +60,15 @@ for round in $(seq 1 "$ROUNDS"); do
             --model "$MODEL_A" \
             --system-prompt "$SYSTEM_A" \
             --session-id "$SESSION_A" \
-            "Plan this: $TOPIC" 2>/dev/null)
+            "Plan this: $TOPIC" 2>>"$LOGFILE")
     else
         RESPONSE_A=$(claude -p \
             --model "$MODEL_A" \
             --resume "$SESSION_A" \
-            "$PROMPT_A" 2>/dev/null)
+            "$PROMPT_A" 2>>"$LOGFILE")
     fi
     END_A=$(date +%s)
+    check_response "Agent A" "$RESPONSE_A" "$round"
 
     log "### Agent A ($MODEL_A) — $((END_A - START_A))s"
     log ""
@@ -75,14 +86,15 @@ for round in $(seq 1 "$ROUNDS"); do
 
 Here is the first proposal:
 
-$RESPONSE_A" 2>/dev/null)
+$RESPONSE_A" 2>>"$LOGFILE")
     else
         RESPONSE_B=$(claude -p \
             --model "$MODEL_B" \
             --resume "$SESSION_B" \
-            "$RESPONSE_A" 2>/dev/null)
+            "$RESPONSE_A" 2>>"$LOGFILE")
     fi
     END_B=$(date +%s)
+    check_response "Agent B" "$RESPONSE_B" "$round"
 
     log "### Agent B ($MODEL_B) — $((END_B - START_B))s"
     log ""
@@ -95,7 +107,5 @@ done
 
 log "---"
 log ""
-log "*Debate complete. $ROUNDS rounds.*"
-
-echo ""
-echo "Conversation saved to $LOGFILE"
+END_TIME=$(date +%Y%m%d_%H%M%S)
+log "*Debate complete. $ROUNDS rounds. Finished $END_TIME.*"
