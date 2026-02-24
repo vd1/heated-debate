@@ -16,6 +16,3 @@ Clear arc from practical to ambitious:
 The empty first log (`230600`) is a failed run, likely before the stderr fix — useful provenance. The second (`230831`) is a strong 3-round Sonnet vs Sonnet exchange. Agent B catches real bugs (float precision, Decimal construction boundary, `allow_short` semantics) and Agent A incorporates feedback cleanly. The Decimal-from-float cascade across three rounds is exactly the iterative refinement this setup is designed to produce.
 
 ## note
-
-have debates which are contuinuable so we can exceed the initial max number of steps if we need to;
-Early stopping and late extending — the round count becomes a soft guide, not a hard limit
