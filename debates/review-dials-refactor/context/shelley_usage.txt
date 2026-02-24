@@ -1,8 +1,0 @@
-shelley.sh calls dials.py as a CLI subprocess each round:
-
-  DIAL=$(python3 dials.py dial "$((round-1))" "$ROUNDS")   — get creativity level (5..1)
-  DIAL_LABEL=$(python3 dials.py label "$DIAL")              — human label ("Wild", etc.)
-  DIAL_PREFIX=$(python3 dials.py prefix "$DIAL")            — full prefix string for prompts
-
-DIAL_PREFIX is prepended to each agent's prompt before passing to `claude -p`.
-shelley.sh has no real temperature control — the creativity dial is its only behavioral modulator.

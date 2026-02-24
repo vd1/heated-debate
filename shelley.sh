@@ -20,14 +20,18 @@ else
     LOGDIR="$(pwd)/debates"
 fi
 
-# Load context files from context/ dir next to the topic file
+# Load context: read file paths from context.txt next to the topic file
+REPO_ROOT=$(git -C "${0:a:h}" rev-parse --show-toplevel 2>/dev/null || echo "${0:a:h}")
 TOPIC_DIR=$(dirname "${TOPIC_FILE:-/dev/null}")
-CONTEXT_DIR="$TOPIC_DIR/context"
+CONTEXT_LIST="$TOPIC_DIR/context.txt"
 CONTEXT=""
-if [[ -d "$CONTEXT_DIR" ]]; then
-    for f in "$CONTEXT_DIR"/*(.); do
-        CONTEXT+=$'\n\n'"--- $(basename "$f") ---"$'\n'"$(<"$f")"
-    done
+if [[ -f "$CONTEXT_LIST" ]]; then
+    while IFS= read -r relpath || [[ -n "$relpath" ]]; do
+        [[ -z "$relpath" || "$relpath" == \#* ]] && continue
+        filepath="$REPO_ROOT/$relpath"
+        [[ -f "$filepath" ]] || { echo "Context file not found: $relpath" >&2; exit 1; }
+        CONTEXT+=$'\n\n'"--- ${relpath} ---"$'\n'"$(<"$filepath")"
+    done < "$CONTEXT_LIST"
 fi
 
 MODEL_A=${MODEL_A:-sonnet}
@@ -76,6 +80,10 @@ log ""
 log "$TOPIC"
 log ""
 log "</details>"
+if [[ -f "$CONTEXT_LIST" ]]; then
+    log ""
+    log "**Context files:** $(grep -v '^#' "$CONTEXT_LIST" | grep -v '^$' | paste -sd', ' -)"
+fi
 log ""
 
 # --- Rounds ---
