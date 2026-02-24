@@ -1,0 +1,1 @@
+Design a Python function that takes a list of stock trades (ticker, qty, price, buy/sell) and outputs a portfolio summary with current positions, average cost basis, and realized P&L. Propose an implementation plan: data structures, function signatures, edge cases.
