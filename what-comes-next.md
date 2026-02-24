@@ -13,10 +13,21 @@ Embed the dial in each exchange so it can vary per round per agent.
 This is the trainable signal for RL later.
 
 ## 2. Stream JSON mode
-Test `claude -p --input-format stream-json --output-format stream-json`
-to keep a single process alive via stdin/stdout. Could replace shelley's
-per-turn process spawning with a faster Python-driven orchestrator that
-still uses subscription (no API credits).
+~~Test `claude -p --input-format stream-json --output-format stream-json`
+to keep a single process alive via stdin/stdout.~~ **Tested — doesn't work
+that way.** `--input-format stream-json` is for piping one process's output
+into another (`claude ... | claude --input-format stream-json`), not for
+interactive multi-turn on a single process. Multi-turn still requires
+`--resume` with separate invocations.
+
+What *does* work: `--output-format json` gives structured results (session
+ID, token counts, result text) instead of raw text. A Python orchestrator
+using `--resume` + JSON output is the realistic subscription-path upgrade
+over shelley.sh — same per-turn spawning, but with proper structured parsing
+and asyncio concurrency.
+
+For true single-process persistent agents, need the Agent SDK
+(`claude-agent-sdk`) which requires an API key (not subscription).
 
 ## 3. Phase architecture
 Split the debate into sequential phases, each its own conversation:
@@ -34,14 +45,43 @@ Run N parallel conversations (same phase, different dial settings or
 model pairings). A judge agent (or panel of 3) scores the outputs.
 Winner advances to next phase.
 
-## 5. RL over dial vectors
+## 5. RL (or bayesian opt) over dial vectors
 Treat the dial vector (per agent, per round, per phase) as the action
 space. Judge score is the reward. Low-dimensional optimization —
 Bayesian opt or evolutionary strategies, not deep RL.
 
 
-## 6. varia
+## 6. Variations
+
 add tokens to players moves in log
 should we let agents digress from the topic?
-exchange tips -> to memory
-interet user (compte non tenu du benchmark) -> on comprend mieux ses besoins et les difficultés
+exchange tips between agents -> write to agent's memory
+interet user (≠ interet benchmark) -> on comprend mieux ses besoins et les difficultés
+
+## 7. Streamy: Python orchestrator (subscription path)
+
+Replace shelley.sh with a Python asyncio orchestrator (`streamy.py`) that:
+- Spawns `claude -p --output-format json --resume <session>` per turn
+- Parses structured JSON for session IDs, token usage, results
+- Manages two agent sessions via `--resume` + `--session-id`
+- Runs concurrently where possible (e.g. both agents' tool init)
+- Logs to markdown like shelley, but with token counts per turn
+- Integrates dials.py via `--append-system-prompt`
+
+Still one process per turn (unavoidable on subscription), but structured
+output + Python control flow > bash string wrangling.
+
+## 8. Agent SDK path (API key path)
+
+For true efficiency gains, the Claude Agent SDK (`pip install claude-agent-sdk`)
+gives persistent in-process agents with no per-turn spawning overhead:
+- `query()` returns async iterator of typed messages
+- Session continuity via `resume=session_id`
+- Hooks for pre/post tool use, permissions callbacks
+- Custom subagents with focused tool access
+- Structured output via `--json-schema`
+
+Trade-off: requires `ANTHROPIC_API_KEY` (API billing), not subscription.
+But eliminates the ~50s cold-start per turn and gives native Python control
+over the agent loop. Worth exploring once the debate protocol stabilizes.
+
