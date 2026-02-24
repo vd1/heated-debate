@@ -26,8 +26,6 @@ uv run pynaille.py --agent-a gemini/gemini-2.5-flash --agent-b gemini/gemini-2.5
 | `debate.md` | Protocol doc for agent-to-agent code review via GitHub issues. |
 | `what-comes-next.md` | Roadmap: stream-json mode, phase architecture, tournament + judge, RL over dial vectors. |
 | `review-notes.md` | Review notes on the project's docs and early debate logs. |
-| `conversation.md` | Log of an early pynaille.py debate (portfolio summary topic). |
-
 ## Debate topics
 
 Each topic lives in its own directory under `debates/`:
@@ -36,19 +34,15 @@ Each topic lives in its own directory under `debates/`:
 debates/
   stock-trades/
     topic.md              ← what we're debating (1-3 sentences)
-    20260223_230600.md    ← timestamped transcript
-    20260223_230831.md
+    20260223_230831.md    ← timestamped transcript
+    20260223_pynaille.md
   review-dials-refactor/
     topic.md
-    context/              ← supplementary materials for agents
-      dials.py
-      pynaille_excerpt.py
-      shelley_usage.txt
-    20260224_092605.md
+    context.txt           ← file paths for agents to review
 ```
 
 - **`topic.md`** — a short description of the debate topic. No code, no instructions.
-- **`context/`** — optional directory of files the agents should see. When present, shelley.sh concatenates all files (with filename headers) and appends them to the first-round prompts. Keeps topics clean while still giving agents the code/docs they need.
+- **`context.txt`** — optional list of file paths (relative to repo root, one per line). shelley.sh reads the actual files and includes them in the agents' first-round prompts. No copies — agents always see current source.
 - **Transcripts** — timestamped markdown logs written after each run.
 
 ## Creativity dial
