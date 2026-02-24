@@ -14,11 +14,12 @@ import sys
 async def test_basic():
     """Send a simple prompt via stream-json stdin, read stream-json stdout."""
 
-    env = {**os.environ, "CLAUDECODE": ""}
+    env = {k: v for k, v in os.environ.items() if "CLAUDE" not in k.upper()}
 
     proc = await asyncio.create_subprocess_exec(
         "claude", "-p",
         "--model", "haiku",
+        "--verbose",
         "--output-format", "stream-json",
         "--no-session-persistence",
         "Say hello in exactly 5 words. Nothing else.",
@@ -75,12 +76,13 @@ async def test_basic():
 async def test_stream_input():
     """Test sending input via stream-json on stdin (multi-turn?)."""
 
-    env = {**os.environ, "CLAUDECODE": ""}
+    env = {k: v for k, v in os.environ.items() if "CLAUDE" not in k.upper()}
 
     # Start claude with stream-json input
     proc = await asyncio.create_subprocess_exec(
         "claude", "-p",
         "--model", "haiku",
+        "--verbose",
         "--input-format", "stream-json",
         "--output-format", "stream-json",
         "--no-session-persistence",

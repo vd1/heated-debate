@@ -38,3 +38,10 @@ Winner advances to next phase.
 Treat the dial vector (per agent, per round, per phase) as the action
 space. Judge score is the reward. Low-dimensional optimization —
 Bayesian opt or evolutionary strategies, not deep RL.
+
+
+## 6. varia
+add tokens to players moves in log
+should we let agents digress from the topic?
+exchange tips -> to memory
+interet user (compte non tenu du benchmark) -> on comprend mieux ses besoins et les difficultés
