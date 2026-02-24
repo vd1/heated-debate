@@ -1,0 +1,1 @@
+Port shelley.sh to shelley.ts (bun). Inline the dials logic, add claude and codex CLI backends, track tokens and cost per turn, and produce clean markdown logs with good round/turn separation.
