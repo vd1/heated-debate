@@ -1,0 +1,1 @@
+Is the soul immortal? Argue from philosophy, neuroscience, and phenomenology. Consider dualist, physicalist, and panpsychist positions. What would count as evidence either way?
