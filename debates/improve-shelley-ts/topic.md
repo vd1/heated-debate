@@ -1,0 +1,1 @@
+Critique shelley.ts and propose concrete improvements for reliability, architecture, and transcript readability. Prioritize changes that keep the CLI-subscription workflow (codex/claude, no API keys) and improve markdown output typesetting.

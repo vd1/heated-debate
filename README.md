@@ -9,6 +9,10 @@ Multi-agent debate engine that pits LLM agents against each other in structured,
 ./shelley.sh 5                                          # 5 rounds, default topic
 ./shelley.sh -f debates/stock-trades/topic.md 3         # 3 rounds, file topic
 
+# TypeScript frontend (bun + CLI backends; supports codex subscription login)
+bun shelley.ts -f debates/stock-trades/topic.md 3
+MODEL_A=codex:gpt-5 MODEL_B=codex:gpt-5 bun shelley.ts -f debates/stock-trades/topic.md 3
+
 # Python frontend (uses LiteLLM — needs API keys in .env)
 uv run pynaille.py --rounds 5 --topic "Design a cache"
 uv run pynaille.py --agent-a gemini/gemini-2.5-flash --agent-b gemini/gemini-2.5-flash
@@ -19,6 +23,7 @@ uv run pynaille.py --agent-a gemini/gemini-2.5-flash --agent-b gemini/gemini-2.5
 | File | Description |
 |------|-------------|
 | `shelley.sh` | Shell frontend — orchestrates debates via `claude -p` with `--resume` for persistent context. No API key required (uses Claude subscription). |
+| `shelley.ts` | Bun frontend — supports `claude:*` and `codex:*` model specs (via CLI subscriptions, not API keys). |
 | `pynaille.py` | Python frontend — orchestrates debates via LiteLLM. Supports any model LiteLLM can route to. Outputs JSON logs. |
 | `dials.py` | Shared creativity dial + temperature schedule. Importable as a Python module and callable as a CLI. Maps round number to a creativity level (5→1) and temperature (1.0→0.3). |
 | `streamy.py` | Test harness for `claude -p --output-format stream-json`. Exploratory — not used in debates yet. |
@@ -63,4 +68,5 @@ In pynaille.py, the API temperature also cools (1.0→0.3). In shelley.sh, the d
 
 - Python ≥3.12, managed with `uv`
 - Shell frontend requires the `claude` CLI
+- TypeScript frontend requires `bun`; bun auto-loads `.env`, so shelley.ts strips provider API keys when spawning `claude`/`codex` CLIs to stay on subscription auth
 - Python frontend requires a `.env` with API keys for your chosen LiteLLM provider
