@@ -226,6 +226,57 @@ function parseArgs() {
   };
 }
 
+// === Resume support ===
+
+interface ResumeState {
+  startRound: number;
+  seedPromptA: string;
+}
+
+function extractLastAgentBByRound(segment: string): string {
+  const m = segment.match(/### Agent B[^\n]*\n\n([\s\S]*?)(?=\n### Agent |\n## Round |\n---\n|\n\*Debate finished|\s*$)/);
+  return m?.[1]?.trim() ?? "";
+}
+
+function inferResumeStateFromLog(logPath: string, targetRounds: number): ResumeState {
+  if (!existsSync(logPath)) {
+    throw new Error(`Resume log not found: ${logPath}`);
+  }
+  const text = readFileSync(logPath, "utf8");
+  const roundRe = /^## Round (\d+)\/(\d+) —/gm;
+  const matches: Array<{ round: number; total: number; idx: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = roundRe.exec(text)) !== null) {
+    matches.push({ round: parseInt(m[1], 10), total: parseInt(m[2], 10), idx: m.index });
+  }
+  if (matches.length === 0) {
+    throw new Error(`No rounds found in resume log: ${logPath}`);
+  }
+
+  let completed = 0;
+  let lastB = "";
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].idx;
+    const end = i + 1 < matches.length ? matches[i + 1].idx : text.length;
+    const segment = text.slice(start, end);
+    const bText = extractLastAgentBByRound(segment);
+    if (bText) {
+      completed = Math.max(completed, matches[i].round);
+      lastB = bText;
+    }
+  }
+
+  if (completed < 1 || !lastB) {
+    throw new Error(`No completed round with Agent B output found in: ${logPath}`);
+  }
+
+  const startRound = completed + 1;
+  if (startRound > targetRounds) {
+    throw new Error(`Nothing to resume: completed round ${completed} already reaches target ${targetRounds}.`);
+  }
+  return { startRound, seedPromptA: lastB };
+}
+
 // === Context loading ===
 
 function loadContext(topicFile: string | undefined, repoRoot: string): string {
@@ -281,6 +332,12 @@ async function main() {
   const args = parseArgs();
   const specA = parseBackend(process.env.MODEL_A ?? `codex:${DEFAULT_CODEX_MODEL}`);
   const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
+  const resumeLog = process.env.RESUME_FROM_LOG;
+  const startRoundEnv = parseInt(process.env.START_ROUND ?? "1", 10);
+  const seedPromptFromFile = process.env.SEED_PROMPT_A_FILE
+    ? readFileSync(process.env.SEED_PROMPT_A_FILE, "utf8").trim()
+    : "";
+  const seedPromptFromEnv = (process.env.SEED_PROMPT_A ?? "").trim();
 
   const SYSTEM_A =
     "You are a software architect. Propose and refine implementation plans. Be concise. Send diffs/revisions, not full repeats.";
@@ -308,6 +365,23 @@ async function main() {
       : import.meta.dir;
 
   const context = loadContext(args.topicFile, repoRoot);
+  let startRound = Number.isFinite(startRoundEnv) ? Math.max(1, startRoundEnv) : 1;
+  let promptForA = "";
+  if (resumeLog) {
+    const inferred = inferResumeStateFromLog(resumeLog, args.rounds);
+    startRound = inferred.startRound;
+    promptForA = inferred.seedPromptA;
+  } else if (startRound > 1) {
+    promptForA = seedPromptFromFile || seedPromptFromEnv;
+  }
+  if (startRound > args.rounds) {
+    console.error(`Start round ${startRound} exceeds total rounds ${args.rounds}.`);
+    process.exit(1);
+  }
+  if (startRound > 1 && !promptForA) {
+    console.error("Resume requires seed prompt for Agent A. Set RESUME_FROM_LOG or SEED_PROMPT_A(_FILE).");
+    process.exit(1);
+  }
 
   process.on("SIGINT", () => {
     process.stdout.write(`\nLog saved to ${logFile}\n`);
@@ -323,6 +397,8 @@ async function main() {
   log(`| **Agent A** (architect) | \`${specA.model}\` · session \`${sessionA.slice(0, 8)}\` |`);
   log(`| **Agent B** (reviewer) | \`${specB.model}\` · session \`${sessionB.slice(0, 8)}\` |`);
   log(`| **Rounds** | ${args.rounds} |`);
+  if (startRound > 1) log(`| **Start round** | ${startRound} |`);
+  if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
   log("");
   log("<details><summary><strong>Topic</strong></summary>");
   log("");
@@ -345,11 +421,10 @@ async function main() {
 
   // --- Rounds ---
   const turns: TurnRecord[] = [];
-  let promptForA = "";
-
-  for (let r = 1; r <= args.rounds; r++) {
+  for (let r = startRound; r <= args.rounds; r++) {
     const dial = getDial(r - 1, args.rounds);
     const prefix = dialPrefix(dial);
+    const firstTurnInRun = r === startRound;
 
     log("---");
     log("");
@@ -362,8 +437,10 @@ async function main() {
       rA = await call(specA.backend, {
         agentKey: "A",
         model: specA.model,
-        ...(r === 1
-          ? { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefix}Plan this: ${args.topic}${context}` }
+        ...(firstTurnInRun
+          ? (startRound === 1
+            ? { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefix}Plan this: ${args.topic}${context}` }
+            : { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefix}${promptForA}` })
           : { resume: sessionA, prompt: `${prefix}${promptForA}` }),
       });
     } catch (e) {
@@ -387,12 +464,14 @@ async function main() {
       rB = await call(specB.backend, {
         agentKey: "B",
         model: specB.model,
-        ...(r === 1
-          ? {
-              systemPrompt: SYSTEM_B,
-              sessionId: sessionB,
-              prompt: `${prefix}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
-            }
+        ...(firstTurnInRun
+          ? (startRound === 1
+            ? {
+                systemPrompt: SYSTEM_B,
+                sessionId: sessionB,
+                prompt: `${prefix}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
+              }
+            : { systemPrompt: SYSTEM_B, sessionId: sessionB, prompt: `${prefix}${rA.text}` })
           : { resume: sessionB, prompt: `${prefix}${rA.text}` }),
       });
     } catch (e) {
