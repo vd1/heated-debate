@@ -6,11 +6,27 @@ import { dirname, resolve } from "path";
 
 // === Dials (inlined from dials.py) ===
 
-const DIAL_LABELS: Record<number, string> = {
+type AgentKey = "A" | "B";
+type Backend = "claude" | "codex";
+type DialLevel = 1 | 2 | 3 | 4 | 5;
+
+interface BackendSpec {
+  backend: Backend;
+  model: string;
+}
+
+interface ParsedArgs {
+  topicFile?: string;
+  rounds: number;
+  topic: string;
+  logDir: string;
+}
+
+const DIAL_LABELS: Record<DialLevel, string> = {
   5: "Wild", 4: "Creative", 3: "Balanced", 2: "Focused", 1: "Precise",
 };
 
-const DIAL_PROMPTS: Record<number, string> = {
+const DIAL_PROMPTS: Record<DialLevel, string> = {
   5: "Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.",
   4: "Suggest improvements and alternatives. Challenge assumptions. Consider non-obvious solutions.",
   3: "Mix new ideas with refinement. Address open questions. Weigh tradeoffs.",
@@ -18,13 +34,14 @@ const DIAL_PROMPTS: Record<number, string> = {
   1: "Converge. Focus only on correctness, consistency, and completeness. No new ideas.",
 };
 
-function getDial(roundZeroIdx: number, total: number): number {
+function getDial(roundZeroIdx: number, total: number): DialLevel {
   if (total <= 1) return 5;
   const t = roundZeroIdx / (total - 1);
-  return Math.min(5, Math.max(1, Math.round(5 - 4 * t)));
+  const dial = Math.min(5, Math.max(1, Math.round(5 - 4 * t)));
+  return dial as DialLevel;
 }
 
-function dialPrefix(level: number): string {
+function dialPrefix(level: DialLevel): string {
   return `[Creativity: ${level}/5] ${DIAL_PROMPTS[level]}\n\n`;
 }
 
@@ -37,7 +54,7 @@ interface TurnResult {
 
 interface CallOpts {
   model: string;
-  agentKey: "A" | "B";
+  agentKey: AgentKey;
   systemPrompt?: string;
   sessionId?: string; // round 1: new session
   resume?: string;    // rounds 2+: resume existing
@@ -46,7 +63,7 @@ interface CallOpts {
 
 interface TurnRecord {
   round: number;
-  agent: "A" | "B";
+  agent: AgentKey;
   model: string;
   seconds: number;
 }
@@ -66,14 +83,14 @@ const CLAUDE_ENV_BLOCKLIST = [
   "ANTHROPIC_API_KEY",
   "ANTHROPIC_AUTH_TOKEN",
   "ANTHROPIC_BASE_URL",
-];
+] as const;
 
 const CODEX_ENV_BLOCKLIST = [
   "OPENAI_API_KEY",
   "OPENAI_BASE_URL",
-];
+] as const;
 
-function sanitizedEnv(blocklist: string[]): NodeJS.ProcessEnv {
+function sanitizedEnv(blocklist: readonly string[]): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of blocklist) delete env[key];
   return env;
@@ -119,7 +136,7 @@ interface CodexHistoryTurn {
   response: string;
 }
 
-const codexHistory: Record<"A" | "B", CodexHistoryTurn[]> = { A: [], B: [] };
+const codexHistory: Record<AgentKey, CodexHistoryTurn[]> = { A: [], B: [] };
 const CODEX_HISTORY_WINDOW = Math.max(1, parseInt(process.env.CODEX_HISTORY_WINDOW ?? "6", 10) || 6);
 const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5";
 
@@ -180,19 +197,24 @@ async function callCodex(opts: CallOpts): Promise<TurnResult> {
 
 // === Dispatch ===
 
-function parseBackend(spec: string): { backend: string; model: string } {
+function parseBackend(specRaw: string): BackendSpec {
+  const spec = specRaw.trim();
   const i = spec.indexOf(":");
   if (i === -1) {
     if (spec === "codex") return { backend: "codex", model: DEFAULT_CODEX_MODEL };
     return { backend: "claude", model: spec };
   }
-  const backend = spec.slice(0, i);
-  const model = spec.slice(i + 1);
+  const backendRaw = spec.slice(0, i).toLowerCase();
+  const model = spec.slice(i + 1).trim();
+  if (backendRaw !== "claude" && backendRaw !== "codex") {
+    throw new Error(`Unsupported backend "${backendRaw}". Use "claude:<model>" or "codex:<model>".`);
+  }
+  const backend: Backend = backendRaw;
   if (backend === "codex" && !model) return { backend, model: DEFAULT_CODEX_MODEL };
   return { backend, model };
 }
 
-async function call(backend: string, opts: CallOpts): Promise<TurnResult> {
+async function call(backend: Backend, opts: CallOpts): Promise<TurnResult> {
   return backend === "codex" ? callCodex(opts) : callClaude(opts);
 }
 
@@ -203,7 +225,7 @@ const DEFAULT_TOPIC =
   "and outputs a portfolio summary with current positions, average cost basis, and realized P&L. " +
   "Propose an implementation plan: data structures, function signatures, edge cases.";
 
-function parseArgs() {
+function parseArgs(): ParsedArgs {
   const argv = process.argv.slice(2);
   if (argv[0] === "-f") {
     const file = argv[1];
@@ -213,17 +235,27 @@ function parseArgs() {
     }
     return {
       topicFile: file,
-      rounds: parseInt(argv[2] ?? "5"),
+      rounds: parsePositiveInt(argv[2], 5, "rounds"),
       topic: readFileSync(file, "utf8").trim(),
       logDir: dirname(file),
     };
   }
   return {
     topicFile: undefined,
-    rounds: parseInt(argv[0] ?? "5"),
+    rounds: parsePositiveInt(argv[0], 5, "rounds"),
     topic: argv[1] ?? DEFAULT_TOPIC,
     logDir: `${process.cwd()}/debates`,
   };
+}
+
+function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
+  const value = raw ?? `${fallback}`;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    console.error(`Invalid ${name}: "${value}". Expected an integer >= 1.`);
+    process.exit(1);
+  }
+  return parsed;
 }
 
 // === Resume support ===
@@ -244,10 +276,14 @@ function inferResumeStateFromLog(logPath: string, targetRounds: number): ResumeS
   }
   const text = readFileSync(logPath, "utf8");
   const roundRe = /^## Round (\d+)\/(\d+) —/gm;
-  const matches: Array<{ round: number; total: number; idx: number }> = [];
+  const matches: Array<{ round: number; idx: number }> = [];
   let m: RegExpExecArray | null;
   while ((m = roundRe.exec(text)) !== null) {
-    matches.push({ round: parseInt(m[1], 10), total: parseInt(m[2], 10), idx: m.index });
+    const round = Number.parseInt(m[1], 10);
+    if (!Number.isSafeInteger(round) || round < 1) {
+      throw new Error(`Invalid round marker in resume log: ${m[0]}`);
+    }
+    matches.push({ round, idx: m.index });
   }
   if (matches.length === 0) {
     throw new Error(`No rounds found in resume log: ${logPath}`);
@@ -333,7 +369,7 @@ async function main() {
   const specA = parseBackend(process.env.MODEL_A ?? `codex:${DEFAULT_CODEX_MODEL}`);
   const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
   const resumeLog = process.env.RESUME_FROM_LOG;
-  const startRoundEnv = parseInt(process.env.START_ROUND ?? "1", 10);
+  const startRoundEnv = parsePositiveInt(process.env.START_ROUND, 1, "START_ROUND");
   const seedPromptFromFile = process.env.SEED_PROMPT_A_FILE
     ? readFileSync(process.env.SEED_PROMPT_A_FILE, "utf8").trim()
     : "";
@@ -365,7 +401,7 @@ async function main() {
       : import.meta.dir;
 
   const context = loadContext(args.topicFile, repoRoot);
-  let startRound = Number.isFinite(startRoundEnv) ? Math.max(1, startRoundEnv) : 1;
+  let startRound = startRoundEnv;
   let promptForA = "";
   if (resumeLog) {
     const inferred = inferResumeStateFromLog(resumeLog, args.rounds);
