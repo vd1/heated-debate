@@ -39,6 +39,7 @@ interface BunSubprocess {
   stdout: ReadableStream<Uint8Array>;
   stderr: ReadableStream<Uint8Array>;
   exited: Promise<number>;
+  kill(signal?: string): void;
 }
 
 interface BunSpawnSyncResult {

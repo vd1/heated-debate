@@ -71,7 +71,7 @@ interface TurnRecord {
 // === Module-level log path (set in main before any I/O) ===
 
 let logFile = "";
-const activeProcs = new Set<Bun.Subprocess>();
+const activeProcs = new Set<BunSubprocess>();
 const SHELLEY_TIMEOUT_MS = Math.max(1_000, Number.parseInt(process.env.SHELLEY_TIMEOUT_MS ?? "420000", 10) || 420000);
 const VALID_REASONING_EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh"]);
 
