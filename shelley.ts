@@ -73,8 +73,6 @@ interface TurnRecord {
 let logFile = "";
 const activeProcs = new Set<Bun.Subprocess>();
 const SHELLEY_TIMEOUT_MS = Math.max(1_000, Number.parseInt(process.env.SHELLEY_TIMEOUT_MS ?? "420000", 10) || 420000);
-const SHELLEY_RETRIES = Math.max(0, Number.parseInt(process.env.SHELLEY_RETRIES ?? "2", 10) || 2);
-const SHELLEY_RETRY_BACKOFF_MS = Math.max(250, Number.parseInt(process.env.SHELLEY_RETRY_BACKOFF_MS ?? "1500", 10) || 1500);
 const VALID_REASONING_EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh"]);
 
 // === Env sanitation ===
@@ -136,30 +134,6 @@ function shortProcessError(out: string, err: string, code: number): string {
     .join("\n");
 }
 
-function shouldRetry(message: string): boolean {
-  const lower = message.toLowerCase();
-  if (lower.includes("not logged in")) return false;
-  if (lower.includes("unsupported value")) return false;
-  if (lower.includes("invalid_request_error")) return false;
-  return [
-    "stream disconnected before completion",
-    "error sending request for url",
-    "channel closed",
-    "temporarily unavailable",
-    "service unavailable",
-    "connection reset",
-    "timed out",
-    "timeout",
-    "rate limit",
-    "429",
-  ].some((needle) => lower.includes(needle));
-}
-
-function flattenForLog(text: string, maxChars = 400): string {
-  const compact = text.replace(/\s+/g, " ").trim();
-  return compact.length <= maxChars ? compact : `${compact.slice(0, maxChars)}...`;
-}
-
 async function runCli(args: string[], env: NodeJS.ProcessEnv): Promise<CliResult> {
   const start = Date.now();
   const proc = Bun.spawn(args, { env, stdout: "pipe", stderr: "pipe" });
@@ -188,25 +162,6 @@ async function runCli(args: string[], env: NodeJS.ProcessEnv): Promise<CliResult
   }
 }
 
-async function runWithRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
-  let attempt = 0;
-  while (true) {
-    try {
-      return await fn();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (attempt >= SHELLEY_RETRIES || !shouldRetry(message)) throw err;
-      attempt += 1;
-      const backoffMs = SHELLEY_RETRY_BACKOFF_MS * attempt;
-      appendFileSync(
-        logFile,
-        `<!-- retry ${label} ${attempt}/${SHELLEY_RETRIES} after error: ${flattenForLog(message)}; sleeping ${backoffMs}ms -->\n`,
-      );
-      await Bun.sleep(backoffMs);
-    }
-  }
-}
-
 // === Claude backend ===
 
 async function callClaude(opts: CallOpts): Promise<TurnResult> {
@@ -221,7 +176,7 @@ async function callClaude(opts: CallOpts): Promise<TurnResult> {
   args.push(opts.prompt);
 
   const env = sanitizedEnv(CLAUDE_ENV_BLOCKLIST);
-  const { out, err, code, seconds, timedOut } = await runWithRetry("claude", () => runCli(args, env));
+  const { out, err, code, seconds, timedOut } = await runCli(args, env);
   if (err) appendFileSync(logFile, `<!-- stderr: ${err} -->\n`);
   if (timedOut) throw new Error(`claude timed out after ${SHELLEY_TIMEOUT_MS}ms`);
   if (code !== 0) throw new Error(shortProcessError(out, err, code));
@@ -279,7 +234,7 @@ async function callCodex(opts: CallOpts): Promise<TurnResult> {
   const env = sanitizedEnv(CODEX_ENV_BLOCKLIST);
   env.CODEX_REASONING_EFFORT = reasoningEffort;
 
-  const { out, err, code, seconds, timedOut } = await runWithRetry("codex", () => runCli(args, env));
+  const { out, err, code, seconds, timedOut } = await runCli(args, env);
   if (err) appendFileSync(logFile, `<!-- stderr: ${err} -->\n`);
   if (timedOut) throw new Error(`codex timed out after ${SHELLEY_TIMEOUT_MS}ms`);
   if (code !== 0) throw new Error(shortProcessError(out, err, code));
@@ -534,7 +489,7 @@ async function main() {
   log(`| **Agent A** (architect) | \`${specA.model}\` · session \`${sessionA.slice(0, 8)}\` |`);
   log(`| **Agent B** (reviewer) | \`${specB.model}\` · session \`${sessionB.slice(0, 8)}\` |`);
   log(`| **Rounds** | ${args.rounds} |`);
-  log(`| **Timeout / retries** | ${SHELLEY_TIMEOUT_MS}ms / ${SHELLEY_RETRIES} |`);
+  log(`| **Timeout** | ${SHELLEY_TIMEOUT_MS}ms |`);
   if (startRound > 1) log(`| **Start round** | ${startRound} |`);
   if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
   log("");
