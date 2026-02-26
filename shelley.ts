@@ -573,10 +573,10 @@ async function main() {
         ...(firstTurnInRun
           ? (startRound === 1
             ? {
-                systemPrompt: SYSTEM_B,
-                sessionId: sessionB,
-                prompt: `${prefix}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
-              }
+              systemPrompt: SYSTEM_B,
+              sessionId: sessionB,
+              prompt: `${prefix}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
+            }
             : { systemPrompt: SYSTEM_B, sessionId: sessionB, prompt: `${prefix}${rA.text}` })
           : { resume: sessionB, prompt: `${prefix}${rA.text}` }),
       });
