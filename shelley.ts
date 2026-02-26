@@ -71,6 +71,11 @@ interface TurnRecord {
 // === Module-level log path (set in main before any I/O) ===
 
 let logFile = "";
+const activeProcs = new Set<Bun.Subprocess>();
+const SHELLEY_TIMEOUT_MS = Math.max(1_000, Number.parseInt(process.env.SHELLEY_TIMEOUT_MS ?? "420000", 10) || 420000);
+const SHELLEY_RETRIES = Math.max(0, Number.parseInt(process.env.SHELLEY_RETRIES ?? "2", 10) || 2);
+const SHELLEY_RETRY_BACKOFF_MS = Math.max(250, Number.parseInt(process.env.SHELLEY_RETRY_BACKOFF_MS ?? "1500", 10) || 1500);
+const VALID_REASONING_EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh"]);
 
 // === Env sanitation ===
 //
@@ -96,6 +101,112 @@ function sanitizedEnv(blocklist: readonly string[]): NodeJS.ProcessEnv {
   return env;
 }
 
+interface CliResult {
+  out: string;
+  err: string;
+  code: number;
+  seconds: number;
+  timedOut: boolean;
+}
+
+function codexReasoningEffortForModel(model: string): string {
+  const raw = process.env.CODEX_REASONING_EFFORT ?? "high";
+  const requested = raw.trim().toLowerCase();
+  if (!requested || !VALID_REASONING_EFFORTS.has(requested)) {
+    throw new Error(
+      `Invalid CODEX_REASONING_EFFORT=${JSON.stringify(raw)}. Expected one of: minimal, low, medium, high, xhigh.`,
+    );
+  }
+  if (requested === "xhigh" && !model.toLowerCase().includes("codex")) {
+    throw new Error(
+      `Invalid combo: CODEX_REASONING_EFFORT=xhigh is not supported for model "${model}". Use minimal|low|medium|high or a codex model.`,
+    );
+  }
+  return requested;
+}
+
+function shortProcessError(out: string, err: string, code: number): string {
+  const source = (err || out).trim();
+  if (!source) return `exit code ${code}`;
+  return source
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-8)
+    .join("\n");
+}
+
+function shouldRetry(message: string): boolean {
+  const lower = message.toLowerCase();
+  if (lower.includes("not logged in")) return false;
+  if (lower.includes("unsupported value")) return false;
+  if (lower.includes("invalid_request_error")) return false;
+  return [
+    "stream disconnected before completion",
+    "error sending request for url",
+    "channel closed",
+    "temporarily unavailable",
+    "service unavailable",
+    "connection reset",
+    "timed out",
+    "timeout",
+    "rate limit",
+    "429",
+  ].some((needle) => lower.includes(needle));
+}
+
+function flattenForLog(text: string, maxChars = 400): string {
+  const compact = text.replace(/\s+/g, " ").trim();
+  return compact.length <= maxChars ? compact : `${compact.slice(0, maxChars)}...`;
+}
+
+async function runCli(args: string[], env: NodeJS.ProcessEnv): Promise<CliResult> {
+  const start = Date.now();
+  const proc = Bun.spawn(args, { env, stdout: "pipe", stderr: "pipe" });
+  activeProcs.add(proc);
+
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    try { proc.kill("SIGTERM"); } catch { /* no-op */ }
+    setTimeout(() => {
+      try { proc.kill("SIGKILL"); } catch { /* no-op */ }
+    }, 750);
+  }, SHELLEY_TIMEOUT_MS);
+
+  try {
+    const [out, err, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    const seconds = Math.round((Date.now() - start) / 1000);
+    return { out: out.trim(), err: err.trim(), code, seconds, timedOut };
+  } finally {
+    clearTimeout(timeout);
+    activeProcs.delete(proc);
+  }
+}
+
+async function runWithRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (attempt >= SHELLEY_RETRIES || !shouldRetry(message)) throw err;
+      attempt += 1;
+      const backoffMs = SHELLEY_RETRY_BACKOFF_MS * attempt;
+      appendFileSync(
+        logFile,
+        `<!-- retry ${label} ${attempt}/${SHELLEY_RETRIES} after error: ${flattenForLog(message)}; sleeping ${backoffMs}ms -->\n`,
+      );
+      await Bun.sleep(backoffMs);
+    }
+  }
+}
+
 // === Claude backend ===
 
 async function callClaude(opts: CallOpts): Promise<TurnResult> {
@@ -110,20 +221,12 @@ async function callClaude(opts: CallOpts): Promise<TurnResult> {
   args.push(opts.prompt);
 
   const env = sanitizedEnv(CLAUDE_ENV_BLOCKLIST);
-
-  const start = Date.now();
-  const proc = Bun.spawn(args, { env, stdout: "pipe", stderr: "pipe" });
-  const [out, err] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
-  const code = await proc.exited;
-  const seconds = Math.round((Date.now() - start) / 1000);
-
-  if (err.trim()) appendFileSync(logFile, `<!-- stderr: ${err.trim()} -->\n`);
-  if (code !== 0) throw new Error(out.trim() || err.trim() || `exit code ${code}`);
-
-  return { text: out.trim(), seconds };
+  const { out, err, code, seconds, timedOut } = await runWithRetry("claude", () => runCli(args, env));
+  if (err) appendFileSync(logFile, `<!-- stderr: ${err} -->\n`);
+  if (timedOut) throw new Error(`claude timed out after ${SHELLEY_TIMEOUT_MS}ms`);
+  if (code !== 0) throw new Error(shortProcessError(out, err, code));
+  if (!out) throw new Error("claude returned empty output");
+  return { text: out, seconds };
 }
 
 // === Codex backend ===
@@ -138,7 +241,7 @@ interface CodexHistoryTurn {
 
 const codexHistory: Record<AgentKey, CodexHistoryTurn[]> = { A: [], B: [] };
 const CODEX_HISTORY_WINDOW = Math.max(1, parseInt(process.env.CODEX_HISTORY_WINDOW ?? "6", 10) || 6);
-const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5";
+const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5.3-codex";
 
 function composeCodexPrompt(opts: CallOpts): string {
   const history = codexHistory[opts.agentKey];
@@ -168,27 +271,20 @@ function composeCodexPrompt(opts: CallOpts): string {
 }
 
 async function callCodex(opts: CallOpts): Promise<TurnResult> {
-  const args = ["codex", "exec", "--sandbox", "read-only"];
+  const reasoningEffort = codexReasoningEffortForModel(opts.model);
+  const args = ["codex", "exec", "--sandbox", "read-only", "-c", `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`];
   if (opts.model) args.push("--model", opts.model);
   args.push(composeCodexPrompt(opts));
 
-  const start = Date.now();
-  const proc = Bun.spawn(args, {
-    env: sanitizedEnv(CODEX_ENV_BLOCKLIST),
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [out, err] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
-  const code = await proc.exited;
-  const seconds = Math.round((Date.now() - start) / 1000);
+  const env = sanitizedEnv(CODEX_ENV_BLOCKLIST);
+  env.CODEX_REASONING_EFFORT = reasoningEffort;
 
-  if (err.trim()) appendFileSync(logFile, `<!-- stderr: ${err.trim()} -->\n`);
-  if (code !== 0) throw new Error(out.trim() || err.trim() || `exit code ${code}`);
+  const { out, err, code, seconds, timedOut } = await runWithRetry("codex", () => runCli(args, env));
+  if (err) appendFileSync(logFile, `<!-- stderr: ${err} -->\n`);
+  if (timedOut) throw new Error(`codex timed out after ${SHELLEY_TIMEOUT_MS}ms`);
+  if (code !== 0) throw new Error(shortProcessError(out, err, code));
 
-  const text = out.trim();
+  const text = out;
   if (!text) throw new Error("codex returned empty output");
   codexHistory[opts.agentKey].push({ prompt: opts.prompt, response: text });
 
@@ -368,6 +464,8 @@ async function main() {
   const args = parseArgs();
   const specA = parseBackend(process.env.MODEL_A ?? `codex:${DEFAULT_CODEX_MODEL}`);
   const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
+  if (specA.backend === "codex") codexReasoningEffortForModel(specA.model);
+  if (specB.backend === "codex") codexReasoningEffortForModel(specB.model);
   const resumeLog = process.env.RESUME_FROM_LOG;
   const startRoundEnv = parsePositiveInt(process.env.START_ROUND, 1, "START_ROUND");
   const seedPromptFromFile = process.env.SEED_PROMPT_A_FILE
@@ -420,8 +518,11 @@ async function main() {
   }
 
   process.on("SIGINT", () => {
+    for (const proc of activeProcs) {
+      try { proc.kill("SIGTERM"); } catch { /* no-op */ }
+    }
     process.stdout.write(`\nLog saved to ${logFile}\n`);
-    process.exit(0);
+    process.exit(130);
   });
 
   // --- Header ---
@@ -433,6 +534,7 @@ async function main() {
   log(`| **Agent A** (architect) | \`${specA.model}\` · session \`${sessionA.slice(0, 8)}\` |`);
   log(`| **Agent B** (reviewer) | \`${specB.model}\` · session \`${sessionB.slice(0, 8)}\` |`);
   log(`| **Rounds** | ${args.rounds} |`);
+  log(`| **Timeout / retries** | ${SHELLEY_TIMEOUT_MS}ms / ${SHELLEY_RETRIES} |`);
   if (startRound > 1) log(`| **Start round** | ${startRound} |`);
   if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
   log("");
@@ -540,6 +642,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e);
+  console.error(e instanceof Error ? e.message : String(e));
   process.exit(1);
 });

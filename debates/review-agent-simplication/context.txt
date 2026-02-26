@@ -1,0 +1,3 @@
+../tweets/rfc/2026-02-26-agent-simplification.md
+../tweets/mopsus/agent.py
+../tweets/tests/test_mopsus.py

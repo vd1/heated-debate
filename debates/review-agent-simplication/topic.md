@@ -1,0 +1,1 @@
+Review the proposed simplifications for `mopsus/agent.py` documented in `tweets/rfc/2026-02-26-agent-simplification.md`. Debate which changes should be implemented now, which should be deferred, and how to keep reliability while reducing complexity in the Telegram agent.
