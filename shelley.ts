@@ -31,7 +31,7 @@ const DIAL_PROMPTS: Record<DialLevel, string> = {
   4: "Suggest improvements and alternatives. Challenge assumptions. Consider non-obvious solutions.",
   3: "Mix new ideas with refinement. Address open questions. Weigh tradeoffs.",
   2: "Refine the current approach. Fix issues. Tighten the spec. Avoid introducing new directions.",
-  1: "Converge. Focus only on correctness, consistency, and completeness. No new ideas.",
+  1: "Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.",
 };
 
 function getDial(roundZeroIdx: number, total: number): DialLevel {
