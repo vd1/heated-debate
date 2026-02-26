@@ -436,9 +436,9 @@ async function main() {
   const seedPromptFromEnv = (process.env.SEED_PROMPT_A ?? "").trim();
 
   const SYSTEM_A =
-    "You are a software architect. Propose and refine implementation plans. Be concise. Send diffs/revisions, not full repeats.";
+    "You are a software architect in a debate. Propose and refine implementation plans. Be concise. Output bulleted decisions, tradeoffs, and architectural patterns. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.";
   const SYSTEM_B =
-    "You are a critical code reviewer. Challenge proposals, find flaws, suggest improvements. Be concise. Send diffs/revisions, not full repeats.";
+    "You are a critical code reviewer in a debate. Challenge proposals, find flaws, and suggest improvements. Be concise. Output feedback on the architectural approach and risks. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.";
 
   const sessionA = crypto.randomUUID();
   const sessionB = crypto.randomUUID();
