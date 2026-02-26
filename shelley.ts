@@ -71,9 +71,16 @@ interface TurnRecord {
 // === Module-level log path (set in main before any I/O) ===
 
 let logFile = "";
+let stderrFile = "";
 const activeProcs = new Set<BunSubprocess>();
 const SHELLEY_TIMEOUT_MS = Math.max(1_000, Number.parseInt(process.env.SHELLEY_TIMEOUT_MS ?? "420000", 10) || 420000);
 const VALID_REASONING_EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh"]);
+
+function appendStderr(backend: Backend, model: string, err: string) {
+  if (!err || !stderrFile) return;
+  const stamp = new Date().toISOString();
+  appendFileSync(stderrFile, `[${stamp}] ${backend}:${model}\n${err}\n\n`);
+}
 
 // === Env sanitation ===
 //
@@ -177,7 +184,7 @@ async function callClaude(opts: CallOpts): Promise<TurnResult> {
 
   const env = sanitizedEnv(CLAUDE_ENV_BLOCKLIST);
   const { out, err, code, seconds, timedOut } = await runCli(args, env);
-  if (err) appendFileSync(logFile, `<!-- stderr: ${err} -->\n`);
+  if (err) appendStderr("claude", opts.model, err);
   if (timedOut) throw new Error(`claude timed out after ${SHELLEY_TIMEOUT_MS}ms`);
   if (code !== 0) throw new Error(shortProcessError(out, err, code));
   if (!out) throw new Error("claude returned empty output");
@@ -235,7 +242,7 @@ async function callCodex(opts: CallOpts): Promise<TurnResult> {
   env.CODEX_REASONING_EFFORT = reasoningEffort;
 
   const { out, err, code, seconds, timedOut } = await runCli(args, env);
-  if (err) appendFileSync(logFile, `<!-- stderr: ${err} -->\n`);
+  if (err) appendStderr("codex", opts.model, err);
   if (timedOut) throw new Error(`codex timed out after ${SHELLEY_TIMEOUT_MS}ms`);
   if (code !== 0) throw new Error(shortProcessError(out, err, code));
 
@@ -443,6 +450,11 @@ async function main() {
     .replace(" ", "_")
     .slice(0, 15);
   logFile = `${args.logDir}/${ts}.md`;
+  stderrFile = `${logFile}.stderr.log`;
+  appendFileSync(
+    stderrFile,
+    `# Shelley stderr log\n# transcript: ${logFile}\n# started: ${new Date().toISOString()}\n\n`,
+  );
 
   const gitOut = Bun.spawnSync(["git", "rev-parse", "--show-toplevel"], {
     stdout: "pipe",
@@ -490,6 +502,7 @@ async function main() {
   log(`| **Agent B** (reviewer) | \`${specB.model}\` · session \`${sessionB.slice(0, 8)}\` |`);
   log(`| **Rounds** | ${args.rounds} |`);
   log(`| **Timeout** | ${SHELLEY_TIMEOUT_MS}ms |`);
+  log(`| **Debug stderr** | \`${stderrFile}\` |`);
   if (startRound > 1) log(`| **Start round** | ${startRound} |`);
   if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
   log("");
