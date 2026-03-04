@@ -1,0 +1,1 @@
+Critique and improve slides.html — a self-contained single-file HTML presentation for the heated-debate engine. Evaluate both content (narrative arc, what is missing or redundant, slide ordering) and visual style (typography, layout density, colour usage, contrast, animation). Propose specific, concrete changes. Do not write implementation code; focus on what to change and why.

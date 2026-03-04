@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>heated-debate — Multi-Agent Debate Engine</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131e;
+      --border: #1e1e30;
+      --accent1: #e8611a;
+      /* orange-red flame */
+      --accent2: #a855f7;
+      /* violet */
+      --accent3: #38bdf8;
+      /* sky blue */
+      --text: #e8e8f0;
+      --muted: #6b6b8a;
+      --code-bg: #0f0f1a;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Deck ── */
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 80px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      transform: translateY(18px);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    .slide.exit {
+      opacity: 0;
+      transform: translateY(-18px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    /* ── Typography ── */
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent1);
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(44px, 6.5vw, 84px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    h2 {
+      font-size: clamp(30px, 4vw, 56px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.025em;
+    }
+
+    h3 {
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    p,
+    li {
+      font-size: clamp(16px, 1.6vw, 20px);
+      line-height: 1.7;
+      color: #b0b0cc;
+    }
+
+    strong {
+      color: var(--text);
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 2px 7px;
+      border-radius: 5px;
+      color: var(--accent3);
+    }
+
+    /* ── Layout helpers ── */
+    .center {
+      text-align: center;
+    }
+
+    .cols2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .cols3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 28px;
+      width: 100%;
+      max-width: 1080px;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mt16 {
+      margin-top: 16px;
+    }
+
+    .mt28 {
+      margin-top: 28px;
+    }
+
+    .mt40 {
+      margin-top: 40px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 30px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent2);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .card p {
+      font-size: 16px;
+    }
+
+    /* ── Agent boxes ── */
+    .agent-box {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 24px 26px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .agent-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .agent-a::before {
+      background: linear-gradient(90deg, var(--accent1), #f59e0b);
+    }
+
+    .agent-b::before {
+      background: linear-gradient(90deg, var(--accent2), var(--accent3));
+    }
+
+    .agent-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .agent-a .agent-label {
+      color: var(--accent1);
+    }
+
+    .agent-b .agent-label {
+      color: var(--accent2);
+    }
+
+    /* ── Dial component ── */
+    .dial-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .dial-step {
+      flex: 1;
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      transition: all 0.3s;
+    }
+
+    .dial-step .dlabel {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    .dial-step .dnum {
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .dial-step .ddesc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .d5 {
+      border-color: #e8611a55;
+    }
+
+    .d5 .dnum,
+    .d5 .dlabel {
+      color: var(--accent1);
+    }
+
+    .d4 {
+      border-color: #f59e0b55;
+    }
+
+    .d4 .dnum,
+    .d4 .dlabel {
+      color: #f59e0b;
+    }
+
+    .d3 {
+      border-color: #10b98155;
+    }
+
+    .d3 .dnum,
+    .d3 .dlabel {
+      color: #10b981;
+    }
+
+    .d2 {
+      border-color: #38bdf855;
+    }
+
+    .d2 .dnum,
+    .d2 .dlabel {
+      color: var(--accent3);
+    }
+
+    .d1 {
+      border-color: #a855f755;
+    }
+
+    .d1 .dnum,
+    .d1 .dlabel {
+      color: var(--accent2);
+    }
+
+    /* ── Code block ── */
+    .codeblock {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 26px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #9090c0;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .codeblock .comment {
+      color: #444466;
+    }
+
+    .codeblock .cmd {
+      color: var(--accent3);
+    }
+
+    .codeblock .kw {
+      color: var(--accent1);
+    }
+
+    .codeblock .str {
+      color: #a3e635;
+    }
+
+    /* ── Flow diagram ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 960px;
+      flex-wrap: nowrap;
+    }
+
+    .flow-node {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 10px;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .flow-node .fn-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .flow-node .fn-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .flow-arrow {
+      color: var(--muted);
+      font-size: 20px;
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+
+    /* ── Stat chips ── */
+    .chips {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 10px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ── Roadmap ── */
+    .roadmap-item {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .roadmap-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 2px;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: white;
+    }
+
+    .roadmap-item p {
+      font-size: 16px;
+    }
+
+    /* ── Title slide deco ── */
+    .flame-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(232, 97, 26, 0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 20% 80%, rgba(168, 85, 247, 0.10) 0%, transparent 60%);
+    }
+
+    .title-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(232, 97, 26, 0.12);
+      border: 1px solid rgba(232, 97, 26, 0.3);
+      border-radius: 30px;
+      padding: 7px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent1);
+      margin-bottom: 28px;
+    }
+
+    .headline-mono {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent1);
+    }
+
+    /* ── Nav ── */
+    .nav {
+      position: fixed;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
+      background: rgba(19, 19, 30, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 10px 20px;
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+      font-size: 16px;
+    }
+
+    .nav-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .nav-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-dot.active {
+      background: var(--accent1);
+      width: 20px;
+      border-radius: 3px;
+    }
+
+    .slide-num {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* ── Animated gradient text ── */
+    .grad {
+      background: linear-gradient(135deg, var(--accent1) 0%, #f59e0b 40%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Separator line ── */
+    .sep {
+      width: 48px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      border-radius: 2px;
+      margin: 20px 0;
+    }
+
+    /* ── List ── */
+    ul.nice {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    ul.nice li::before {
+      content: '→';
+      color: var(--accent1);
+      margin-right: 10px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="deck" id="deck">
+
+    <!-- ── 0 · Title ─────────────────────────────────────────── -->
+    <div class="slide active center" id="slide-0">
+      <div class="flame-bg"></div>
+      <div class="title-badge">🔥 Multi-Agent Debate Engine</div>
+      <h1><span class="headline-mono">heated</span><span class="grad">-debate</span></h1>
+      <div class="sep" style="margin: 24px auto;"></div>
+      <p style="max-width:540px; font-size:clamp(17px,2vw,23px); color:#8888aa;">
+        Two LLM agents argue until a great design emerges. An architect proposes. A reviewer challenges.
+        A creativity dial cools round by round.
+      </p>
+      <div class="chips mt40">
+        <div class="chip">
+          <div class="chip-dot" style="background:var(--accent3)"></div>bun / TypeScript
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background:#f59e0b"></div>Claude · Codex
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background:var(--accent2)"></div>No API key needed
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 1 · The Idea ──────────────────────────────────────── -->
+    <div class="slide" id="slide-1">
+      <div class="eyebrow">The Idea</div>
+      <h2 style="max-width:700px;">Good design emerges from structured disagreement</h2>
+      <div class="sep mt28"></div>
+      <div class="cols2 mt28" style="max-width:860px;">
+        <div class="card">
+          <div class="card-icon">🏗️</div>
+          <h3>Agent A — Architect</h3>
+          <p>Proposes implementation plans. Refines based on feedback. Sends diffs, not full repeats.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <h3>Agent B — Reviewer</h3>
+          <p>Challenges proposals, finds flaws, identifies edge cases. Forces the plan to earn its shape.</p>
+        </div>
+      </div>
+      <p class="mt28" style="max-width:680px; text-align:center; color:var(--muted);">
+        Both agents run in the same model or across models. No shared context — each sees only what the other sends.
+      </p>
+    </div>
+
+    <!-- ── 2 · Round Loop ─────────────────────────────────────── -->
+    <div class="slide" id="slide-2">
+      <div class="eyebrow">How a Debate Runs</div>
+      <h2 style="max-width:640px; text-align:center;">One topic · N rounds · two voices</h2>
+      <div class="mt40 flow">
+        <div class="flow-node" style="border-color:#e8611a55;">
+          <div class="fn-label" style="color:var(--accent1);">Input</div>
+          <div class="fn-title">topic.md</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:#f59e0b55;">
+          <div class="fn-label" style="color:#f59e0b;">Round 1–N</div>
+          <div class="fn-title">Agent A<br><span style="font-size:13px;color:var(--muted)">proposes</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:#a855f755;">
+          <div class="fn-label" style="color:var(--accent2);">Round 1–N</div>
+          <div class="fn-title">Agent B<br><span style="font-size:13px;color:var(--muted)">reviews</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:#38bdf855;">
+          <div class="fn-label" style="color:var(--accent3);">Output</div>
+          <div class="fn-title">Transcript<br><span style="font-size:13px;color:var(--muted)">.md log</span></div>
+        </div>
+      </div>
+      <div class="card mt40" style="max-width:840px; border-color:var(--border);">
+        <p>B's response always becomes A's next prompt. No moderator — just the ping-pong of proposal and critique, with
+          context carried forward via <code>--resume</code>.</p>
+      </div>
+      <div class="cols2 mt28" style="max-width:840px;">
+        <div class="agent-box agent-a">
+          <div class="agent-label">Agent A · Round 2</div>
+          <p style="font-size:15px;">"Addressing the Decimal-from-float issue: switching constructor to
+            <code>Decimal(str(price))</code> to prevent float precision drift…"</p>
+        </div>
+        <div class="agent-box agent-b">
+          <div class="agent-label">Agent B · Round 2</div>
+          <p style="font-size:15px;">"The <code>allow_short</code> semantics are still underspecified. Does it block the
+            trade or clamp position to zero? Edge case: short then long same tick."</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 3 · Creativity Dial ───────────────────────────────── -->
+    <div class="slide center" id="slide-3">
+      <div class="eyebrow">Creativity Dial</div>
+      <h2>Temperature by prompt, not by API</h2>
+      <p class="mt16" style="max-width:560px; color:var(--muted);">Each round injects a behavioral prefix. The dial
+        cools linearly from <strong>Wild → Precise</strong> across rounds.</p>
+      <div class="dial-row mt40">
+        <div class="dial-step d5">
+          <div class="dlabel">Wild</div>
+          <div class="dnum">5</div>
+          <div class="ddesc">Radical alternatives.<br>Question the premise.</div>
+        </div>
+        <div class="dial-step d4">
+          <div class="dlabel">Creative</div>
+          <div class="dnum">4</div>
+          <div class="ddesc">New ideas.<br>Challenge assumptions.</div>
+        </div>
+        <div class="dial-step d3">
+          <div class="dlabel">Balanced</div>
+          <div class="dnum">3</div>
+          <div class="ddesc">Mix ideas<br>with refinement.</div>
+        </div>
+        <div class="dial-step d2">
+          <div class="dlabel">Focused</div>
+          <div class="dnum">2</div>
+          <div class="ddesc">Fix issues.<br>No new directions.</div>
+        </div>
+        <div class="dial-step d1">
+          <div class="dlabel">Precise</div>
+          <div class="dnum">1</div>
+          <div class="ddesc">Converge.<br>Final decisions only.</div>
+        </div>
+      </div>
+      <div class="card mt40" style="max-width:760px; text-align:left;">
+        <p>The subscription CLIs don't expose temperature. The dial is the only behavioral modulator — and it's the
+          trainable signal for RL later.</p>
+      </div>
+    </div>
+
+    <!-- ── 4 · Architecture ──────────────────────────────────── -->
+    <div class="slide" id="slide-4">
+      <div class="eyebrow">Architecture</div>
+      <h2 style="text-align:center;">shelley.ts — the Bun engine</h2>
+      <div class="cols2 mt40" style="max-width:960px; gap:30px; align-items:start;">
+        <div class="stack">
+          <div class="card" style="border-color:#38bdf855;">
+            <h3 style="color:var(--accent3);">🦩 Claude backend</h3>
+            <p>Session continuity via <code>--resume &lt;session-id&gt;</code>. New sessions with
+              <code>--session-id</code> + <code>--system-prompt</code>.</p>
+          </div>
+          <div class="card" style="border-color:#a855f755;">
+            <h3 style="color:var(--accent2);">⚡ Codex backend</h3>
+            <p>Stateless calls via <code>codex exec --sandbox read-only</code>. Conversation history windowed manually
+              per-agent.</p>
+          </div>
+          <div class="card" style="border-color:#f59e0b55;">
+            <h3 style="color:#f59e0b;">🔐 Env sanitation</h3>
+            <p>Strips provider API keys before spawning CLIs. You stay on subscription auth — no accidental billing.</p>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="codeblock">
+            <span class="comment"># Run 5 rounds, default topic</span>
+            <span class="cmd">bun shelley.ts</span> <span class="str">5</span>
+
+            <span class="comment"># Topic from file, 3 rounds</span>
+            <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/stock-trades/topic.md <span
+              class="str">3</span>
+
+            <span class="comment"># Switch both agents to Codex</span>
+            <span class="kw">MODEL_A</span>=codex:gpt-5 <span class="kw">MODEL_B</span>=codex:gpt-5 \
+            <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/my-topic/topic.md <span
+              class="str">5</span>
+
+            <span class="comment"># Resume a partial run</span>
+            <span class="kw">RESUME_FROM_LOG</span>=debates/my-topic/20260227_1930.md \
+            <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/my-topic/topic.md <span
+              class="str">7</span>
+          </div>
+          <div class="card" style="font-size:15px;">
+            <strong>Context injection</strong><br>
+            <p class="mt16">Put a <code>context.txt</code> next to your <code>topic.md</code> listing repo-relative file
+              paths. shelley.ts reads them fresh every run — no copies, agents always see current source.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 5 · Debate topic format ────────────────────────────── -->
+    <div class="slide" id="slide-5">
+      <div class="eyebrow">Running a Debate</div>
+      <h2 style="text-align:center;">Drop a topic file, get a transcript</h2>
+      <div class="cols2 mt40" style="max-width:960px; align-items:start;">
+        <div class="stack">
+          <p
+            style="font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; font-weight:600;">
+            Directory layout</p>
+          <div class="codeblock" style="font-size:14px;">
+            debates/
+            stock-trades/
+            topic.md <span class="comment">← 1–3 sentences, no code</span>
+            context.txt <span class="comment">← file paths to inject</span>
+            20260223_230831.md <span class="comment">← transcript</span>
+            review-dials-refactor/
+            topic.md
+            context.txt
+          </div>
+          <div class="card">
+            <h3>topic.md</h3>
+            <p style="font-size:15px; margin-top:8px; font-style:italic; color:#8888bb;">"Design a Python function that
+              takes a list of stock trades and outputs a portfolio summary with current positions, average cost basis,
+              and realized P&amp;L."</p>
+          </div>
+        </div>
+        <div class="stack">
+          <p
+            style="font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; font-weight:600;">
+            Transcript output</p>
+          <div class="agent-box agent-a" style="margin-bottom:12px;">
+            <div class="agent-label">Agent A · sonnet · 38s</div>
+            <p style="font-size:15px;">Proposes typed <code>Trade</code> dataclass, separate <code>Position</code>
+              accumulator, FIFO lot matching for realized P&amp;L…</p>
+          </div>
+          <div class="agent-box agent-b">
+            <div class="agent-label">Agent B · sonnet · 44s</div>
+            <p style="font-size:15px;">Raises: <code>Decimal(price)</code> from float is unsafe. Boundary: what if qty
+              is 0? <code>allow_short</code> behavior on same-tick reversal underspecified.</p>
+          </div>
+          <div class="card mt16" style="font-size:15px;">
+            Per-round timing + stats table appended to every transcript, with both agent IDs and session UUIDs.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 6 · Multi-model ───────────────────────────────────── -->
+    <div class="slide center" id="slide-6">
+      <div class="eyebrow">Model Support</div>
+      <h2>Any two models. Any combination.</h2>
+      <div class="sep" style="margin: 24px auto;"></div>
+      <div class="cols3 mt28" style="max-width:900px;">
+        <div class="card" style="border-color:#38bdf855;">
+          <div class="card-icon">☁️</div>
+          <h3>Claude (claude:*)</h3>
+          <p>Persistent sessions via <code>--resume</code>. haiku, sonnet, opus. No API key — subscription login.</p>
+        </div>
+        <div class="card" style="border-color:#a855f755;">
+          <div class="card-icon">⚡</div>
+          <h3>Codex (codex:*)</h3>
+          <p>Stateless <code>codex exec</code>. History windowed per-agent. Reasoning effort tunable via env var.</p>
+        </div>
+        <div class="card" style="border-color:#10b98155;">
+          <div class="card-icon">🌐</div>
+          <h3>Any via LiteLLM</h3>
+          <p><code>later/pynaille.py</code> routes to Gemini, GPT-4o, and any LiteLLM provider with API keys.</p>
+        </div>
+      </div>
+      <div class="codeblock mt40" style="max-width:760px; font-size:15px;">
+        <span class="comment"># Claude vs Claude</span>
+        <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/perf/topic.md <span
+          class="str">5</span>
+
+        <span class="comment"># Codex vs Codex, high reasoning</span>
+        <span class="kw">MODEL_A</span>=codex <span class="kw">MODEL_B</span>=codex <span
+          class="kw">CODEX_REASONING_EFFORT</span>=high \
+        <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/perf/topic.md <span
+          class="str">5</span>
+
+        <span class="comment"># Mixed: Claude architect vs Codex reviewer</span>
+        <span class="kw">MODEL_A</span>=sonnet <span class="kw">MODEL_B</span>=codex <span class="cmd">bun
+          shelley.ts</span> <span class="kw">-f</span> debates/perf/topic.md <span class="str">5</span>
+      </div>
+    </div>
+
+    <!-- ── 7 · Roadmap ───────────────────────────────────────── -->
+    <div class="slide" id="slide-7">
+      <div class="eyebrow">What Comes Next</div>
+      <h2 style="text-align:center;">From debates to design machines</h2>
+      <div class="cols2 mt40" style="max-width:960px; align-items:start; gap:20px;">
+        <div class="stack" style="gap:16px;">
+          <div class="roadmap-item">
+            <div class="roadmap-num">1</div>
+            <div>
+              <h3>Dial vector</h3>
+              <p>Expand from one scalar to a vector: creativity, risk tolerance, verbosity, deference — per agent, per
+                round.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="roadmap-num">2</div>
+            <div>
+              <h3>Phase architecture</h3>
+              <p>Brainstorm → Hard spec → Scaffold → Tests → Fill-in. Each phase in its own conversation; output feeds
+                next.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="roadmap-num">3</div>
+            <div>
+              <h3>Tournament + judge</h3>
+              <p>Run N parallel debates, different dial settings or model pairings. A judge agent scores output. Winner
+                advances.</p>
+            </div>
+          </div>
+        </div>
+        <div class="stack" style="gap:16px;">
+          <div class="roadmap-item">
+            <div class="roadmap-num">4</div>
+            <div>
+              <h3>RL over dial vectors</h3>
+              <p>Treat the dial vector as the action space; judge score is reward. Bayesian opt / evolutionary
+                strategies — no deep RL infra needed.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="roadmap-num">5</div>
+            <div>
+              <h3>Agent SDK path</h3>
+              <p>With an API key, switch to the Claude Agent SDK for persistent in-process agents — eliminates the ~50s
+                cold-start per turn.</p>
+            </div>
+          </div>
+          <div class="roadmap-item">
+            <div class="roadmap-num">6</div>
+            <div>
+              <h3>Token accounting</h3>
+              <p>Add token counts per turn to transcripts; feed into cost-aware dial optimization.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 8 · Close ─────────────────────────────────────────── -->
+    <div class="slide center" id="slide-8">
+      <div class="flame-bg"></div>
+      <div class="eyebrow">Get Started</div>
+      <h1 class="grad">Let them fight.</h1>
+      <div class="sep" style="margin: 24px auto;"></div>
+      <div class="codeblock mt16" style="max-width:620px; font-size:16px; text-align:left;">
+        <span class="comment"># install bun, clone, debate</span>
+        <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/stock-trades/topic.md <span
+          class="str">5</span>
+      </div>
+      <div class="chips mt40">
+        <div class="chip">
+          <div class="chip-dot" style="background:var(--accent1)"></div>github.com/vd1/heated-debate
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background:var(--accent3)"></div>shelley.ts · bun
+        </div>
+        <div class="chip">
+          <div class="chip-dot" style="background:var(--accent2)"></div>No API key needed
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /deck -->
+
+  <!-- ── Nav ── -->
+  <nav class="nav" id="nav">
+    <button class="nav-btn" id="prev-btn" onclick="go(-1)" title="Previous">←</button>
+    <div class="nav-dots" id="dots"></div>
+    <button class="nav-btn" id="next-btn" onclick="go(1)" title="Next">→</button>
+    <span class="slide-num" id="slide-num">1 / 9</span>
+  </nav>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const dotsEl = document.getElementById('dots');
+    const numEl = document.getElementById('slide-num');
+    let cur = 0;
+
+    // Build dots
+    slides.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+      d.onclick = () => goTo(i);
+      dotsEl.appendChild(d);
+    });
+
+    function goTo(n) {
+      if (n === cur) return;
+      const prev = slides[cur];
+      prev.classList.remove('active');
+      prev.classList.add('exit');
+      setTimeout(() => prev.classList.remove('exit'), 300);
+      cur = (n + slides.length) % slides.length;
+      slides[cur].classList.add('active');
+      document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+      numEl.textContent = `${cur + 1} / ${slides.length}`;
+    }
+
+    function go(dir) { goTo(cur + dir); }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); go(-1); }
+    });
+
+    // Swipe on mobile
+    let sx = null;
+    document.addEventListener('touchstart', e => { sx = e.touches[0].clientX; });
+    document.addEventListener('touchend', e => {
+      if (sx === null) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+      sx = null;
+    });
+  </script>
+</body>
+
+</html>
