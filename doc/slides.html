@@ -390,70 +390,82 @@
         }
 
         /* ══════════════════════════════════════════════
-     EVIDENCE TABLE
+     EVIDENCE MAP (slide 3)
   ══════════════════════════════════════════════ */
-        .ev-table {
+        .protocol-diagram {
             width: 100%;
-            max-width: 900px;
-            border-collapse: collapse;
-            font-size: 15px;
+            max-width: 980px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            background:
+                radial-gradient(ellipse 45% 50% at 5% 0%, rgba(232, 97, 26, 0.08) 0%, transparent 80%),
+                radial-gradient(ellipse 45% 50% at 95% 100%, rgba(56, 189, 248, 0.08) 0%, transparent 80%),
+                #0b0c14;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
         }
 
-        .ev-table th {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--sub);
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--border);
-            text-align: left;
+        .protocol-diagram svg {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
-        .ev-table th:first-child {
-            width: 28%;
+        .p-card {
+            fill: #111118;
+            stroke: #2b2f45;
+            stroke-width: 2;
         }
 
-        .ev-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
+        .p-card.warm {
+            stroke: rgba(232, 97, 26, 0.6);
+        }
+
+        .p-card.cool {
+            stroke: rgba(56, 189, 248, 0.6);
+        }
+
+        .p-card.neutral {
+            stroke: rgba(148, 163, 184, 0.45);
+        }
+
+        .p-title {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            fill: var(--sub);
         }
 
-        .ev-table tr:last-child td {
-            border-bottom: none;
+        .p-title.warm {
+            fill: var(--warm);
         }
 
-        .ev-table .mode-label {
-            font-size: 13px;
-            font-weight: 600;
+        .p-title.cool {
+            fill: var(--cool);
+        }
+
+        .p-text {
             font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            fill: var(--text);
         }
 
-        .ev-table .baseline td {
-            color: var(--sub);
+        .p-text.sub {
+            fill: #a5acc8;
+            font-size: 12px;
         }
 
-        .ev-table .debate td.delta-pos {
-            color: #4ade80;
+        .p-arrow {
+            stroke: #7b819e;
+            stroke-width: 2.3;
+            fill: none;
+            marker-end: url(#p-arrow-head);
         }
 
-        .ev-table .debate td.delta-neg {
-            color: var(--danger);
-        }
-
-        .ev-table .debate td.mode-label {
-            color: var(--text);
-        }
-
-        /* placeholder shimmer for unfilled evidence */
-        .ph {
-            display: inline-block;
-            background: var(--border);
-            border-radius: 4px;
-            height: 14px;
-            vertical-align: middle;
+        .p-arrow.dashed {
+            stroke-dasharray: 7 6;
         }
 
         /* ══════════════════════════════════════════════
@@ -774,6 +786,14 @@
             text-align: right;
         }
 
+        .build-id {
+            font-size: 11px;
+            color: #6f7693;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.03em;
+            margin-left: 2px;
+        }
+
         /* ══════════════════════════════════════════════
      PROGRESS BAR
   ══════════════════════════════════════════════ */
@@ -866,57 +886,48 @@
             <p class="sub mt24" style="max-width:580px;">
                 Same task set, pre-registered rubric, each agent sees only what the other sends. No moderator.
             </p>
-            <!-- Mechanism diagram + feedback arc wrapper -->
-            <div style="position:relative; width:100%; max-width:900px; margin-top:36px;">
-                <div class="mech">
-                    <div class="mech-node arch">
-                        <div class="role">Architect A</div>
-                        <div class="label">Proposes</div>
-                        <div class="hint">diffs, not repeats</div>
-                    </div>
-                    <div class="mech-arrow">→</div>
-                    <div class="mech-node rev">
-                        <div class="role">Reviewer B</div>
-                        <div class="label">Attacks</div>
-                        <div class="hint">flaws, edge cases</div>
-                    </div>
-                    <div class="mech-arrow">→</div>
-                    <div class="mech-node arch">
-                        <div class="role">Architect A</div>
-                        <div class="label">Refines</div>
-                        <div class="hint">B's reply = A's prompt</div>
-                    </div>
-                    <div class="mech-arrow">→</div>
-                    <div class="mech-node log">
-                        <div class="role">System</div>
-                        <div class="label">Transcript</div>
-                        <div class="hint">timestamped .md log</div>
-                    </div>
-                </div>
-
-                <!--
-                  Feedback arc: from centre of "Architect A Refines" (node 3) back to
-                  centre of "Reviewer B Attacks" (node 2).
-
-                  900px container, 4 flex nodes + 3 arrows (~38px each = 114px total).
-                  Node width ≈ (900−114)/4 = 196px.
-                  Node 2 centre ≈ 38 + 196 + 38 + 98 = 370px  (arrow1 + node2 + arrow2/2... let's use 340)
-                  Node 3 centre ≈ 340 + 196 = 536px ... use 560.
-                  Arc dips 56px below the nodes.
-                -->
-                <svg viewBox="0 0 900 62"
-                    style="display:block; width:100%; height:62px; overflow:visible; margin-top:0;" aria-hidden="true">
+            <div class="protocol-diagram mt24">
+                <svg viewBox="0 0 940 332" role="img"
+                    aria-label="Debate mechanism: shared inputs feed Architect and Reviewer, they iterate across rounds, and the system logs outputs.">
                     <defs>
-                        <marker id="loop-head" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                            <path d="M0,0 L8,3 L0,6 Z" fill="#6b7280" />
+                        <marker id="mech2-head" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+                            <polygon points="0,0 10,4 0,8" fill="#7b819e"></polygon>
                         </marker>
                     </defs>
-                    <!-- dashed arc from Refines → Reviewer B, curving below the nodes -->
-                    <path d="M 560,4 C 560,58 340,58 340,4" fill="none" stroke="#3a3a5c" stroke-width="1.5"
-                        stroke-dasharray="5,4" marker-end="url(#loop-head)" />
-                    <!-- "N rounds" label centred on the arc belly -->
-                    <text x="450" y="57" text-anchor="middle" fill="#555577" font-size="11"
-                        font-family="Inter, sans-serif" font-weight="600" letter-spacing="0.12em">N ROUNDS</text>
+
+                    <rect x="24" y="58" width="198" height="216" rx="16" fill="#0f111d" stroke="#2d334d" stroke-width="2"></rect>
+                    <text x="46" y="88" class="p-title">Shared Inputs</text>
+                    <text x="46" y="124" class="p-text">topic.md</text>
+                    <text x="46" y="148" class="p-text">context.txt</text>
+                    <text x="46" y="182" class="p-text sub">same prompt corpus</text>
+                    <text x="46" y="202" class="p-text sub">same task constraints</text>
+                    <text x="46" y="222" class="p-text sub">no hidden moderator</text>
+
+                    <rect x="292" y="52" width="246" height="102" rx="14" fill="#151018" stroke="rgba(232, 97, 26, 0.72)" stroke-width="2.2"></rect>
+                    <text x="316" y="82" class="p-title warm">Architect A</text>
+                    <text x="316" y="114" class="p-text">proposes and refines plan</text>
+                    <text x="316" y="136" class="p-text sub">must answer Reviewer objections</text>
+
+                    <rect x="292" y="180" width="246" height="102" rx="14" fill="#0d1620" stroke="rgba(56, 189, 248, 0.72)" stroke-width="2.2"></rect>
+                    <text x="316" y="210" class="p-title cool">Reviewer B</text>
+                    <text x="316" y="242" class="p-text">attacks assumptions, edge cases</text>
+                    <text x="316" y="264" class="p-text sub">must provide concrete critique</text>
+
+                    <rect x="620" y="74" width="292" height="186" rx="16" fill="#12131d" stroke="#3a425e" stroke-width="2"></rect>
+                    <text x="644" y="104" class="p-title">System Output</text>
+                    <text x="644" y="136" class="p-text">timestamped transcript (.md)</text>
+                    <text x="644" y="160" class="p-text">round markers + turn timing</text>
+                    <text x="644" y="184" class="p-text">decision trace for humans</text>
+                    <text x="644" y="220" class="p-text sub">gate checks happen after run.</text>
+
+                    <path d="M223 130 C248 118, 262 112, 291 103" stroke="#7b819e" stroke-width="2.2" fill="none" marker-end="url(#mech2-head)"></path>
+                    <path d="M223 196 C248 210, 262 218, 291 231" stroke="#7b819e" stroke-width="2.2" fill="none" marker-end="url(#mech2-head)"></path>
+                    <path d="M539 102 C574 102, 584 112, 619 132" stroke="#7b819e" stroke-width="2.2" fill="none" marker-end="url(#mech2-head)"></path>
+                    <path d="M539 230 C574 230, 584 220, 619 202" stroke="#7b819e" stroke-width="2.2" fill="none" marker-end="url(#mech2-head)"></path>
+                    <path d="M415 154 L415 180" stroke="#7b819e" stroke-width="2.2" fill="none" marker-end="url(#mech2-head)"></path>
+                    <path d="M292 232 C256 232, 252 112, 292 102" stroke="#7b819e" stroke-width="2" fill="none" stroke-dasharray="6 5" marker-end="url(#mech2-head)"></path>
+                    <text x="238" y="172" class="p-text sub">next round</text>
+                    <text x="350" y="314" class="p-text sub">N rounds: A and B alternate until dial cools to Precise.</text>
                 </svg>
             </div>
 
@@ -1039,45 +1050,67 @@
                 30 tasks (10 bugfix · 10 feature · 10 refactor), two blinded scorers + adjudicator.
                 Critical defect classes: correctness, security, data loss, compliance, operability.
             </p>
-            <table class="ev-table mt36">
-                <thead>
-                    <tr>
-                        <th>Mode</th>
-                        <th>Δ Recall</th>
-                        <th>Δ False+ </th>
-                        <th>p90 Time <span style="font-size:10px; font-weight:400; opacity:0.55;">(reported)</span></th>
-                        <th>Δ Tokens</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="baseline">
-                        <td class="mode-label">Single-agent</td>
-                        <td>baseline</td>
-                        <td>baseline</td>
-                        <td>baseline</td>
-                        <td>baseline</td>
-                    </tr>
-                    <tr class="baseline">
-                        <td class="mode-label">Self-critique<br><span
-                                style="font-size:11px; font-weight:400; color:var(--sub); letter-spacing:0;">N=1 · same
-                                agent self-reviews</span></td>
-                        <td><span class="ph" style="width:64px"></span></td>
-                        <td><span class="ph" style="width:52px"></span></td>
-                        <td><span class="ph" style="width:56px"></span></td>
-                        <td><span class="ph" style="width:60px"></span></td>
-                    </tr>
-                    <tr class="debate">
-                        <td class="mode-label" style="color:var(--text); font-weight:700;">Debate (this engine)</td>
-                        <td class="delta-pos"><span class="ph" style="width:72px"></span></td>
-                        <td class="delta-neg"><span class="ph" style="width:52px"></span></td>
-                        <td class="delta-neg"><span class="ph" style="width:60px"></span></td>
-                        <td class="delta-neg"><span class="ph" style="width:68px"></span></td>
-                    </tr>
-                </tbody>
-            </table>
-            <p class="sub mt24" style="font-size:13px; max-width:700px;">
-                Fill in after the N=30 run. Include 95% CI per cell. Gates:
-                recall Δ ≥+25% · token Δ ≤+150% · cold-start p90 ≤12m (absolute, not relative to baseline).
+            <div class="protocol-diagram mt36">
+                <svg viewBox="0 0 980 420" role="img"
+                    aria-label="Evaluation protocol: task pool, comparison modes, blinded scoring, decision gates, then retune-and-rerun loop.">
+                    <defs>
+                        <marker id="p-arrow-head" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+                            <polygon points="0,0 10,4 0,8" fill="#7b819e"></polygon>
+                        </marker>
+                    </defs>
+
+                    <!-- Task pool -->
+                    <rect class="p-card neutral" x="30" y="72" width="210" height="180" rx="16"></rect>
+                    <text class="p-title" x="52" y="102">Task Pool (N=30)</text>
+                    <text class="p-text" x="52" y="136">10 bugfix</text>
+                    <text class="p-text" x="52" y="160">10 feature</text>
+                    <text class="p-text" x="52" y="184">10 refactor</text>
+                    <text class="p-text sub" x="52" y="218">Same prompts and context files.</text>
+
+                    <!-- Comparison modes -->
+                    <rect class="p-card warm" x="270" y="54" width="220" height="216" rx="16"></rect>
+                    <text class="p-title warm" x="292" y="84">Comparison Modes</text>
+                    <rect class="p-card neutral" x="292" y="102" width="176" height="46" rx="10"></rect>
+                    <text class="p-text" x="308" y="131">Single-agent baseline</text>
+                    <rect class="p-card neutral" x="292" y="158" width="176" height="46" rx="10"></rect>
+                    <text class="p-text" x="308" y="187">Self-critique (N=1)</text>
+                    <rect class="p-card cool" x="292" y="214" width="176" height="46" rx="10"></rect>
+                    <text class="p-text" x="308" y="243">Debate (A vs B)</text>
+
+                    <!-- Scoring -->
+                    <rect class="p-card cool" x="520" y="72" width="200" height="180" rx="16"></rect>
+                    <text class="p-title cool" x="542" y="102">Blinded Scoring</text>
+                    <text class="p-text" x="542" y="136">Scorer 1 and Scorer 2</text>
+                    <text class="p-text" x="542" y="160">independent labels</text>
+                    <text class="p-text" x="542" y="190">Adjudicator resolves ties</text>
+                    <text class="p-text sub" x="542" y="220">Defect classes pre-registered.</text>
+
+                    <!-- Gates -->
+                    <rect class="p-card neutral" x="750" y="50" width="200" height="232" rx="16"></rect>
+                    <text class="p-title" x="772" y="80">Decision Gates</text>
+                    <text class="p-text" x="772" y="112">Recall delta ≥ +25%</text>
+                    <text class="p-text" x="772" y="138">Token delta ≤ +150%</text>
+                    <text class="p-text" x="772" y="164">Cold-start p90 ≤ 12m</text>
+                    <text class="p-text" x="772" y="190">95% CI required</text>
+                    <text class="p-text" x="772" y="216">All gates pass = default on</text>
+                    <text class="p-text sub" x="772" y="246">Else: tune and rerun.</text>
+
+                    <!-- Retune target -->
+                    <rect class="p-card neutral" x="320" y="334" width="340" height="56" rx="12"></rect>
+                    <text class="p-title" x="342" y="360">Retune and Rerun</text>
+                    <text class="p-text sub" x="342" y="382">Adjust rounds, model pairing, or rubric. Re-run N=30.</text>
+
+                    <!-- Flow arrows -->
+                    <path class="p-arrow" d="M241 162 C252 162, 258 162, 269 162"></path>
+                    <path class="p-arrow" d="M491 162 C502 162, 508 162, 519 162"></path>
+                    <path class="p-arrow" d="M721 162 C732 162, 738 162, 749 162"></path>
+                    <path class="p-arrow dashed" d="M850 283 C862 325, 760 350, 660 350"></path>
+                    <path class="p-arrow dashed" d="M320 350 C248 350, 230 250, 270 238"></path>
+                </svg>
+            </div>
+            <p class="sub mt24" style="font-size:13px; max-width:760px;">
+                This replaces the old placeholder table with a concrete execution map.
+                After the run, annotate each mode box with observed deltas and confidence intervals.
             </p>
         </div>
 
@@ -1267,6 +1300,7 @@
         <div class="nav-dots" id="dots"></div>
         <button class="nav-btn" onclick="go(1)" title="Next (→)">→</button>
         <span class="slide-counter" id="counter">1 / 9</span>
+        <span class="build-id">build b770b5d · 2026-03-04 12:51</span>
     </nav>
 
     <script>
