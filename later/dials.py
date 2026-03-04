@@ -1,6 +1,6 @@
 """Shared creativity dial and temperature schedule for heated-debate.
 
-Importable as a module (pynaille.py) and callable as a CLI (shelley.sh).
+Importable as a module (`later/pynaille.py`) and callable as a CLI (`python later/dials.py ...`).
 """
 
 DIAL_LABELS = {5: "Wild", 4: "Creative", 3: "Balanced", 2: "Focused", 1: "Precise"}

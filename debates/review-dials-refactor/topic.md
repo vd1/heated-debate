@@ -1,1 +1,1 @@
-Review the dials refactor: a shared dials.py (at repo root) was extracted to provide creativity-dial and temperature schedules to both shelley.sh and pynaille.py (both at repo root). Assess correctness, edge cases, the linear cooldown curve, prompt-prefix injection strategy, and naming.
+Review the dials refactor: shared `later/dials.py` provides creativity-dial and temperature schedules to both `shelley.ts` and `later/pynaille.py`. Assess correctness, edge cases, the linear cooldown curve, prompt-prefix injection strategy, and naming.

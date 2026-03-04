@@ -7,7 +7,7 @@ Minimal and correct. The protocol doc ("don't fetch, code is local", "check the 
 Clear arc from practical to ambitious:
 
 - **Soft dials** — prompt-injected behavioral knobs instead of API temperature. Whether models respond predictably to "creativity: 3/5" is the open empirical question.
-- **Stream JSON** — persistent process would cut the ~40-60s per-turn spawning cost in shelley.sh.
+- **Stream JSON** — persistent process would cut the ~40-60s per-turn spawning cost in the legacy shell runner.
 - **Phase architecture** — brainstorm→spec→scaffold→test→implement. Each phase in its own conversation avoids context bloat.
 - **Tournament + judge** — beam search over design space. Ambitious but well-framed.
 - **RL over dial vectors** — Bayesian opt over a low-dimensional action space with judge scores as reward. Smart scoping — no deep RL infrastructure needed.

@@ -1,8 +1,8 @@
-# Plan: Port shelley.sh to shelley.ts
+# Plan: Port the legacy shell runner to shelley.ts
 
 ## Context
 
-shelley.sh is hitting its ceiling — JSON parsing, token tracking, and history management are painful in zsh. Rewrite in TypeScript (bun). Still shells out to CLI tools (subscription, no API key). Adds per-turn token/cost tracking.
+The legacy shell runner is hitting its ceiling — JSON parsing, token tracking, and history management are painful in zsh. Rewrite in TypeScript (bun). Still shells out to CLI tools (subscription, no API key). Adds per-turn token/cost tracking.
 
 ## Key changes from the shell version
 
@@ -36,7 +36,7 @@ async function callClaude(opts: CallOpts): Promise<LLMResult> {
 }
 ```
 
-Session management: we own the UUID via `--session-id` / `--resume` (proven by shelley.sh).
+Session management: we own the UUID via `--session-id` / `--resume` (proven by the legacy shell runner).
 
 ### callCodex (stub)
 
@@ -44,7 +44,7 @@ Session management: we own the UUID via `--session-id` / `--resume` (proven by s
 
 ### Logging
 
-`appendFileSync` per line — no buffer, SIGKILL-safe at line granularity. Simpler than shelley.sh's `tee -a`, same crash resilience.
+`appendFileSync` per line — no buffer, SIGKILL-safe at line granularity. Simpler than the legacy shell runner's `tee -a`, same crash resilience.
 
 ```typescript
 import { appendFileSync } from "node:fs";
@@ -99,8 +99,8 @@ Per-turn rows + per-agent subtotals + grand total, inside `<details>`:
 | File | Change |
 |------|--------|
 | `shelley.ts` | New — full port |
-| `shelley.sh` | Keep as-is |
-| `dials.py` | Keep as-is (pynaille.py imports it) |
+| Legacy shell runner | Removed after migration |
+| `later/dials.py` | Keep as-is (`later/pynaille.py` imports it) |
 
 ## Verification
 

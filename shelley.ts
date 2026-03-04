@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// shelley.ts — multi-agent debate engine (bun port of shelley.sh)
+// shelley.ts — multi-agent debate engine (TypeScript entrypoint)
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";

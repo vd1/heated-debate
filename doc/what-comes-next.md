@@ -23,7 +23,7 @@ interactive multi-turn on a single process. Multi-turn still requires
 What *does* work: `--output-format json` gives structured results (session
 ID, token counts, result text) instead of raw text. A Python orchestrator
 using `--resume` + JSON output is the realistic subscription-path upgrade
-over shelley.sh — same per-turn spawning, but with proper structured parsing
+over the legacy shell runner — same per-turn spawning, but with proper structured parsing
 and asyncio concurrency.
 
 For true single-process persistent agents, need the Agent SDK
@@ -60,13 +60,13 @@ interet user (≠ interet benchmark) -> on comprend mieux ses besoins et les dif
 
 ## 7. Streamy: Python orchestrator (subscription path)
 
-Replace shelley.sh with a Python asyncio orchestrator (`streamy.py`) that:
+Use a Python asyncio orchestrator (`streamy.py`) as the subscription path:
 - Spawns `claude -p --output-format json --resume <session>` per turn
 - Parses structured JSON for session IDs, token usage, results
 - Manages two agent sessions via `--resume` + `--session-id`
 - Runs concurrently where possible (e.g. both agents' tool init)
 - Logs to markdown like shelley, but with token counts per turn
-- Integrates dials.py via `--append-system-prompt`
+- Integrates `later/dials.py` via `--append-system-prompt`
 
 Still one process per turn (unavoidable on subscription), but structured
 output + Python control flow > bash string wrangling.
@@ -84,4 +84,3 @@ gives persistent in-process agents with no per-turn spawning overhead:
 Trade-off: requires `ANTHROPIC_API_KEY` (API billing), not subscription.
 But eliminates the ~50s cold-start per turn and gives native Python control
 over the agent loop. Worth exploring once the debate protocol stabilizes.
-
