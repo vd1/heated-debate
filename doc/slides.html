@@ -2,972 +2,1345 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>heated-debate — Multi-Agent Debate Engine</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
-
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --bg: #0a0a0f;
-      --surface: #13131e;
-      --border: #1e1e30;
-      --accent1: #e8611a;
-      /* orange-red flame */
-      --accent2: #a855f7;
-      /* violet */
-      --accent3: #38bdf8;
-      /* sky blue */
-      --text: #e8e8f0;
-      --muted: #6b6b8a;
-      --code-bg: #0f0f1a;
-    }
-
-    html,
-    body {
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* ── Deck ── */
-    .deck {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    .slide {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 80px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.45s ease, transform 0.45s ease;
-      transform: translateY(18px);
-    }
-
-    .slide.active {
-      opacity: 1;
-      pointer-events: all;
-      transform: translateY(0);
-    }
-
-    .slide.exit {
-      opacity: 0;
-      transform: translateY(-18px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    /* ── Typography ── */
-    .eyebrow {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent1);
-      margin-bottom: 18px;
-    }
-
-    h1 {
-      font-size: clamp(44px, 6.5vw, 84px);
-      font-weight: 900;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-    }
-
-    h2 {
-      font-size: clamp(30px, 4vw, 56px);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -0.025em;
-    }
-
-    h3 {
-      font-size: 21px;
-      font-weight: 700;
-    }
-
-    p,
-    li {
-      font-size: clamp(16px, 1.6vw, 20px);
-      line-height: 1.7;
-      color: #b0b0cc;
-    }
-
-    strong {
-      color: var(--text);
-    }
-
-    code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85em;
-      background: var(--code-bg);
-      padding: 2px 7px;
-      border-radius: 5px;
-      color: var(--accent3);
-    }
-
-    /* ── Layout helpers ── */
-    .center {
-      text-align: center;
-    }
-
-    .cols2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      width: 100%;
-      max-width: 1000px;
-    }
-
-    .cols3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 28px;
-      width: 100%;
-      max-width: 1080px;
-    }
-
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .mt16 {
-      margin-top: 16px;
-    }
-
-    .mt28 {
-      margin-top: 28px;
-    }
-
-    .mt40 {
-      margin-top: 40px;
-    }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px 30px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .card:hover {
-      border-color: var(--accent2);
-      transform: translateY(-2px);
-    }
-
-    .card-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-
-    .card h3 {
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-
-    .card p {
-      font-size: 16px;
-    }
-
-    /* ── Agent boxes ── */
-    .agent-box {
-      background: var(--surface);
-      border-radius: 14px;
-      padding: 24px 26px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .agent-box::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-    }
-
-    .agent-a::before {
-      background: linear-gradient(90deg, var(--accent1), #f59e0b);
-    }
-
-    .agent-b::before {
-      background: linear-gradient(90deg, var(--accent2), var(--accent3));
-    }
-
-    .agent-label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .agent-a .agent-label {
-      color: var(--accent1);
-    }
-
-    .agent-b .agent-label {
-      color: var(--accent2);
-    }
-
-    /* ── Dial component ── */
-    .dial-row {
-      display: flex;
-      gap: 10px;
-      width: 100%;
-      max-width: 900px;
-    }
-
-    .dial-step {
-      flex: 1;
-      border-radius: 12px;
-      padding: 16px 12px;
-      text-align: center;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      transition: all 0.3s;
-    }
-
-    .dial-step .dlabel {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      margin-bottom: 4px;
-    }
-
-    .dial-step .dnum {
-      font-size: 28px;
-      font-weight: 900;
-    }
-
-    .dial-step .ddesc {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 5px;
-      line-height: 1.4;
-    }
-
-    .d5 {
-      border-color: #e8611a55;
-    }
-
-    .d5 .dnum,
-    .d5 .dlabel {
-      color: var(--accent1);
-    }
-
-    .d4 {
-      border-color: #f59e0b55;
-    }
-
-    .d4 .dnum,
-    .d4 .dlabel {
-      color: #f59e0b;
-    }
-
-    .d3 {
-      border-color: #10b98155;
-    }
-
-    .d3 .dnum,
-    .d3 .dlabel {
-      color: #10b981;
-    }
-
-    .d2 {
-      border-color: #38bdf855;
-    }
-
-    .d2 .dnum,
-    .d2 .dlabel {
-      color: var(--accent3);
-    }
-
-    .d1 {
-      border-color: #a855f755;
-    }
-
-    .d1 .dnum,
-    .d1 .dlabel {
-      color: var(--accent2);
-    }
-
-    /* ── Code block ── */
-    .codeblock {
-      background: var(--code-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 22px 26px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
-      line-height: 1.7;
-      color: #9090c0;
-      width: 100%;
-      max-width: 800px;
-    }
-
-    .codeblock .comment {
-      color: #444466;
-    }
-
-    .codeblock .cmd {
-      color: var(--accent3);
-    }
-
-    .codeblock .kw {
-      color: var(--accent1);
-    }
-
-    .codeblock .str {
-      color: #a3e635;
-    }
-
-    /* ── Flow diagram ── */
-    .flow {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      width: 100%;
-      max-width: 960px;
-      flex-wrap: nowrap;
-    }
-
-    .flow-node {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 10px;
-      text-align: center;
-      min-width: 0;
-    }
-
-    .flow-node .fn-label {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-
-    .flow-node .fn-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .flow-arrow {
-      color: var(--muted);
-      font-size: 20px;
-      padding: 0 6px;
-      flex-shrink: 0;
-    }
-
-    /* ── Stat chips ── */
-    .chips {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .chip {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 30px;
-      padding: 10px 20px;
-      font-size: 15px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .chip-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    /* ── Roadmap ── */
-    .roadmap-item {
-      display: flex;
-      gap: 18px;
-      align-items: flex-start;
-    }
-
-    .roadmap-num {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      font-weight: 800;
-      flex-shrink: 0;
-      margin-top: 2px;
-      background: linear-gradient(135deg, var(--accent1), var(--accent2));
-      color: white;
-    }
-
-    .roadmap-item p {
-      font-size: 16px;
-    }
-
-    /* ── Title slide deco ── */
-    .flame-bg {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(232, 97, 26, 0.18) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 30% at 20% 80%, rgba(168, 85, 247, 0.10) 0%, transparent 60%);
-    }
-
-    .title-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(232, 97, 26, 0.12);
-      border: 1px solid rgba(232, 97, 26, 0.3);
-      border-radius: 30px;
-      padding: 7px 18px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--accent1);
-      margin-bottom: 28px;
-    }
-
-    .headline-mono {
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--accent1);
-    }
-
-    /* ── Nav ── */
-    .nav {
-      position: fixed;
-      bottom: 36px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      z-index: 100;
-      background: rgba(19, 19, 30, 0.85);
-      border: 1px solid var(--border);
-      border-radius: 40px;
-      padding: 10px 20px;
-      backdrop-filter: blur(12px);
-    }
-
-    .nav-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--muted);
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.2s;
-      font-size: 16px;
-    }
-
-    .nav-btn:hover {
-      background: var(--border);
-      color: var(--text);
-    }
-
-    .nav-dots {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .nav-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .nav-dot.active {
-      background: var(--accent1);
-      width: 20px;
-      border-radius: 3px;
-    }
-
-    .slide-num {
-      font-size: 13px;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-      min-width: 40px;
-      text-align: right;
-    }
-
-    /* ── Animated gradient text ── */
-    .grad {
-      background: linear-gradient(135deg, var(--accent1) 0%, #f59e0b 40%, var(--accent2) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* ── Separator line ── */
-    .sep {
-      width: 48px;
-      height: 3px;
-      background: linear-gradient(90deg, var(--accent1), var(--accent2));
-      border-radius: 2px;
-      margin: 20px 0;
-    }
-
-    /* ── List ── */
-    ul.nice {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    ul.nice li::before {
-      content: '→';
-      color: var(--accent1);
-      margin-right: 10px;
-      font-weight: 700;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>heated-debate — Adopt or Not?</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            /* ── System neutrals ── */
+            --bg: #08080f;
+            --surface: #111118;
+            --border: #1c1c2a;
+            --text: #e4e4f0;
+            --sub: #8888aa;
+            /* raised from v1 for projector contrast */
+            --code-bg: #0c0c16;
+
+            /* ── Semantic colours (locked by debate) ── */
+            --warm: #e8611a;
+            /* Architect */
+            --warm-dim: #7a2f08;
+            --cool: #38bdf8;
+            /* Reviewer */
+            --cool-dim: #0c4a6e;
+            --neutral: #6b7280;
+            /* System / metrics */
+            --neutral-dim: #1f2937;
+
+            /* ── Accent for warnings / kill-switch ── */
+            --danger: #ef4444;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* ══════════════════════════════════════════════
+     DECK & TRANSITIONS
+     Proposals enter from left, critiques from right,
+     decisions/system slides settle from below.
+  ══════════════════════════════════════════════ */
+        .deck {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 56px 88px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        /* Default: neutral (settle) — enter from below */
+        .slide {
+            transform: translateY(20px);
+        }
+
+        .slide.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translate(0, 0);
+        }
+
+        /* Directional exit variants set by JS */
+        .slide.exit-left {
+            opacity: 0;
+            transform: translateX(-40px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .slide.exit-right {
+            opacity: 0;
+            transform: translateX(40px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .slide.exit-up {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        /* Enter directions */
+        .slide.enter-from-left {
+            transform: translateX(50px);
+        }
+
+        .slide.enter-from-right {
+            transform: translateX(-50px);
+        }
+
+        .slide.enter-from-below {
+            transform: translateY(20px);
+        }
+
+        /* ══════════════════════════════════════════════
+     TYPOGRAPHY
+  ══════════════════════════════════════════════ */
+        .eyebrow {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .eyebrow.warm {
+            color: var(--warm);
+        }
+
+        .eyebrow.cool {
+            color: var(--cool);
+        }
+
+        .eyebrow.neutral {
+            color: var(--neutral);
+        }
+
+        .eyebrow.danger {
+            color: var(--danger);
+        }
+
+        h1 {
+            font-size: clamp(42px, 6vw, 80px);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        h2 {
+            font-size: clamp(28px, 3.8vw, 52px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.025em;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        /* Body text — raised contrast for projectors */
+        p,
+        li {
+            font-size: clamp(16px, 1.6vw, 20px);
+            line-height: 1.65;
+            color: var(--text);
+        }
+
+        p.sub {
+            color: var(--sub);
+            font-size: clamp(14px, 1.4vw, 18px);
+        }
+
+        strong {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        em {
+            color: var(--sub);
+            font-style: normal;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82em;
+            background: var(--code-bg);
+            padding: 2px 8px;
+            border-radius: 5px;
+            color: var(--cool);
+        }
+
+        /* ══════════════════════════════════════════════
+     LAYOUT
+  ══════════════════════════════════════════════ */
+        .center {
+            text-align: center;
+        }
+
+        .left {
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .cols2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            width: 100%;
+            max-width: 960px;
+        }
+
+        .stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mt12 {
+            margin-top: 12px;
+        }
+
+        .mt24 {
+            margin-top: 24px;
+        }
+
+        .mt36 {
+            margin-top: 36px;
+        }
+
+        .mt48 {
+            margin-top: 48px;
+        }
+
+        /* ══════════════════════════════════════════════
+     ACCENT BAR
+  ══════════════════════════════════════════════ */
+        .accent-bar {
+            width: 44px;
+            height: 4px;
+            border-radius: 2px;
+            margin-bottom: 24px;
+        }
+
+        .accent-bar.warm {
+            background: linear-gradient(90deg, var(--warm), #f59e0b);
+        }
+
+        .accent-bar.cool {
+            background: linear-gradient(90deg, var(--cool), #818cf8);
+        }
+
+        .accent-bar.neutral {
+            background: var(--neutral);
+        }
+
+        .accent-bar.both {
+            background: linear-gradient(90deg, var(--warm), var(--cool));
+        }
+
+        /* ══════════════════════════════════════════════
+     GATE CHIPS
+  ══════════════════════════════════════════════ */
+        .gates {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 32px;
+        }
+
+        .gate {
+            border: 1px solid;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .gate.pass {
+            color: #4ade80;
+            border-color: #166534;
+            background: #052e16;
+        }
+
+        .gate.block {
+            color: var(--danger);
+            border-color: #7f1d1d;
+            background: #1c0a0a;
+        }
+
+        /* ══════════════════════════════════════════════
+     MECHANISM DIAGRAM
+  ══════════════════════════════════════════════ */
+        .mech {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .mech-node {
+            flex: 1;
+            border-radius: 12px;
+            padding: 20px 16px;
+            text-align: center;
+            border: 1px solid;
+        }
+
+        .mech-node.arch {
+            border-color: var(--warm-dim);
+            background: rgba(232, 97, 26, 0.07);
+        }
+
+        .mech-node.rev {
+            border-color: var(--cool-dim);
+            background: rgba(56, 189, 248, 0.07);
+        }
+
+        .mech-node.log {
+            border-color: var(--neutral);
+            background: rgba(107, 114, 128, 0.07);
+        }
+
+        .mech-node .role {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .mech-node.arch .role {
+            color: var(--warm);
+        }
+
+        .mech-node.rev .role {
+            color: var(--cool);
+        }
+
+        .mech-node.log .role {
+            color: var(--neutral);
+        }
+
+        .mech-node .label {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .mech-node .hint {
+            font-size: 12px;
+            color: var(--sub);
+            margin-top: 4px;
+        }
+
+        .mech-arrow {
+            font-size: 22px;
+            color: var(--sub);
+            padding: 0 8px;
+            flex-shrink: 0;
+        }
+
+        /* looping arrow annotation */
+        .loop-annotation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--sub);
+        }
+
+        .loop-line {
+            height: 1px;
+            flex: 1;
+            background: var(--border);
+            position: relative;
+        }
+
+        /* ══════════════════════════════════════════════
+     EVIDENCE TABLE
+  ══════════════════════════════════════════════ */
+        .ev-table {
+            width: 100%;
+            max-width: 900px;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+
+        .ev-table th {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--sub);
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .ev-table th:first-child {
+            width: 28%;
+        }
+
+        .ev-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+        }
+
+        .ev-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .ev-table .mode-label {
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .ev-table .baseline td {
+            color: var(--sub);
+        }
+
+        .ev-table .debate td.delta-pos {
+            color: #4ade80;
+        }
+
+        .ev-table .debate td.delta-neg {
+            color: var(--danger);
+        }
+
+        .ev-table .debate td.mode-label {
+            color: var(--text);
+        }
+
+        /* placeholder shimmer for unfilled evidence */
+        .ph {
+            display: inline-block;
+            background: var(--border);
+            border-radius: 4px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        /* ══════════════════════════════════════════════
+     FAILURE MATRIX
+  ══════════════════════════════════════════════ */
+        .matrix {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .matrix-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .matrix-cell {
+            padding: 14px 16px;
+            background: var(--surface);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .matrix-cell.head {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--sub);
+            background: #0d0d16;
+            padding: 10px 16px;
+        }
+
+        .matrix-cell .fail {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .matrix-cell .signal {
+            color: #f59e0b;
+        }
+
+        .matrix-cell .mitig {
+            color: #4ade80;
+        }
+
+        /* ══════════════════════════════════════════════
+     DECISION PANELS (slides 5, 6)
+  ══════════════════════════════════════════════ */
+        .decision-col {
+            border-radius: 14px;
+            padding: 28px 26px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid;
+        }
+
+        .decision-col.opt-a {
+            border-color: var(--warm-dim);
+            background: rgba(232, 97, 26, 0.06);
+        }
+
+        .decision-col.opt-b {
+            border-color: var(--cool-dim);
+            background: rgba(56, 189, 248, 0.06);
+        }
+
+        .decision-col .opt-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .decision-col.opt-a .opt-label {
+            color: var(--warm);
+        }
+
+        .decision-col.opt-b .opt-label {
+            color: var(--cool);
+        }
+
+        .decision-col h3 {
+            margin-bottom: 12px;
+        }
+
+        .decision-col ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .decision-col ul li {
+            font-size: 15px;
+            color: var(--text);
+        }
+
+        .decision-col ul li::before {
+            content: '·';
+            color: var(--sub);
+            margin-right: 8px;
+        }
+
+        /* ══════════════════════════════════════════════
+     OPERATING POLICY
+  ══════════════════════════════════════════════ */
+        .policy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            width: 100%;
+            max-width: 860px;
+        }
+
+        .policy-cell {
+            border-radius: 12px;
+            padding: 20px 22px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .policy-cell .pol-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .policy-cell.use .pol-label {
+            color: #4ade80;
+        }
+
+        .policy-cell.no-use .pol-label {
+            color: var(--danger);
+        }
+
+        .policy-cell.owner .pol-label {
+            color: var(--warm);
+        }
+
+        .policy-cell.exit .pol-label {
+            color: var(--cool);
+        }
+
+        .policy-cell ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .policy-cell ul li {
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .policy-cell ul li::before {
+            content: '→';
+            margin-right: 8px;
+            color: var(--sub);
+        }
+
+        /* ══════════════════════════════════════════════
+     CODE BLOCK
+  ══════════════════════════════════════════════ */
+        .codeblock {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #9090c0;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .codeblock .comment {
+            color: #33334a;
+        }
+
+        .codeblock .cmd {
+            color: var(--cool);
+        }
+
+        .codeblock .kw {
+            color: var(--warm);
+        }
+
+        .codeblock .str {
+            color: #86efac;
+        }
+
+        .codeblock .label {
+            font-size: 11px;
+            color: var(--sub);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        /* ══════════════════════════════════════════════
+     BACKGROUND DECO (title / cta only)
+  ══════════════════════════════════════════════ */
+        .flame-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse 55% 35% at 50% 100%, rgba(232, 97, 26, 0.14) 0%, transparent 70%),
+                radial-gradient(ellipse 35% 25% at 15% 85%, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+        }
+
+        /* ══════════════════════════════════════════════
+     KILL-SWITCH BOX
+  ══════════════════════════════════════════════ */
+        .killswitch {
+            border: 1px solid var(--danger);
+            border-radius: 10px;
+            padding: 14px 22px;
+            background: rgba(239, 68, 68, 0.07);
+            max-width: 700px;
+            margin-top: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .killswitch .ks-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .killswitch p {
+            font-size: 14px;
+            color: #fca5a5;
+            line-height: 1.6;
+        }
+
+        /* ══════════════════════════════════════════════
+     NAVIGATION
+  ══════════════════════════════════════════════ */
+        .nav {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 100;
+            background: rgba(17, 17, 24, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 10px 20px;
+            backdrop-filter: blur(16px);
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--sub);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.15s, color 0.15s;
+            font-size: 16px;
+        }
+
+        .nav-btn:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .nav-dots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .nav-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-dot.active {
+            background: var(--warm);
+            width: 22px;
+            border-radius: 3px;
+        }
+
+        .slide-counter {
+            font-size: 12px;
+            color: var(--sub);
+            font-family: 'JetBrains Mono', monospace;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        /* ══════════════════════════════════════════════
+     PROGRESS BAR
+  ══════════════════════════════════════════════ */
+        .progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--warm), var(--cool));
+            transition: width 0.35s ease;
+            z-index: 200;
+        }
+    </style>
 </head>
 
 <body>
 
-  <div class="deck" id="deck">
+    <div class="progress" id="progress"></div>
+    <div class="deck" id="deck">
 
-    <!-- ── 0 · Title ─────────────────────────────────────────── -->
-    <div class="slide active center" id="slide-0">
-      <div class="flame-bg"></div>
-      <div class="title-badge">🔥 Multi-Agent Debate Engine</div>
-      <h1><span class="headline-mono">heated</span><span class="grad">-debate</span></h1>
-      <div class="sep" style="margin: 24px auto;"></div>
-      <p style="max-width:540px; font-size:clamp(17px,2vw,23px); color:#8888aa;">
-        Two LLM agents argue until a great design emerges. An architect proposes. A reviewer challenges.
-        A creativity dial cools round by round.
-      </p>
-      <div class="chips mt40">
-        <div class="chip">
-          <div class="chip-dot" style="background:var(--accent3)"></div>bun / TypeScript
-        </div>
-        <div class="chip">
-          <div class="chip-dot" style="background:#f59e0b"></div>Claude · Codex
-        </div>
-        <div class="chip">
-          <div class="chip-dot" style="background:var(--accent2)"></div>No API key needed
-        </div>
-      </div>
-    </div>
-
-    <!-- ── 1 · The Idea ──────────────────────────────────────── -->
-    <div class="slide" id="slide-1">
-      <div class="eyebrow">The Idea</div>
-      <h2 style="max-width:700px;">Good design emerges from structured disagreement</h2>
-      <div class="sep mt28"></div>
-      <div class="cols2 mt28" style="max-width:860px;">
-        <div class="card">
-          <div class="card-icon">🏗️</div>
-          <h3>Agent A — Architect</h3>
-          <p>Proposes implementation plans. Refines based on feedback. Sends diffs, not full repeats.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon">🔍</div>
-          <h3>Agent B — Reviewer</h3>
-          <p>Challenges proposals, finds flaws, identifies edge cases. Forces the plan to earn its shape.</p>
-        </div>
-      </div>
-      <p class="mt28" style="max-width:680px; text-align:center; color:var(--muted);">
-        Both agents run in the same model or across models. No shared context — each sees only what the other sends.
-      </p>
-    </div>
-
-    <!-- ── 2 · Round Loop ─────────────────────────────────────── -->
-    <div class="slide" id="slide-2">
-      <div class="eyebrow">How a Debate Runs</div>
-      <h2 style="max-width:640px; text-align:center;">One topic · N rounds · two voices</h2>
-      <div class="mt40 flow">
-        <div class="flow-node" style="border-color:#e8611a55;">
-          <div class="fn-label" style="color:var(--accent1);">Input</div>
-          <div class="fn-title">topic.md</div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node" style="border-color:#f59e0b55;">
-          <div class="fn-label" style="color:#f59e0b;">Round 1–N</div>
-          <div class="fn-title">Agent A<br><span style="font-size:13px;color:var(--muted)">proposes</span></div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node" style="border-color:#a855f755;">
-          <div class="fn-label" style="color:var(--accent2);">Round 1–N</div>
-          <div class="fn-title">Agent B<br><span style="font-size:13px;color:var(--muted)">reviews</span></div>
-        </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-node" style="border-color:#38bdf855;">
-          <div class="fn-label" style="color:var(--accent3);">Output</div>
-          <div class="fn-title">Transcript<br><span style="font-size:13px;color:var(--muted)">.md log</span></div>
-        </div>
-      </div>
-      <div class="card mt40" style="max-width:840px; border-color:var(--border);">
-        <p>B's response always becomes A's next prompt. No moderator — just the ping-pong of proposal and critique, with
-          context carried forward via <code>--resume</code>.</p>
-      </div>
-      <div class="cols2 mt28" style="max-width:840px;">
-        <div class="agent-box agent-a">
-          <div class="agent-label">Agent A · Round 2</div>
-          <p style="font-size:15px;">"Addressing the Decimal-from-float issue: switching constructor to
-            <code>Decimal(str(price))</code> to prevent float precision drift…"</p>
-        </div>
-        <div class="agent-box agent-b">
-          <div class="agent-label">Agent B · Round 2</div>
-          <p style="font-size:15px;">"The <code>allow_short</code> semantics are still underspecified. Does it block the
-            trade or clamp position to zero? Edge case: short then long same tick."</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── 3 · Creativity Dial ───────────────────────────────── -->
-    <div class="slide center" id="slide-3">
-      <div class="eyebrow">Creativity Dial</div>
-      <h2>Temperature by prompt, not by API</h2>
-      <p class="mt16" style="max-width:560px; color:var(--muted);">Each round injects a behavioral prefix. The dial
-        cools linearly from <strong>Wild → Precise</strong> across rounds.</p>
-      <div class="dial-row mt40">
-        <div class="dial-step d5">
-          <div class="dlabel">Wild</div>
-          <div class="dnum">5</div>
-          <div class="ddesc">Radical alternatives.<br>Question the premise.</div>
-        </div>
-        <div class="dial-step d4">
-          <div class="dlabel">Creative</div>
-          <div class="dnum">4</div>
-          <div class="ddesc">New ideas.<br>Challenge assumptions.</div>
-        </div>
-        <div class="dial-step d3">
-          <div class="dlabel">Balanced</div>
-          <div class="dnum">3</div>
-          <div class="ddesc">Mix ideas<br>with refinement.</div>
-        </div>
-        <div class="dial-step d2">
-          <div class="dlabel">Focused</div>
-          <div class="dnum">2</div>
-          <div class="ddesc">Fix issues.<br>No new directions.</div>
-        </div>
-        <div class="dial-step d1">
-          <div class="dlabel">Precise</div>
-          <div class="dnum">1</div>
-          <div class="ddesc">Converge.<br>Final decisions only.</div>
-        </div>
-      </div>
-      <div class="card mt40" style="max-width:760px; text-align:left;">
-        <p>The subscription CLIs don't expose temperature. The dial is the only behavioral modulator — and it's the
-          trainable signal for RL later.</p>
-      </div>
-    </div>
-
-    <!-- ── 4 · Architecture ──────────────────────────────────── -->
-    <div class="slide" id="slide-4">
-      <div class="eyebrow">Architecture</div>
-      <h2 style="text-align:center;">shelley.ts — the Bun engine</h2>
-      <div class="cols2 mt40" style="max-width:960px; gap:30px; align-items:start;">
-        <div class="stack">
-          <div class="card" style="border-color:#38bdf855;">
-            <h3 style="color:var(--accent3);">🦩 Claude backend</h3>
-            <p>Session continuity via <code>--resume &lt;session-id&gt;</code>. New sessions with
-              <code>--session-id</code> + <code>--system-prompt</code>.</p>
-          </div>
-          <div class="card" style="border-color:#a855f755;">
-            <h3 style="color:var(--accent2);">⚡ Codex backend</h3>
-            <p>Stateless calls via <code>codex exec --sandbox read-only</code>. Conversation history windowed manually
-              per-agent.</p>
-          </div>
-          <div class="card" style="border-color:#f59e0b55;">
-            <h3 style="color:#f59e0b;">🔐 Env sanitation</h3>
-            <p>Strips provider API keys before spawning CLIs. You stay on subscription auth — no accidental billing.</p>
-          </div>
-        </div>
-        <div class="stack">
-          <div class="codeblock">
-            <span class="comment"># Run 5 rounds, default topic</span>
-            <span class="cmd">bun shelley.ts</span> <span class="str">5</span>
-
-            <span class="comment"># Topic from file, 3 rounds</span>
-            <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/stock-trades/topic.md <span
-              class="str">3</span>
-
-            <span class="comment"># Switch both agents to Codex</span>
-            <span class="kw">MODEL_A</span>=codex:gpt-5 <span class="kw">MODEL_B</span>=codex:gpt-5 \
-            <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/my-topic/topic.md <span
-              class="str">5</span>
-
-            <span class="comment"># Resume a partial run</span>
-            <span class="kw">RESUME_FROM_LOG</span>=debates/my-topic/20260227_1930.md \
-            <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/my-topic/topic.md <span
-              class="str">7</span>
-          </div>
-          <div class="card" style="font-size:15px;">
-            <strong>Context injection</strong><br>
-            <p class="mt16">Put a <code>context.txt</code> next to your <code>topic.md</code> listing repo-relative file
-              paths. shelley.ts reads them fresh every run — no copies, agents always see current source.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── 5 · Debate topic format ────────────────────────────── -->
-    <div class="slide" id="slide-5">
-      <div class="eyebrow">Running a Debate</div>
-      <h2 style="text-align:center;">Drop a topic file, get a transcript</h2>
-      <div class="cols2 mt40" style="max-width:960px; align-items:start;">
-        <div class="stack">
-          <p
-            style="font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; font-weight:600;">
-            Directory layout</p>
-          <div class="codeblock" style="font-size:14px;">
-            debates/
-            stock-trades/
-            topic.md <span class="comment">← 1–3 sentences, no code</span>
-            context.txt <span class="comment">← file paths to inject</span>
-            20260223_230831.md <span class="comment">← transcript</span>
-            review-dials-refactor/
-            topic.md
-            context.txt
-          </div>
-          <div class="card">
-            <h3>topic.md</h3>
-            <p style="font-size:15px; margin-top:8px; font-style:italic; color:#8888bb;">"Design a Python function that
-              takes a list of stock trades and outputs a portfolio summary with current positions, average cost basis,
-              and realized P&amp;L."</p>
-          </div>
-        </div>
-        <div class="stack">
-          <p
-            style="font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; font-weight:600;">
-            Transcript output</p>
-          <div class="agent-box agent-a" style="margin-bottom:12px;">
-            <div class="agent-label">Agent A · sonnet · 38s</div>
-            <p style="font-size:15px;">Proposes typed <code>Trade</code> dataclass, separate <code>Position</code>
-              accumulator, FIFO lot matching for realized P&amp;L…</p>
-          </div>
-          <div class="agent-box agent-b">
-            <div class="agent-label">Agent B · sonnet · 44s</div>
-            <p style="font-size:15px;">Raises: <code>Decimal(price)</code> from float is unsafe. Boundary: what if qty
-              is 0? <code>allow_short</code> behavior on same-tick reversal underspecified.</p>
-          </div>
-          <div class="card mt16" style="font-size:15px;">
-            Per-round timing + stats table appended to every transcript, with both agent IDs and session UUIDs.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── 6 · Multi-model ───────────────────────────────────── -->
-    <div class="slide center" id="slide-6">
-      <div class="eyebrow">Model Support</div>
-      <h2>Any two models. Any combination.</h2>
-      <div class="sep" style="margin: 24px auto;"></div>
-      <div class="cols3 mt28" style="max-width:900px;">
-        <div class="card" style="border-color:#38bdf855;">
-          <div class="card-icon">☁️</div>
-          <h3>Claude (claude:*)</h3>
-          <p>Persistent sessions via <code>--resume</code>. haiku, sonnet, opus. No API key — subscription login.</p>
-        </div>
-        <div class="card" style="border-color:#a855f755;">
-          <div class="card-icon">⚡</div>
-          <h3>Codex (codex:*)</h3>
-          <p>Stateless <code>codex exec</code>. History windowed per-agent. Reasoning effort tunable via env var.</p>
-        </div>
-        <div class="card" style="border-color:#10b98155;">
-          <div class="card-icon">🌐</div>
-          <h3>Any via LiteLLM</h3>
-          <p><code>later/pynaille.py</code> routes to Gemini, GPT-4o, and any LiteLLM provider with API keys.</p>
-        </div>
-      </div>
-      <div class="codeblock mt40" style="max-width:760px; font-size:15px;">
-        <span class="comment"># Claude vs Claude</span>
-        <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/perf/topic.md <span
-          class="str">5</span>
-
-        <span class="comment"># Codex vs Codex, high reasoning</span>
-        <span class="kw">MODEL_A</span>=codex <span class="kw">MODEL_B</span>=codex <span
-          class="kw">CODEX_REASONING_EFFORT</span>=high \
-        <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/perf/topic.md <span
-          class="str">5</span>
-
-        <span class="comment"># Mixed: Claude architect vs Codex reviewer</span>
-        <span class="kw">MODEL_A</span>=sonnet <span class="kw">MODEL_B</span>=codex <span class="cmd">bun
-          shelley.ts</span> <span class="kw">-f</span> debates/perf/topic.md <span class="str">5</span>
-      </div>
-    </div>
-
-    <!-- ── 7 · Roadmap ───────────────────────────────────────── -->
-    <div class="slide" id="slide-7">
-      <div class="eyebrow">What Comes Next</div>
-      <h2 style="text-align:center;">From debates to design machines</h2>
-      <div class="cols2 mt40" style="max-width:960px; align-items:start; gap:20px;">
-        <div class="stack" style="gap:16px;">
-          <div class="roadmap-item">
-            <div class="roadmap-num">1</div>
-            <div>
-              <h3>Dial vector</h3>
-              <p>Expand from one scalar to a vector: creativity, risk tolerance, verbosity, deference — per agent, per
-                round.</p>
+        <!-- ── 0 · THESIS + GATES + KILL SWITCH ────────────────── -->
+        <div class="slide active center" id="slide-0" data-dir="neutral">
+            <div class="flame-bg"></div>
+            <div class="eyebrow warm">heated-debate</div>
+            <h2 style="max-width:700px;">Does debate mode beat single-pass review?</h2>
+            <p class="sub mt24" style="max-width:560px;">
+                Two agents — Architect proposes, Reviewer attacks — iterate across rounds.
+                Adopt only if all three gates pass.
+            </p>
+            <div class="gates">
+                <div class="gate pass">+25% recall</div>
+                <div class="gate pass">cold-start p90 ≤12m</div>
+                <div class="gate pass">≤2.5× tokens</div>
             </div>
-          </div>
-          <div class="roadmap-item">
-            <div class="roadmap-num">2</div>
-            <div>
-              <h3>Phase architecture</h3>
-              <p>Brainstorm → Hard spec → Scaffold → Tests → Fill-in. Each phase in its own conversation; output feeds
-                next.</p>
+            <div class="killswitch mt24">
+                <div class="ks-icon">🚫</div>
+                <p><strong>Kill switch:</strong> do not adopt for trivial refactors, urgent hotfixes, or low-risk edits
+                    where latency cost exceeds quality benefit.</p>
             </div>
-          </div>
-          <div class="roadmap-item">
-            <div class="roadmap-num">3</div>
-            <div>
-              <h3>Tournament + judge</h3>
-              <p>Run N parallel debates, different dial settings or model pairings. A judge agent scores output. Winner
-                advances.</p>
+        </div>
+
+        <!-- ── 1 · BASELINE FAILURE CASE ────────────────────────── -->
+        <div class="slide" id="slide-1" data-dir="left">
+            <div class="eyebrow warm">Baseline · Single-Agent Miss</div>
+            <h2 style="max-width:680px;">What a solo pass misses</h2>
+            <div class="accent-bar warm mt24"></div>
+            <div class="cols2" style="max-width:900px; align-items:start;">
+                <div class="stack">
+                    <p class="sub"
+                        style="font-size:13px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">
+                        Single-agent plan · stock-trades task</p>
+                    <div
+                        style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 22px;">
+                        <p style="font-size:15px; line-height:1.7;">
+                            "Use <code>Decimal(price)</code> for positions. Track qty and cost. Return summary dict."
+                        </p>
+                        <p class="sub mt12" style="font-size:13px;">Three critical defects undetected.</p>
+                    </div>
+                </div>
+                <div class="stack">
+                    <p
+                        style="font-size:13px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; color:var(--danger);">
+                        Defects missed</p>
+                    <div
+                        style="border:1px solid #7f1d1d; border-radius:10px; background:#1c0a0a; padding:20px 22px; display:flex; flex-direction:column; gap:12px;">
+                        <p style="font-size:14px; line-height:1.6;">
+                            <strong style="color:var(--danger);">① Correctness</strong><br>
+                            <code>Decimal(price)</code> from float inherits float error. Must use
+                            <code>Decimal(str(price))</code>.
+                        </p>
+                        <p style="font-size:14px; line-height:1.6;">
+                            <strong style="color:var(--danger);">② Data loss</strong><br>
+                            <code>allow_short</code> semantics unspecified — clamp or block on same-tick reversal?
+                        </p>
+                        <p style="font-size:14px; line-height:1.6;">
+                            <strong style="color:var(--danger);">③ Compliance</strong><br>
+                            No FIFO lot matching for realized P&amp;L — violates standard cost-basis accounting.
+                        </p>
+                    </div>
+                    <p class="sub" style="font-size:13px;">Starting recall: <strong style="color:var(--text);">X% across
+                            N blinded tasks.</strong> Debate mode targets +25%.</p>
+                </div>
             </div>
-          </div>
         </div>
-        <div class="stack" style="gap:16px;">
-          <div class="roadmap-item">
-            <div class="roadmap-num">4</div>
-            <div>
-              <h3>RL over dial vectors</h3>
-              <p>Treat the dial vector as the action space; judge score is reward. Bayesian opt / evolutionary
-                strategies — no deep RL infra needed.</p>
+
+        <!-- ── 2 · MECHANISM ─────────────────────────────────────── -->
+        <div class="slide center" id="slide-2" data-dir="left">
+            <div class="eyebrow neutral">Mechanism</div>
+            <h2>The intervention is structural, not model magic</h2>
+            <p class="sub mt24" style="max-width:580px;">
+                Same task set, pre-registered rubric, each agent sees only what the other sends. No moderator.
+            </p>
+            <!-- Mechanism diagram + feedback arc wrapper -->
+            <div style="position:relative; width:100%; max-width:900px; margin-top:36px;">
+                <div class="mech">
+                    <div class="mech-node arch">
+                        <div class="role">Architect A</div>
+                        <div class="label">Proposes</div>
+                        <div class="hint">diffs, not repeats</div>
+                    </div>
+                    <div class="mech-arrow">→</div>
+                    <div class="mech-node rev">
+                        <div class="role">Reviewer B</div>
+                        <div class="label">Attacks</div>
+                        <div class="hint">flaws, edge cases</div>
+                    </div>
+                    <div class="mech-arrow">→</div>
+                    <div class="mech-node arch">
+                        <div class="role">Architect A</div>
+                        <div class="label">Refines</div>
+                        <div class="hint">B's reply = A's prompt</div>
+                    </div>
+                    <div class="mech-arrow">→</div>
+                    <div class="mech-node log">
+                        <div class="role">System</div>
+                        <div class="label">Transcript</div>
+                        <div class="hint">timestamped .md log</div>
+                    </div>
+                </div>
+
+                <!--
+                  Feedback arc: from centre of "Architect A Refines" (node 3) back to
+                  centre of "Reviewer B Attacks" (node 2).
+
+                  900px container, 4 flex nodes + 3 arrows (~38px each = 114px total).
+                  Node width ≈ (900−114)/4 = 196px.
+                  Node 2 centre ≈ 38 + 196 + 38 + 98 = 370px  (arrow1 + node2 + arrow2/2... let's use 340)
+                  Node 3 centre ≈ 340 + 196 = 536px ... use 560.
+                  Arc dips 56px below the nodes.
+                -->
+                <svg viewBox="0 0 900 62"
+                    style="display:block; width:100%; height:62px; overflow:visible; margin-top:0;" aria-hidden="true">
+                    <defs>
+                        <marker id="loop-head" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <path d="M0,0 L8,3 L0,6 Z" fill="#6b7280" />
+                        </marker>
+                    </defs>
+                    <!-- dashed arc from Refines → Reviewer B, curving below the nodes -->
+                    <path d="M 560,4 C 560,58 340,58 340,4" fill="none" stroke="#3a3a5c" stroke-width="1.5"
+                        stroke-dasharray="5,4" marker-end="url(#loop-head)" />
+                    <!-- "N rounds" label centred on the arc belly -->
+                    <text x="450" y="57" text-anchor="middle" fill="#555577" font-size="11"
+                        font-family="Inter, sans-serif" font-weight="600" letter-spacing="0.12em">N ROUNDS</text>
+                </svg>
             </div>
-          </div>
-          <div class="roadmap-item">
-            <div class="roadmap-num">5</div>
-            <div>
-              <h3>Agent SDK path</h3>
-              <p>With an API key, switch to the Claude Agent SDK for persistent in-process agents — eliminates the ~50s
-                cold-start per turn.</p>
+
+            <p class="sub" style="font-size:14px; margin-top:16px;">
+                Creativity dial cools 5→1 across rounds: <strong>Wild → Creative → Balanced → Focused →
+                    Precise.</strong>
+            </p>
+        </div>
+
+        <!-- ── SETUP ─────────────────────────────────────────────── -->
+        <div class="slide" id="slide-setup" data-dir="left">
+            <div class="eyebrow neutral">Setup · Three Files</div>
+            <h2 style="text-align:center;">Two files to start a debate</h2>
+
+            <div class="cols2 mt36" style="max-width:960px; align-items:start; gap:20px;">
+
+                <!-- Left: file structure -->
+                <div class="stack" style="gap:12px;">
+
+                    <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+                        <!-- topic.md -->
+                        <div style="border-bottom:1px solid var(--border); padding:12px 16px; background:#0d0d16;">
+                            <span
+                                style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--warm);">debates/&lt;name&gt;/</span>
+                        </div>
+                        <div
+                            style="padding:14px 18px; background:var(--surface); display:flex; flex-direction:column; gap:10px;">
+
+                            <!-- topic.md row -->
+                            <div style="display:flex; align-items:flex-start; gap:12px;">
+                                <span
+                                    style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--warm); flex-shrink:0; padding-top:2px;">topic.md</span>
+                                <span style="font-size:13px; color:var(--sub); line-height:1.5;">The debate prompt — one
+                                    paragraph, plain language. Agents receive this as their shared problem
+                                    statement.</span>
+                            </div>
+
+                            <div style="height:1px; background:var(--border);"></div>
+
+                            <!-- context.txt row -->
+                            <div style="display:flex; align-items:flex-start; gap:12px;">
+                                <span
+                                    style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--cool); flex-shrink:0; padding-top:2px;">context.txt</span>
+                                <span style="font-size:13px; color:var(--sub); line-height:1.5;">One relative file path
+                                    per line. Engine injects each file's content into the system prompt verbatim.</span>
+                            </div>
+
+                            <div style="height:1px; background:var(--border);"></div>
+
+                            <!-- optional row -->
+                            <div style="display:flex; align-items:flex-start; gap:12px;">
+                                <span
+                                    style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--sub); flex-shrink:0; padding-top:2px;">*.md
+                                    / *.ts …</span>
+                                <span style="font-size:13px; color:var(--sub); line-height:1.5;">Referenced source files
+                                    — diffs, specs, past debate logs. Anything the agents need to reason
+                                    concretely.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- run command -->
+                    <div
+                        style="background:var(--code-bg); border:1px solid var(--border); border-radius:10px; padding:14px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.8; color:#9090c0;">
+                        <span
+                            style="color:var(--sub); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">run</span><br>
+                        <span style="color:var(--cool);">bun</span> shelley.ts <span
+                            style="color:var(--warm);">-f</span> debates/&lt;name&gt;/topic.md <span
+                            style="color:#86efac;">5</span>
+                    </div>
+                </div>
+
+                <!-- Right: worked example -->
+                <div class="stack" style="gap:12px;">
+                    <p
+                        style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--sub);">
+                        Example — improve-slides debate</p>
+
+                    <!-- topic.md example -->
+                    <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+                        <div
+                            style="padding:8px 14px; background:#0d0d16; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--warm); letter-spacing:0.08em;">
+                            topic.md</div>
+                        <div
+                            style="padding:14px 16px; background:var(--surface); font-size:13px; line-height:1.65; color:var(--text);">
+                            Critique and improve <code>slides.html</code> — a self-contained HTML presentation for the
+                            heated-debate engine. Evaluate content (narrative arc, slide ordering, what is missing) and
+                            visual style (typography, layout density, colour, contrast). Propose specific, concrete
+                            changes. Do not write code.
+                        </div>
+                    </div>
+
+                    <!-- context.txt example -->
+                    <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+                        <div
+                            style="padding:8px 14px; background:#0d0d16; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--cool); letter-spacing:0.08em;">
+                            context.txt</div>
+                        <div
+                            style="padding:12px 16px; background:var(--surface); font-family:'JetBrains Mono',monospace; font-size:13px; line-height:2; color:#9090c0;">
+                            slides.html<br>
+                            README.md<br>
+                            notes/what-comes-next.md
+                        </div>
+                    </div>
+
+                    <p style="font-size:13px; color:var(--sub); line-height:1.5;">
+                        → 5 rounds · ~6 min · produced the locked decisions driving this deck.
+                    </p>
+                </div>
+
             </div>
-          </div>
-          <div class="roadmap-item">
-            <div class="roadmap-num">6</div>
-            <div>
-              <h3>Token accounting</h3>
-              <p>Add token counts per turn to transcripts; feed into cost-aware dial optimization.</p>
+        </div>
+
+        <!-- ── 3 · EVIDENCE TABLE ────────────────────────────────── -->
+        <div class="slide center" id="slide-3" data-dir="neutral">
+            <div class="eyebrow warm">Proposed Protocol · N=30 Paired Tasks</div>
+            <h2>Paired deltas vs single-agent baseline</h2>
+            <p class="sub mt24" style="max-width:660px;">
+                Proposed evaluation run — placeholders to fill in after execution.
+                30 tasks (10 bugfix · 10 feature · 10 refactor), two blinded scorers + adjudicator.
+                Critical defect classes: correctness, security, data loss, compliance, operability.
+            </p>
+            <table class="ev-table mt36">
+                <thead>
+                    <tr>
+                        <th>Mode</th>
+                        <th>Δ Recall</th>
+                        <th>Δ False+ </th>
+                        <th>p90 Time <span style="font-size:10px; font-weight:400; opacity:0.55;">(reported)</span></th>
+                        <th>Δ Tokens</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="baseline">
+                        <td class="mode-label">Single-agent</td>
+                        <td>baseline</td>
+                        <td>baseline</td>
+                        <td>baseline</td>
+                        <td>baseline</td>
+                    </tr>
+                    <tr class="baseline">
+                        <td class="mode-label">Self-critique<br><span
+                                style="font-size:11px; font-weight:400; color:var(--sub); letter-spacing:0;">N=1 · same
+                                agent self-reviews</span></td>
+                        <td><span class="ph" style="width:64px"></span></td>
+                        <td><span class="ph" style="width:52px"></span></td>
+                        <td><span class="ph" style="width:56px"></span></td>
+                        <td><span class="ph" style="width:60px"></span></td>
+                    </tr>
+                    <tr class="debate">
+                        <td class="mode-label" style="color:var(--text); font-weight:700;">Debate (this engine)</td>
+                        <td class="delta-pos"><span class="ph" style="width:72px"></span></td>
+                        <td class="delta-neg"><span class="ph" style="width:52px"></span></td>
+                        <td class="delta-neg"><span class="ph" style="width:60px"></span></td>
+                        <td class="delta-neg"><span class="ph" style="width:68px"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="sub mt24" style="font-size:13px; max-width:700px;">
+                Fill in after the N=30 run. Include 95% CI per cell. Gates:
+                recall Δ ≥+25% · token Δ ≤+150% · cold-start p90 ≤12m (absolute, not relative to baseline).
+            </p>
+        </div>
+
+        <!-- ── 4 · FAILURE MATRIX ────────────────────────────────── -->
+        <div class="slide" id="slide-4" data-dir="right">
+            <div class="eyebrow danger">Risk · Failure Matrix</div>
+            <h2 style="text-align:center;">Default rollout blocked until all signals are instrumented</h2>
+            <div class="matrix mt36">
+                <div class="matrix-row">
+                    <div class="matrix-cell head">Failure</div>
+                    <div class="matrix-cell head">Detection signal</div>
+                    <div class="matrix-cell head">Mitigation</div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-cell"><span class="fail">Mode collapse</span> — agents converge on same wrong
+                        answer</div>
+                    <div class="matrix-cell"><span class="signal">Agent B stops raising new objections in rounds
+                            2–3</span></div>
+                    <div class="matrix-cell"><span class="mitig">Re-seed with dial=5 Wild round; abort if no
+                            divergence</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-cell"><span class="fail">Repetitive ping-pong</span> — no progress per round
+                    </div>
+                    <div class="matrix-cell"><span class="signal">Same phrase clusters appear across ≥3 consecutive
+                            turns</span></div>
+                    <div class="matrix-cell"><span class="mitig">Inject context refresh prompt; track resolved-vs-open
+                            issues</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-cell"><span class="fail">Confident hallucination</span> — plausible but wrong
+                        plan</div>
+                    <div class="matrix-cell"><span class="signal">Agent A accepts all critiques without
+                            counter-reasoning</span></div>
+                    <div class="matrix-cell"><span class="mitig">Human spot-check before promotion; add rubric checklist
+                            to system prompt</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-cell"><span class="fail">Latency blowup</span> — cold-start p90 &gt;12m</div>
+                    <div class="matrix-cell"><span class="signal">Per-turn timing in transcript exceeds 120s</span>
+                    </div>
+                    <div class="matrix-cell"><span class="mitig">Reduce rounds; switch to faster model; gate on task
+                            complexity</span></div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- ── 8 · Close ─────────────────────────────────────────── -->
-    <div class="slide center" id="slide-8">
-      <div class="flame-bg"></div>
-      <div class="eyebrow">Get Started</div>
-      <h1 class="grad">Let them fight.</h1>
-      <div class="sep" style="margin: 24px auto;"></div>
-      <div class="codeblock mt16" style="max-width:620px; font-size:16px; text-align:left;">
-        <span class="comment"># install bun, clone, debate</span>
-        <span class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/stock-trades/topic.md <span
-          class="str">5</span>
-      </div>
-      <div class="chips mt40">
-        <div class="chip">
-          <div class="chip-dot" style="background:var(--accent1)"></div>github.com/vd1/heated-debate
+        <!-- ── 5 · RUNTIME DECISION ──────────────────────────────── -->
+        <div class="slide" id="slide-5" data-dir="left">
+            <div class="eyebrow warm">Decision · Runtime Mode</div>
+            <h2 style="text-align:center; max-width:640px;">Choose the path that keeps cold-start p90 ≤12m</h2>
+            <div class="cols2 mt36" style="max-width:860px; align-items:start;">
+                <div class="decision-col opt-a">
+                    <div class="opt-label">Option A — Subscription CLI</div>
+                    <h3 style="color:var(--warm);">shelley.ts · bun</h3>
+                    <ul class="mt12">
+                        <li>No API key needed — subscription login only</li>
+                        <li>claude or codex backends interchangeable</li>
+                        <li>~50s cold-start per turn; higher latency p90</li>
+                        <li>Env sanitation strips keys before each spawn</li>
+                        <li>Simpler auth; works today</li>
+                    </ul>
+                </div>
+                <div class="decision-col opt-b">
+                    <div class="opt-label">Option B — API Orchestration</div>
+                    <h3 style="color:var(--cool);">Agent SDK · persistent process</h3>
+                    <ul class="mt12">
+                        <li>Requires <code>ANTHROPIC_API_KEY</code> — API billing</li>
+                        <li>Persistent in-process agents, no per-turn spawn</li>
+                        <li>Native Python event loop; token-accurate logging</li>
+                        <li>Eliminates cold-start overhead</li>
+                        <li>Enable once debate protocol is stable</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="sub mt24" style="font-size:14px; text-align:center; max-width:620px;">
+                Use <strong>Option A</strong> for trials; graduate to <strong>Option B</strong> when cold-start p90
+                exceeds gate or token visibility matters.
+            </p>
         </div>
-        <div class="chip">
-          <div class="chip-dot" style="background:var(--accent3)"></div>shelley.ts · bun
+
+        <!-- ── 6 · CONTROL DECISION ──────────────────────────────── -->
+        <div class="slide" id="slide-6" data-dir="right">
+            <div class="eyebrow cool">Decision · Control Mode</div>
+            <h2 style="text-align:center; max-width:640px;">Escalate to tournament only on high-risk changes</h2>
+            <div class="cols2 mt36" style="max-width:860px; align-items:start;">
+                <div class="decision-col opt-a">
+                    <div class="opt-label">Default — Single Debate</div>
+                    <h3 style="color:var(--warm);">One Architect vs One Reviewer</h3>
+                    <ul class="mt12">
+                        <li>Normal PRs, feature specs, refactors</li>
+                        <li>5 rounds · dial 5→1</li>
+                        <li>Single timestamped transcript</li>
+                        <li>Human makes final decision</li>
+                    </ul>
+                </div>
+                <div class="decision-col opt-b">
+                    <div class="opt-label">Escalation — Tournament + Judge</div>
+                    <h3 style="color:var(--cool);">N parallel debates · scored</h3>
+                    <ul class="mt12">
+                        <li>Correctness, security, data-loss, compliance changes</li>
+                        <li>Different dial vectors or model pairings</li>
+                        <li>Judge agent (or 3-panel) scores outputs</li>
+                        <li>Winner advances to next phase</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="sub mt24" style="font-size:14px; text-align:center; max-width:620px;">
+                Escalation trigger: change touches correctness, security, compliance, or <strong>irreversible data
+                    operations.</strong>
+            </p>
         </div>
-        <div class="chip">
-          <div class="chip-dot" style="background:var(--accent2)"></div>No API key needed
+
+        <!-- ── 7 · OPERATING POLICY ──────────────────────────────── -->
+        <div class="slide center" id="slide-7" data-dir="neutral">
+            <div class="eyebrow neutral">Operating Policy</div>
+            <h2>Clear rules, explicit owner, defined exit</h2>
+            <div class="policy-grid mt36">
+                <div class="policy-cell use">
+                    <div class="pol-label">✓ Use when</div>
+                    <ul>
+                        <li>Ambiguous, high-impact design decisions</li>
+                        <li>Competing implementation approaches</li>
+                        <li>High-risk PRs with security / data exposure</li>
+                        <li>Latency budget allows cold-start p90 ≤12m</li>
+                    </ul>
+                </div>
+                <div class="policy-cell no-use">
+                    <div class="pol-label">✗ Do not use when</div>
+                    <ul>
+                        <li>Trivial refactors or formatting changes</li>
+                        <li>Urgent hotfixes requiring &lt;5m response</li>
+                        <li>Low-risk edits with obvious single solution</li>
+                        <li>Token budget already exceeded for the sprint</li>
+                    </ul>
+                </div>
+                <div class="policy-cell owner">
+                    <div class="pol-label">Owner</div>
+                    <ul>
+                        <li>Human makes the final architectural call</li>
+                        <li>Transcript is the audit trail, not the decision</li>
+                        <li>Reviewer of record signs off before merge</li>
+                    </ul>
+                </div>
+                <div class="policy-cell exit">
+                    <div class="pol-label">Exit criteria</div>
+                    <ul>
+                        <li>Unresolved critical defects = zero</li>
+                        <li>All open questions answered in transcript</li>
+                        <li>Plan has no contradictions across rounds</li>
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-  </div><!-- /deck -->
+        <!-- ── 8 · CTA — TWO GATES, TWO COMMANDS ─────────────────── -->
+        <div class="slide center" id="slide-8" data-dir="neutral">
+            <div class="flame-bg"></div>
+            <div class="eyebrow warm">Get Started · Two Gates</div>
+            <h2 style="max-width:640px;">Promote to default only if both gates pass</h2>
+            <p class="sub mt24" style="max-width:580px;">
+                Gate 1: 10-minute trial on a known past bug. Gate 2: N=30 paired adoption run.
+                Default-on only if both pass all three thresholds.
+            </p>
+            <div class="codeblock mt36" style="text-align:left;">
+                <span class="label">Gate 1 — quick trial on a known past bug</span><span class="cmd">bun
+                    shelley.ts</span> <span class="kw">-f</span> debates/stock-trades/topic.md <span
+                    class="str">3</span>
 
-  <!-- ── Nav ── -->
-  <nav class="nav" id="nav">
-    <button class="nav-btn" id="prev-btn" onclick="go(-1)" title="Previous">←</button>
-    <div class="nav-dots" id="dots"></div>
-    <button class="nav-btn" id="next-btn" onclick="go(1)" title="Next">→</button>
-    <span class="slide-num" id="slide-num">1 / 9</span>
-  </nav>
+                <span class="label" style="margin-top:14px; display:block;">Gate 2 — production-like N=30 adoption
+                    run</span><span class="kw">MODEL_A</span>=sonnet <span class="kw">MODEL_B</span>=codex <span
+                    class="cmd">bun shelley.ts</span> <span class="kw">-f</span> debates/&lt;your-topic&gt;/topic.md
+                <span class="str">5</span>
+            </div>
+            <div class="gates" style="margin-top:28px;">
+                <div class="gate pass">+25% recall</div>
+                <div class="gate pass">cold-start p90 ≤12m</div>
+                <div class="gate pass">≤2.5× tokens</div>
+            </div>
+        </div>
 
-  <script>
-    const slides = Array.from(document.querySelectorAll('.slide'));
-    const dotsEl = document.getElementById('dots');
-    const numEl = document.getElementById('slide-num');
-    let cur = 0;
+    </div><!-- /deck -->
 
-    // Build dots
-    slides.forEach((_, i) => {
-      const d = document.createElement('div');
-      d.className = 'nav-dot' + (i === 0 ? ' active' : '');
-      d.onclick = () => goTo(i);
-      dotsEl.appendChild(d);
-    });
+    <!-- ── Nav ── -->
+    <nav class="nav" id="nav">
+        <button class="nav-btn" onclick="go(-1)" title="Previous (←)">←</button>
+        <div class="nav-dots" id="dots"></div>
+        <button class="nav-btn" onclick="go(1)" title="Next (→)">→</button>
+        <span class="slide-counter" id="counter">1 / 9</span>
+    </nav>
 
-    function goTo(n) {
-      if (n === cur) return;
-      const prev = slides[cur];
-      prev.classList.remove('active');
-      prev.classList.add('exit');
-      setTimeout(() => prev.classList.remove('exit'), 300);
-      cur = (n + slides.length) % slides.length;
-      slides[cur].classList.add('active');
-      document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === cur));
-      numEl.textContent = `${cur + 1} / ${slides.length}`;
-    }
+    <script>
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const dotsEl = document.getElementById('dots');
+        const ctrEl = document.getElementById('counter');
+        const progEl = document.getElementById('progress');
+        let cur = 0;
 
-    function go(dir) { goTo(cur + dir); }
+        // Build nav dots
+        slides.forEach((_, i) => {
+            const d = document.createElement('div');
+            d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+            d.onclick = () => goTo(i);
+            dotsEl.appendChild(d);
+        });
 
-    document.addEventListener('keydown', e => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); go(-1); }
-    });
+        function updateProgress() {
+            const pct = slides.length <= 1 ? 100 : (cur / (slides.length - 1)) * 100;
+            progEl.style.width = pct + '%';
+        }
 
-    // Swipe on mobile
-    let sx = null;
-    document.addEventListener('touchstart', e => { sx = e.touches[0].clientX; });
-    document.addEventListener('touchend', e => {
-      if (sx === null) return;
-      const dx = e.changedTouches[0].clientX - sx;
-      if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
-      sx = null;
-    });
-  </script>
+        function goTo(n, direction) {
+            if (n === cur || n < 0 || n >= slides.length) return;
+
+            const prev = slides[cur];
+            // Exit current slide in direction of travel
+            const exitClass = direction === 'fwd' ? 'exit-left' : direction === 'back' ? 'exit-right' : 'exit-up';
+            prev.classList.remove('active');
+            prev.classList.add(exitClass);
+            setTimeout(() => prev.classList.remove(exitClass), 300);
+
+            cur = n;
+            const next = slides[cur];
+
+            // Enter from appropriate direction
+            const enterClass = direction === 'fwd' ? 'enter-from-right'
+                : direction === 'back' ? 'enter-from-left'
+                    : 'enter-from-below';
+            next.classList.add(enterClass);
+            // Force reflow so transition fires
+            void next.offsetWidth;
+            next.classList.remove(enterClass);
+            next.classList.add('active');
+
+            document.querySelectorAll('.nav-dot').forEach((d, i) =>
+                d.classList.toggle('active', i === cur));
+            ctrEl.textContent = `${cur + 1} / ${slides.length}`;
+            updateProgress();
+        }
+
+        function go(dir) {
+            goTo(cur + dir, dir > 0 ? 'fwd' : 'back');
+        }
+
+        // Keyboard
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); go(-1); }
+        });
+
+        // Touch / swipe
+        let sx = null;
+        document.addEventListener('touchstart', e => { sx = e.touches[0].clientX; });
+        document.addEventListener('touchend', e => {
+            if (sx === null) return;
+            const dx = e.changedTouches[0].clientX - sx;
+            if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+            sx = null;
+        });
+
+        // Initial progress
+        updateProgress();
+    </script>
 </body>
 
 </html>
