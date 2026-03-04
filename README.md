@@ -25,8 +25,8 @@ uv run later/pynaille.py --agent-a gemini/gemini-2.5-flash --agent-b gemini/gemi
 | `later/streamy.py` | Test harness for `claude -p --output-format stream-json`. Exploratory — not used in debates yet. |
 | `pyproject.toml` | Python project config. Dependencies: `litellm`, `python-dotenv`. |
 | `debate.md` | Protocol doc for agent-to-agent code review via GitHub issues. |
-| `notes/what-comes-next.md` | Roadmap: stream-json mode, phase architecture, tournament + judge, RL over dial vectors. |
-| `notes/review-notes.md` | Review notes on the project's docs and early debate logs. |
+| `doc/what-comes-next.md` | Roadmap: stream-json mode, phase architecture, tournament + judge, RL over dial vectors. |
+| `doc/review-notes.md` | Review notes on the project’s docs and early debate logs. |
 ## Debate topics
 
 Each topic lives in its own directory under `debates/`:
