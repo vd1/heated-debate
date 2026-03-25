@@ -172,23 +172,43 @@ async function runCli(args: string[], env: NodeJS.ProcessEnv): Promise<CliResult
 // === Claude backend ===
 
 async function callClaude(opts: CallOpts): Promise<TurnResult> {
-  const args = ["claude", "-p"];
-  if (opts.resume) {
-    args.push("--resume", opts.resume);
-  } else {
-    args.push("--model", opts.model);
-    if (opts.systemPrompt) args.push("--system-prompt", opts.systemPrompt);
-    if (opts.sessionId) args.push("--session-id", opts.sessionId);
-  }
-  args.push(opts.prompt);
+  const buildArgs = (prompt: string): string[] => {
+    const a = ["claude", "-p"];
+    if (opts.resume) {
+      a.push("--resume", opts.resume);
+    } else {
+      a.push("--model", opts.model);
+      if (opts.systemPrompt) a.push("--system-prompt", opts.systemPrompt);
+      if (opts.sessionId) a.push("--session-id", opts.sessionId);
+    }
+    a.push(prompt);
+    return a;
+  };
 
   const env = sanitizedEnv(CLAUDE_ENV_BLOCKLIST);
-  const { out, err, code, seconds, timedOut } = await runCli(args, env);
-  if (err) appendStderr("claude", opts.model, err);
-  if (timedOut) throw new Error(`claude timed out after ${SHELLEY_TIMEOUT_MS}ms`);
-  if (code !== 0) throw new Error(shortProcessError(out, err, code));
-  if (!out) throw new Error("claude returned empty output");
-  return { text: out, seconds };
+  let totalSeconds = 0;
+
+  // First attempt
+  const r1 = await runCli(buildArgs(opts.prompt), env);
+  totalSeconds += r1.seconds;
+  if (r1.err) appendStderr("claude", opts.model, r1.err);
+  if (r1.timedOut) throw new Error(`claude timed out after ${SHELLEY_TIMEOUT_MS}ms`);
+  if (r1.code !== 0) throw new Error(shortProcessError(r1.out, r1.err, r1.code));
+  if (r1.out) return { text: r1.out, seconds: totalSeconds };
+
+  // Retry once on empty output with a nudge prompt
+  const nudge = opts.resume
+    ? "Your previous response was empty. Please provide your response to the debate."
+    : opts.prompt;
+  const retryArgs = opts.resume ? buildArgs(nudge) : buildArgs(opts.prompt);
+
+  const r2 = await runCli(retryArgs, env);
+  totalSeconds += r2.seconds;
+  if (r2.err) appendStderr("claude", opts.model, `[retry] ${r2.err}`);
+  if (r2.timedOut) throw new Error(`claude timed out after ${SHELLEY_TIMEOUT_MS}ms (retry)`);
+  if (r2.code !== 0) throw new Error(shortProcessError(r2.out, r2.err, r2.code));
+  if (!r2.out) throw new Error("claude returned empty output (after retry)");
+  return { text: r2.out, seconds: totalSeconds };
 }
 
 // === Codex backend ===

@@ -1,0 +1,10 @@
+# Files relevant to the Pendle enrichment plan
+./core/neigh_helpers.py
+./core/neigh_adapter_euler.py
+./core/neigh_adapter_aave.py
+./core/neigh_adapter_morpho.py
+./core/neigh_bfs.py
+./core/neigh.py
+./core/neighborhood_common.py
+./core/NEIGH_README.md
+./merged_neigh_plan.md

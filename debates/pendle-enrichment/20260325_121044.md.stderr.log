@@ -1,0 +1,3727 @@
+# Shelley stderr log
+# transcript: /Users/v/Code_2026/KilDef/debates/20260325_121044.md
+# started: 2026-03-25T11:10:45.017Z
+
+[2026-03-25T11:15:01.582Z] codex:gpt-5.3-codex
+OpenAI Codex v0.115.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/KilDef
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019d24b3-dd80-7230-a1e2-d9faa771bbe6
+--------
+user
+System role:
+You are a critical code reviewer in a debate. Challenge proposals, find flaws, and suggest improvements. Be concise. Output feedback on the architectural approach and risks. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: ## Phase B: Pendle Market Metadata Enrichment — Plan Review
+
+PT/YT/SY tokens already appear in the neighborhood graph as regular nodes via
+Enso BFS (role=stripped, edge type=STRIP). But they carry no Pendle-specific
+data — no implied APR, no market TVL, no expiry. This phase enriches existing PT
+nodes with market-level metadata without adding new nodes or edges.
+
+### Proposed implementation
+
+1. **Refactor shared market fetch (core/neigh_helpers.py)**
+   - Extract the paginated fetch loop from `fetch_expired_pendle_addresses()` into `_fetch_all_pendle_markets(chain_id)` with session-level caching
+   - `fetch_expired_pendle_addresses()` becomes a thin consumer of the shared fetch
+   - No behavior change, just eliminates redundant API calls
+
+2. **New adapter (core/neigh_adapter_pendle.py, ~50 lines)**
+   - `_enrich_pendle_pt_nodes(graph, eligible_ids)` — does NOT create nodes or edges
+   - Builds pt_address → market lookup from `_fetch_all_pendle_markets()`
+   - Walks graph nodes matching PT pattern (symbol starts with "PT-", project=pendle)
+   - Injects into node.extra: implied_apr, base_apr, reward_apr, expiry, pendle_market_address
+   - Sets node.tvl from market liquidity if not already set
+   - Does NOT overwrite apy_base (Pendle implied APR is a different concept)
+
+3. **Wire into BFS and CLI**
+   - Add `with_pendle: bool` to `build_neighborhood_double_bfs()`
+   - Add `--with-pendle` CLI flag
+   - Call after venue adapters with same eligible_ids=upstream_ids
+
+4. **Tests (5 cases)**
+   - PT node enriched with implied_apr/expiry
+   - apy_base NOT overwritten
+   - YT/SY nodes not enriched
+   - No matching market → node unchanged
+   - Fetch failure → warning, no crash
+
+### Key design questions for debate
+- Is enriching only PT nodes correct, or should YT nodes also get market data?
+- Should the adapter also enrich SY nodes with aggregate data across their markets?
+- Is the v2 API (`/core/v2/markets/all`) the right source, or should we use the v1 active-only endpoint from pendleWatch?
+- Should expired-but-in-graph PT nodes also get enriched (e.g. for historical context)?
+- Is `_fetch_all_pendle_markets` the right abstraction boundary, or should we expose a higher-level lookup?
+
+--- ./core/neigh_helpers.py ---
+# -*- coding: utf-8 -*-
+"""Shared adapter infrastructure for neighborhood venue adapters."""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
+
+from neighborhood_common import Graph, Node, normalize_addr
+from providers import http_client
+from utils import get_logger
+
+log = get_logger("neigh")
+
+_WATCHER_MODULE_CACHE: Dict[str, Any] = {}
+
+
+def _load_watch_module(filename: str, import_name: str):
+    if import_name in _WATCHER_MODULE_CACHE:
+        module = _WATCHER_MODULE_CACHE[import_name]
+        return None if module is False else module
+
+    module_path = Path(__file__).resolve().parents[1] / "watchers" / filename
+    if not module_path.exists():
+        log.warning("Watcher not found at %s", module_path)
+        _WATCHER_MODULE_CACHE[import_name] = False
+        return None
+
+    try:
+        watchers_dir = str(module_path.parent)
+        repo_root = str(module_path.parents[1])
+        for path in (watchers_dir, repo_root):
+            if path not in sys.path:
+                sys.path.insert(0, path)
+        spec = importlib.util.spec_from_file_location(import_name, module_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot create import spec for {module_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _WATCHER_MODULE_CACHE[import_name] = module
+        return module
+    except Exception as exc:
+        log.warning("Failed to load watcher %s: %s", filename, exc)
+        _WATCHER_MODULE_CACHE[import_name] = False
+        return None
+
+
+def fetch_aave_markets_for_chain(chain_id: int) -> List[Dict[str, Any]]:
+    module = _load_watch_module("aaveWatch.py", "kildef_watchers.aaveWatch")
+    if module is None:
+        return []
+    return module.fetch_markets([int(chain_id)])
+
+
+def fetch_morpho_markets_for_chain(chain_id: int) -> List[Dict[str, Any]]:
+    module = _load_watch_module("morphoWatch.py", "kildef_watchers.morphoWatch")
+    if module is None:
+        return []
+    return module.fetch_markets([int(chain_id)])
+
+
+def fetch_euler_markets_for_chain(chain_id: int) -> List[Dict[str, Any]]:
+    if int(chain_id) != 1:
+        return []
+    module = _load_watch_module("eulerWatch.py", "kildef_watchers.eulerWatch")
+    if module is None:
+        return []
+    raw = module.fetch_markets_from_subgraph()
+    rows, _ = module.to_rows(raw, {}, None)
+    return rows
+
+
+def _token_nodes_by_chain(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> Dict[int, Dict[str, Node]]:
+    token_nodes: Dict[int, Dict[str, Node]] = {}
+    for node in graph.nodes.values():
+        if node.kind != "token" or not node.address:
+            continue
+        if eligible_ids is not None and node.id not in eligible_ids:
+            continue
+        token_nodes.setdefault(int(node.chainId), {})[node.address.lower()] = node
+    return token_nodes
+
+
+_PENDLE_EXPIRY_CACHE: Dict[int, Set[str]] = {}
+
+
+def _parse_pendle_addr(token_id: str) -> Optional[str]:
+    """Extract address from Pendle token id like '1-0xabc...'."""
+    if not token_id or "-" not in token_id:
+        return None
+    return normalize_addr(token_id.split("-", 1)[1])
+
+
+def fetch_expired_pendle_addresses(chain_id: int) -> Set[str]:
+    """Return expired Pendle PT, YT, and orphaned SY addresses for *chain_id*.
+
+    An SY is considered expired when ALL markets that reference it are expired.
+    """
+    if chain_id in _PENDLE_EXPIRY_CACHE:
+        return _PENDLE_EXPIRY_CACHE[chain_id]
+
+    expired: Set[str] = set()
+    now = datetime.now(timezone.utc)
+
+    # Fetch all markets (paginated)
+    all_markets: List[Dict[str, Any]] = []
+    skip = 0
+    while True:
+        try:
+            resp = http_client.get(
+                "https://api-v2.pendle.finance/core/v2/markets/all",
+                params={"chainId": chain_id, "limit": 100, "skip": skip},
+            )
+            data = resp.json()
+            results = data.get("results") or []
+        except Exception as exc:
+            log.warning("Pendle markets fetch failed for chain %s: %s", chain_id, exc)
+            break
+        if not results:
+            break
+        all_markets.extend(results)
+        skip += len(results)
+        if skip >= (data.get("total") or 0):
+            break
+
+    # Track SY → {has_active_market}
+    sy_has_active: Dict[str, bool] = {}
+
+    for market in all_markets:
+        expiry_str = market.get("expiry")
+        if not expiry_str:
+            continue
+        try:
+            expiry = datetime.fromisoformat(expiry_str.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            continue
+
+        is_expired = expiry < now
+
+        pt_addr = _parse_pendle_addr(market.get("pt") or "")
+        yt_addr = _parse_pendle_addr(market.get("yt") or "")
+        sy_addr = _parse_pendle_addr(market.get("sy") or "")
+
+        if is_expired:
+            if pt_addr:
+                expired.add(pt_addr)
+            if yt_addr:
+                expired.add(yt_addr)
+        else:
+            # Active market — its SY is still live
+            if sy_addr:
+                sy_has_active[sy_addr] = True
+
+        # Register SY if not already marked active
+        if sy_addr and sy_addr not in sy_has_active:
+            sy_has_active.setdefault(sy_addr, False)
+
+    # SYs where all markets are expired
+    for sy_addr, has_active in sy_has_active.items():
+        if not has_active:
+            expired.add(sy_addr)
+
+    _PENDLE_EXPIRY_CACHE[chain_id] = expired
+    log.debug("Pendle: %d expired tokens on chain %s", len(expired), chain_id)
+    return expired
+
+
+def _enrich_token_node(token_node: Node, *, symbol: Optional[str] = None, label: Optional[str] = None, project: Optional[str] = None) -> None:
+    if symbol and not token_node.symbol:
+        token_node.symbol = symbol
+    if label and (not token_node.label or token_node.label == token_node.address):
+        token_node.label = label
+    if project and not token_node.project:
+        token_node.project = project
+
+
+--- ./core/neigh_adapter_euler.py ---
+# -*- coding: utf-8 -*-
+"""Euler venue adapter for neighborhood graph."""
+
+from __future__ import annotations
+
+from typing import Optional, Set
+
+from neighborhood_common import Edge, Graph, Node, node_id, normalize_addr
+from neigh_helpers import (
+    _enrich_token_node,
+    _token_nodes_by_chain,
+    fetch_euler_markets_for_chain,
+)
+from utils import get_logger, safe_float
+
+log = get_logger("neigh")
+
+
+def _attach_euler_market_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+    token_nodes_by_chain = _token_nodes_by_chain(graph, eligible_ids=eligible_ids)
+    if not token_nodes_by_chain:
+        return
+
+    for chain_id, token_nodes in token_nodes_by_chain.items():
+        try:
+            rows = fetch_euler_markets_for_chain(chain_id)
+        except Exception as exc:
+            log.warning("Euler market fetch failed for chain %s: %s", chain_id, exc)
+            continue
+
+        for row in rows:
+            asset_addr = normalize_addr(row.get("asset_addr"))
+            if not asset_addr:
+                continue
+
+            token_node = token_nodes.get(asset_addr)
+            if token_node is None:
+                continue
+
+            asset_symbol = row.get("asset") or row.get("asset_symbol") or token_node.symbol or "token"
+            _enrich_token_node(token_node, symbol=asset_symbol, label=asset_symbol)
+
+            market_addr = normalize_addr(row.get("market_addr"))
+            market_node_id = node_id(chain_id, "lending_market", f"euler:{market_addr or asset_addr}")
+
+            market_node = Node(
+                id=market_node_id,
+                address=market_addr,
+                chainId=chain_id,
+                kind="lending_market",
+                label=f"{asset_symbol} @ Euler",
+                symbol=asset_symbol,
+                role="other",
+                protocol="euler",
+                project="Euler",
+                tvl=safe_float(row.get("supplyUSD"), default=None),
+                apy_base=safe_float(row.get("supplyAPY"), default=None),
+                source="eulerWatch",
+                extra={
+                    "market_address": market_addr,
+                    "asset_address": asset_addr,
+                    "can_use_as_collateral": bool(row.get("canUseAsCollateral")),
+                    "liquidity_usd": safe_float(row.get("liquidityUSD"), default=None),
+                    "borrow_usd": safe_float(row.get("borrowUSD"), default=None),
+                    "borrow_apy": safe_float(row.get("borrowAPY"), default=None),
+                    "utilization": safe_float(row.get("util"), default=None),
+                    "net_supply_apy": safe_float(row.get("netSupplyAPY"), default=None),
+                },
+            )
+            graph.add_node(market_node)
+            graph.add_edge(Edge(
+                src=token_node.id,
+                dst=market_node.id,
+                type="LEND",
+                notes="euler market",
+                source="eulerWatch",
+            ))
+
+            if row.get("canUseAsCollateral"):
+                graph.add_edge(Edge(
+                    src=token_node.id,
+                    dst=market_node.id,
+                    type="PLEDGE",
+                    notes="euler collateral",
+                    source="eulerWatch",
+                ))
+
+
+--- ./core/neigh_adapter_aave.py ---
+# -*- coding: utf-8 -*-
+"""Aave v3 venue adapter for neighborhood graph."""
+
+from __future__ import annotations
+
+from typing import Any, Optional, Set
+
+from neighborhood_common import Edge, Graph, Node, node_id, normalize_addr
+from neigh_helpers import (
+    _enrich_token_node,
+    _token_nodes_by_chain,
+    fetch_aave_markets_for_chain,
+)
+from utils import get_logger, safe_float
+
+log = get_logger("neigh")
+
+
+def _extract_aave_percent(data: Any) -> Optional[float]:
+    if isinstance(data, dict):
+        data = data.get("value")
+    return safe_float(data, default=None)
+
+
+def _extract_aave_usd(data: Any) -> Optional[float]:
+    if isinstance(data, dict):
+        data = data.get("usd")
+    return safe_float(data, default=None)
+
+
+def _attach_aave_market_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+    token_nodes_by_chain = _token_nodes_by_chain(graph, eligible_ids=eligible_ids)
+    if not token_nodes_by_chain:
+        return
+
+    for chain_id, token_nodes in token_nodes_by_chain.items():
+        try:
+            markets = fetch_aave_markets_for_chain(chain_id)
+        except Exception as exc:
+            log.warning("Aave market fetch failed for chain %s: %s", chain_id, exc)
+            continue
+
+        for market in markets:
+            market_name = market.get("name") or "Aave v3"
+            market_addr = normalize_addr(market.get("address"))
+            if not market_addr:
+                continue
+
+            for reserve in market.get("reserves") or []:
+                underlying = reserve.get("underlyingToken") or {}
+                asset_addr = normalize_addr(underlying.get("address"))
+                if not asset_addr:
+                    continue
+
+                token_node = token_nodes.get(asset_addr)
+                if token_node is None:
+                    continue
+                supply = reserve.get("supplyInfo") or {}
+                borrow = reserve.get("borrowInfo") or {}
+                asset_symbol = underlying.get("symbol") or token_node.symbol or "token"
+                _enrich_token_node(token_node, symbol=asset_symbol, label=asset_symbol)
+                market_node_id = node_id(chain_id, "lending_market", f"aave:{market_addr}:{asset_addr}")
+
+                market_node = Node(
+                    id=market_node_id,
+                    address=market_addr,
+                    chainId=chain_id,
+                    kind="lending_market",
+                    label=f"{asset_symbol} reserve @ {market_name}",
+                    symbol=asset_symbol,
+                    role="other",
+                    protocol="aave-v3",
+                    project="Aave",
+                    tvl=_extract_aave_usd(reserve.get("size")),
+                    apy_base=_extract_aave_percent(supply.get("apy")),
+                    source="aaveWatch",
+                    extra={
+                        "market_name": market_name,
+                        "market_address": market_addr,
+                        "asset_address": asset_addr,
+                        "can_be_collateral": bool(supply.get("canBeCollateral")),
+                        "max_ltv": _extract_aave_percent(supply.get("maxLTV")),
+                        "liq_threshold": _extract_aave_percent(supply.get("liquidationThreshold")),
+                        "liq_bonus": _extract_aave_percent(supply.get("liquidationBonus")),
+                        "liquidity_usd": _extract_aave_usd(borrow.get("availableLiquidity")),
+                        "borrow_usd": _extract_aave_usd(borrow.get("total")),
+                        "borrow_apy": _extract_aave_percent(borrow.get("apy")),
+                        "utilization": _extract_aave_percent(borrow.get("utilizationRate")),
+                        "oracle": normalize_addr(reserve.get("usdOracleAddress")),
+                    },
+                )
+                graph.add_node(market_node)
+                graph.add_edge(Edge(
+                    src=token_node.id,
+                    dst=market_node.id,
+                    type="LEND",
+                    notes="aave reserve",
+                    source="aaveWatch",
+                ))
+
+                if bool(supply.get("canBeCollateral")):
+                    max_ltv = _extract_aave_percent(supply.get("maxLTV"))
+                    note = None if max_ltv is None else f"maxLTV={max_ltv:.4f}"
+                    graph.add_edge(Edge(
+                        src=token_node.id,
+                        dst=market_node.id,
+                        type="PLEDGE",
+                        notes=note,
+                        source="aaveWatch",
+                    ))
+
+
+--- ./core/neigh_adapter_morpho.py ---
+# -*- coding: utf-8 -*-
+"""Morpho venue adapter for neighborhood graph."""
+
+from __future__ import annotations
+
+from typing import Optional, Set
+
+from neighborhood_common import Edge, Graph, Node, node_id, normalize_addr
+from neigh_helpers import (
+    _enrich_token_node,
+    _token_nodes_by_chain,
+    fetch_morpho_markets_for_chain,
+)
+from utils import get_logger, safe_float
+
+log = get_logger("neigh")
+
+
+def _attach_morpho_market_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+    token_nodes_by_chain = _token_nodes_by_chain(graph, eligible_ids=eligible_ids)
+    if not token_nodes_by_chain:
+        return
+
+    for chain_id, token_nodes in token_nodes_by_chain.items():
+        try:
+            markets = fetch_morpho_markets_for_chain(chain_id)
+        except Exception as exc:
+            log.warning("Morpho market fetch failed for chain %s: %s", chain_id, exc)
+            continue
+
+        for market in markets:
+            loan = market.get("loanAsset") or {}
+            coll = market.get("collateralAsset") or {}
+            loan_addr = normalize_addr(loan.get("address"))
+            coll_addr = normalize_addr(coll.get("address"))
+            loan_node = token_nodes.get(loan_addr) if loan_addr else None
+            coll_node = token_nodes.get(coll_addr) if coll_addr else None
+            if loan_node is None and coll_node is None:
+                continue
+
+            unique_key = market.get("uniqueKey") or ""
+            if not unique_key:
+                continue
+
+            loan_symbol = loan.get("symbol") or "loan"
+            coll_symbol = coll.get("symbol") or "collateral"
+            _enrich_token_node(loan_node, symbol=loan_symbol, label=loan_symbol) if loan_node else None
+            _enrich_token_node(coll_node, symbol=coll_symbol, label=coll_symbol) if coll_node else None
+
+            state = market.get("state") or {}
+            market_node = Node(
+                id=node_id(chain_id, "lending_market", f"morpho:{unique_key}"),
+                address=None,
+                chainId=chain_id,
+                kind="lending_market",
+                label=f"{loan_symbol}/{coll_symbol} @ Morpho",
+                symbol=f"{loan_symbol}/{coll_symbol}",
+                role="other",
+                protocol="morpho",
+                project="Morpho",
+                tvl=safe_float(state.get("supplyAssetsUsd"), default=None),
+                apy_base=safe_float(state.get("avgSupplyApy"), default=None),
+                source="morphoWatch",
+                extra={
+                    "unique_key": unique_key,
+                    "loan_asset": loan_addr,
+                    "collateral_asset": coll_addr,
+                    "oracle": normalize_addr(market.get("oracleAddress")),
+                    "irm": normalize_addr(market.get("irmAddress")),
+                    "lltv": safe_float(market.get("lltv"), default=None),
+                    "supply_usd": safe_float(state.get("supplyAssetsUsd"), default=None),
+                    "borrow_usd": safe_float(state.get("borrowAssetsUsd"), default=None),
+                    "liquidity_usd": safe_float(state.get("liquidityAssetsUsd"), default=None),
+                    "utilization": safe_float(state.get("utilization"), default=None),
+                    "apy_supply": safe_float(state.get("avgSupplyApy"), default=None),
+                    "apy_borrow": safe_float(state.get("avgBorrowApy"), default=None),
+                    "apy_net": safe_float(state.get("avgNetSupplyApy"), default=None),
+                },
+            )
+            graph.add_node(market_node)
+
+            if loan_node is not None:
+                graph.add_edge(Edge(
+                    src=loan_node.id,
+                    dst=market_node.id,
+                    type="LEND",
+                    notes="morpho loanAsset",
+                    source="morphoWatch",
+                ))
+            if coll_node is not None:
+                graph.add_edge(Edge(
+                    src=coll_node.id,
+                    dst=market_node.id,
+                    type="PLEDGE",
+                    notes="morpho collateralAsset",
+                    source="morphoWatch",
+                ))
+
+
+--- ./core/neigh_bfs.py ---
+# -*- coding: utf-8 -*-
+"""
+BFS traversal + Enso caching for neighborhood graph builder.
+"""
+
+from __future__ import annotations
+
+import time
+from typing import Any, Dict, List, Optional, Set, Tuple, Deque
+from collections import deque
+
+from providers.enso import (
+    fetch_enso_token_with_price,
+    find_tokens_with_underlying,
+    EnsoAPIError,
+)
+
+from neighborhood_common import (
+    Edge,
+    Graph,
+    Node,
+    edge_type_for_source_role,
+    node_id,
+    node_from_enso_payload,
+    normalize_addr,
+    token_node_id,
+)
+
+from protocols import web3 as web3_utils
+from utils import get_logger
+
+from neigh_adapter_aave import _attach_aave_market_nodes
+from neigh_adapter_euler import _attach_euler_market_nodes
+from neigh_adapter_morpho import _attach_morpho_market_nodes
+from neigh_adapter_univ3 import _attach_univ3_pool_nodes
+from neigh_helpers import fetch_expired_pendle_addresses
+
+log = get_logger("neigh")
+
+_ERC4626_ASSET_ABI = [{"inputs":[],"name":"asset","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
+
+
+def _erc4626_asset(chain_id: int, address: str) -> Optional[str]:
+    """Return the ERC-4626 asset() address, or None if not a vault."""
+    w3 = web3_utils.get_web3(chain_id)
+    if not w3:
+        return None
+    try:
+        c = w3.eth.contract(address=w3.to_checksum_address(address), abi=_ERC4626_ASSET_ABI)
+        return normalize_addr(c.functions.asset().call())
+    except Exception:
+        return None
+
+
+# ----------------------------------------------------------------------------
+# Fetch/caching
+# ----------------------------------------------------------------------------
+
+class EnsoCache:
+    def __init__(self):
+        self.token: Dict[Tuple[int, str], Dict[str, Any]] = {}
+        self.dependents: Dict[Tuple[int, str], List[Dict[str, Any]]] = {}
+
+    def get_token(self, chain_id: int, address: str) -> Optional[Dict[str, Any]]:
+        return self.token.get((chain_id, address))
+
+    def put_token(self, chain_id: int, address: str, payload: Dict[str, Any]) -> None:
+        self.token[(chain_id, address)] = payload
+
+    def get_dependents(self, chain_id: int, address: str) -> Optional[List[Dict[str, Any]]]:
+        return self.dependents.get((chain_id, address))
+
+    def put_dependents(self, chain_id: int, address: str, items: List[Dict[str, Any]]) -> None:
+        self.dependents[(chain_id, address)] = items
+
+
+def fetch_token_cached(cache: EnsoCache, chain_id: int, address: str) -> Dict[str, Any]:
+    cached = cache.get_token(chain_id, address)
+    if cached:
+        return cached
+    payload = fetch_enso_token_with_price(address=address, chain_id=chain_id, underlying=0)
+    cache.put_token(chain_id, address, payload)
+    return payload
+
+
+def list_underlyings_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    return payload.get("underlyingTokens") or []
+
+
+def list_dependents_cached(cache: EnsoCache, chain_id: int, address: str, page_size: int = 1000) -> List[Dict[str, Any]]:
+    """
+    Retrieve *all* dependents (wrappers/LPs/etc.) that reference `address` as underlying,
+    by paging until empty.
+    """
+    cached = cache.get_dependents(chain_id, address)
+    if cached is not None:
+        return cached
+
+    all_items: List[Dict[str, Any]] = []
+    seen_ids: Set[str] = set()
+    page = 1
+    while True:
+        try:
+            res = find_tokens_with_underlying(address=address, chain_id=chain_id, page_size=page_size, page=page)
+            items = res.get("items") or []
+        except EnsoAPIError as exc:
+            log.warning("Enso dependents fetch failed for %s:%s page=%d: %s", address, chain_id, page, exc)
+            items = []
+
+        # dedupe by (chainId,address)
+        new_count = 0
+        for it in items:
+            a = normalize_addr(it.get("address"))
+            ch = int(it.get("chainId") or chain_id)
+            if not a:
+                continue
+            key = f"{ch}:{a}"
+            if key not in seen_ids:
+                seen_ids.add(key)
+                all_items.append(it)
+                new_count += 1
+
+        if len(items) == 0 or new_count == 0:
+            break
+        page += 1
+
+    cache.put_dependents(chain_id, address, all_items)
+    return all_items
+
+
+# ----------------------------------------------------------------------------
+# Double BFS
+# ----------------------------------------------------------------------------
+
+def build_neighborhood_double_bfs(
+    token_address: str,
+    chain_id: int = 1,
+    downstream_depth: int = 4,  # U direction (underlyings)
+    upstream_depth: int = 4,    # U* direction (dependents)
+    onchain_probe: bool = True,
+    with_morpho: bool = False,
+    with_aave: bool = False,
+    with_euler: bool = False,
+    with_univ3: bool = False,
+) -> Graph:
+    """
+    EXACT cones:
+      - Downstream cone: Z s.t. Z ∈ ⋃_{k=1..downstream_depth} U^k(Y)
+      - Upstream cone:   X s.t. Y ∈ ⋃_{k=1..upstream_depth} U^k(X)  (i.e., (U*)^k(Y))
+    No mixing of directions during traversal.
+    """
+    addr0 = normalize_addr(token_address)
+    if not addr0:
+        raise ValueError(f"Invalid token address: {token_address}")
+    root_id = token_node_id(chain_id, addr0)
+
+    g = Graph(root=root_id, meta={
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "downstream": downstream_depth,
+        "upstream": upstream_depth,
+        "sources": [
+            "Edges and nodes come from Enso (plus optional ERC-4626 probe)",
+        ],
+    })
+
+    cache = EnsoCache()
+
+    root_fetch_failed = False
+
+    # Ensure root node exists
+    try:
+        root_payload = fetch_token_cached(cache, chain_id, addr0)
+    except EnsoAPIError as exc:
+        root_node = Node(
+            id=root_id,
+            address=addr0,
+            chainId=chain_id,
+            kind="token",
+            label=addr0,
+            role="other",
+            extra={"error": str(exc)},
+        )
+        g.add_node(root_node)
+        root_fetch_failed = True
+    else:
+        root_node = node_from_enso_payload(root_payload)
+        g.add_node(root_node)
+
+        # Optional promotion via ERC-4626 probe for the root
+        asset_addr = _erc4626_asset(chain_id, addr0) if onchain_probe else None
+        if asset_addr:
+            root_node.role = "vault_share"
+
+    if root_fetch_failed and onchain_probe:
+        asset_addr = _erc4626_asset(chain_id, addr0)
+        if asset_addr:
+            root_node = g.nodes[root_id]
+            root_node.role = "vault_share"
+            asset_id = token_node_id(chain_id, asset_addr)
+            g.add_node(Node(
+                id=asset_id,
+                address=asset_addr,
+                chainId=chain_id,
+                kind="token",
+                label=asset_addr,
+                role="plain",
+                source="onchain",
+            ))
+            g.add_edge(Edge(
+                src=root_id,
+                dst=asset_id,
+                type="VAULT",
+                notes="erc4626.asset()",
+                source="onchain",
+            ))
+
+    # ------------------ Downstream BFS (U) ------------------
+    if not root_fetch_failed and downstream_depth > 0:
+        visited_ds: Set[Tuple[int, str]] = set()
+        q_ds: Deque[Tuple[int, str, int]] = deque()
+        q_ds.append((chain_id, addr0, 0))
+        while q_ds:
+            ch, addr, d = q_ds.popleft()
+            if (ch, addr) in visited_ds:
+                continue
+            visited_ds.add((ch, addr))
+
+            log.debug("downstream BFS: expanding %s depth=%d", addr, d)
+
+            if d == downstream_depth:
+                continue  # at boundary, do not expand
+
+            # fetch this token & its underlyings
+            try:
+                tok = fetch_token_cached(cache, ch, addr)
+            except EnsoAPIError as exc:
+                log.warning("Enso fetch failed for %s:%s: %s", ch, addr, exc)
+                continue
+
+            src_node = node_from_enso_payload(tok)
+            g.add_node(src_node)
+
+            # promotion via ERC-4626 (for non-root too)
+            asset_addr = _erc4626_asset(ch, addr) if onchain_probe else None
+            if asset_addr:
+                src_node.role = "vault_share"
+
+            under = list_underlyings_from_payload(tok)
+            for child in under:
+                caddr = normalize_addr(child.get("address"))
+                cchain = int(child.get("chainId") or ch)
+                if not caddr:
+                    continue
+
+                child_payload = cache.get_token(cchain, caddr)
+                if child_payload is None:
+                    # create minimal node first; full payload when/if visited
+                    child_node = Node(
+                        id=token_node_id(cchain, caddr),
+                        address=caddr,
+                        chainId=cchain,
+                        kind="token",
+                        label=child.get("name") or caddr,
+                        symbol=child.get("symbol"),
+                        role="plain",
+                        source="enso",
+                    )
+                    g.add_node(child_node)
+                else:
+                    g.add_node(node_from_enso_payload(child_payload))
+
+                edge_type = edge_type_for_source_role(src_node.role)
+                if asset_addr and caddr == asset_addr:
+                    edge_type = "VAULT"
+                    src_node.role = "vault_share"
+
+                g.add_edge(Edge(
+                    src=src_node.id,
+                    dst=token_node_id(cchain, caddr),
+                    type=edge_type,
+                    notes=None if edge_type != "WRAPS" else "enso.underlyingTokens",
+                    source="onchain" if edge_type == "VAULT" else "enso",
+                ))
+
+                if d + 1 < downstream_depth:
+                    q_ds.append((cchain, caddr, d + 1))
+
+    # ------------------ Upstream BFS (U*) ------------------
+    # Track upstream node IDs (root + dependents) for venue adapter filtering.
+    # Venue adapters should only attach to tokens that are "about" the root,
+    # i.e. the root itself and its upstream cone — not downstream underlyings.
+    upstream_ids: Set[str] = {root_id}
+
+    if not root_fetch_failed and upstream_depth > 0:
+        visited_us: Set[Tuple[int, str]] = set()
+        q_us: Deque[Tuple[int, str, int]] = deque()
+        q_us.append((chain_id, addr0, 0))
+        while q_us:
+            ch, addr, d = q_us.popleft()
+            if (ch, addr) in visited_us:
+                continue
+            visited_us.add((ch, addr))
+
+            log.debug("upstream BFS: expanding %s depth=%d", addr, d)
+
+            if d == upstream_depth:
+                continue  # at boundary, do not expand
+
+            # find direct dependents of this 'addr' (reverse step)
+            dependents = list_dependents_cached(cache, ch, addr, page_size=1000)
+
+            # ensure the current node exists (once, not per-dependent)
+            try:
+                cur_payload = fetch_token_cached(cache, ch, addr)
+                cur_node = node_from_enso_payload(cur_payload)
+                g.add_node(cur_node)
+            except EnsoAPIError as exc:
+                log.warning("Enso fetch failed for %s:%s: %s", ch, addr, exc)
+                cur_node = Node(
+                    id=token_node_id(ch, addr),
+                    address=addr,
+                    chainId=ch,
+                    kind="token",
+                    label=addr,
+                    role="other",
+                )
+                g.add_node(cur_node)
+
+            expired_pendle = fetch_expired_pendle_addresses(ch)
+
+            for dep in dependents:
+                daddr = normalize_addr(dep.get("address"))
+                dchain = int(dep.get("chainId") or ch)
+                if not daddr:
+                    continue
+
+                if daddr in expired_pendle:
+                    log.debug("upstream BFS: skipping expired Pendle token %s", daddr)
+                    continue
+
+                dep_node = node_from_enso_payload(dep)
+                g.add_node(dep_node)
+                upstream_ids.add(dep_node.id)
+
+                # optional on-chain probe for dependent
+                dep_asset = _erc4626_asset(dchain, daddr) if onchain_probe else None
+                if dep_asset and dep_asset == addr:
+                    dep_node.role = "vault_share"
+
+                edge_type = edge_type_for_source_role(dep_node.role)
+                if dep_asset and dep_asset == addr:
+                    edge_type = "VAULT"
+
+                g.add_edge(Edge(
+                    src=dep_node.id,
+                    dst=cur_node.id,
+                    type=edge_type,
+                    notes="dependents (enso)",
+                    source="onchain" if edge_type == "VAULT" else "enso",
+                ))
+
+                # enqueue next reverse hop if within radius
+                if d + 1 < upstream_depth:
+                    q_us.append((dchain, daddr, d + 1))
+
+    if with_morpho:
+        _attach_morpho_market_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "morpho" not in adapters:
+            adapters.append("morpho")
+
+    if with_aave:
+        _attach_aave_market_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "aave" not in adapters:
+            adapters.append("aave")
+
+    if with_euler:
+        _attach_euler_market_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "euler" not in adapters:
+            adapters.append("euler")
+
+    if with_univ3:
+        _attach_univ3_pool_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "univ3" not in adapters:
+            adapters.append("univ3")
+
+    return g
+
+
+--- ./core/neigh.py ---
+# -*- coding: utf-8 -*-
+"""
+Neighborhood builder CLI — thin wrapper around neigh_bfs.
+"""
+
+from __future__ import annotations
+
+import os
+import argparse
+from typing import List, Optional
+
+from neigh_bfs import build_neighborhood_double_bfs
+
+
+def _main(argv: Optional[List[str]] = None) -> int:
+    p = argparse.ArgumentParser(description="Builds token neighborhood via double BFS (using Enso).")
+    p.add_argument("address", help="ERC-20 address (0x...)")
+    p.add_argument("--chain-id", type=int, default=1)
+    p.add_argument("--downstream", type=int, default=4, help="Depth N for underlyings cone (U direction)")
+    p.add_argument("--upstream", type=int, default=4, help="Depth n for dependents cone (U* direction)")
+    p.add_argument("--no-onchain", action="store_true", help="Disable ERC-4626 asset() probe")
+    p.add_argument("--with-morpho", action="store_true", help="Attach Morpho market nodes and venue edges")
+    p.add_argument("--with-aave", action="store_true", help="Attach Aave reserve nodes and venue edges")
+    p.add_argument("--with-euler", action="store_true", help="Attach Euler market nodes and venue edges")
+    p.add_argument("--with-univ3", action="store_true", help="Attach Uniswap v3 pool nodes and SWAP edges")
+    p.add_argument("--out", type=str, default=None, help="Write JSON graph to this path")
+    p.add_argument("--dot", type=str, default=None, help="Write Graphviz DOT to this path")
+    p.add_argument("--min-tvl", type=float, default=0.0, help="Hide venue nodes (markets/pools) below this TVL in DOT output")
+
+    args = p.parse_args(argv)
+
+    g = build_neighborhood_double_bfs(
+        token_address=args.address,
+        chain_id=args.chain_id,
+        downstream_depth=max(0, int(args.downstream)),
+        upstream_depth=max(0, int(args.upstream)),
+        onchain_probe=not args.no_onchain,
+        with_morpho=args.with_morpho,
+        with_aave=args.with_aave,
+        with_euler=args.with_euler,
+        with_univ3=args.with_univ3,
+    )
+
+    payload = g.to_json()
+    if args.out:
+        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            fh.write(payload + "\n")
+    else:
+        print(payload)
+
+    if args.dot:
+        dot = g.to_dot(min_tvl=args.min_tvl)
+        os.makedirs(os.path.dirname(os.path.abspath(args.dot)), exist_ok=True)
+        with open(args.dot, "w", encoding="utf-8") as fh:
+            fh.write(dot + "\n")
+
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(_main())
+
+
+--- ./core/neighborhood_common.py ---
+"""Shared neighborhood graph model and Enso payload helpers."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field, fields
+from typing import Any, Dict, Optional, Set, Tuple, List
+from urllib.parse import quote
+
+__all__ = [
+    "Price",
+    "Node",
+    "Edge",
+    "Graph",
+    "normalize_addr",
+    "node_id",
+    "token_node_id",
+    "infer_role_from_enso",
+    "edge_type_for_source_role",
+    "node_from_enso_payload",
+]
+
+
+def normalize_addr(addr: Optional[str]) -> Optional[str]:
+    if not isinstance(addr, str):
+        return None
+    addr = addr.strip()
+    if addr.startswith("0x") and len(addr) == 42:
+        return addr.lower()
+    return None
+
+
+def _normalize_node_key(key: Any) -> str:
+    raw = str(key).strip()
+    if not raw:
+        raise ValueError("Node key must not be blank")
+    if raw.startswith("0x") and len(raw) == 42:
+        raw = raw.lower()
+    return quote(raw, safe="")
+
+
+def node_id(chain_id: int, address_or_namespace: str, key: Optional[str] = None) -> str:
+    """
+    Build a stable node id.
+
+    Backward-compatible token form:
+      node_id(1, "0x...")
+
+    Generic form for non-token entities:
+      node_id(1, "lending_market", "morpho-blue:0x...")
+    """
+    if key is None:
+        namespace = "erc20"
+        raw_key = address_or_namespace
+    else:
+        namespace = str(address_or_namespace).strip().lower()
+        if not namespace:
+            raise ValueError("Node namespace must not be blank")
+        raw_key = key
+    return f"eip155:{int(chain_id)}/{namespace}:{_normalize_node_key(raw_key)}"
+
+
+def token_node_id(chain_id: int, address: str) -> str:
+    return node_id(chain_id, "erc20", address)
+
+
+@dataclass
+class Price:
+    value: Optional[float] = None
+    timestamp: Optional[int] = None
+    symbol: Optional[str] = None
+    confidence: Optional[float] = None
+
+
+def _is_blank(value: Any) -> bool:
+    return value in (None, [], {}, "")
+
+
+@dataclass
+class Node:
+    id: str
+    address: Optional[str]
+    chainId: int
+    kind: str = "token"
+    label: Optional[str] = None
+    symbol: Optional[str] = None
+    decimals: Optional[int] = None
+    role: str = "plain"
+    protocol: Optional[str] = None
+    project: Optional[str] = None
+    tvl: Optional[float] = None
+    apy_base: Optional[float] = None
+    apy_reward: Optional[float] = None
+    price: Optional[Price] = None
+    source: str = "enso"
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def merge_from(self, other: "Node") -> None:
+        for model_field in fields(self):
+            key = model_field.name
+            if key in ("id", "address", "chainId", "kind"):
+                continue
+            current = getattr(self, key)
+            incoming = getattr(other, key)
+            if _is_blank(current) and not _is_blank(incoming):
+                setattr(self, key, incoming)
+
+
+@dataclass
+class Edge:
+    src: str
+    dst: str
+    type: str
+    notes: Optional[str] = None
+    source: str = "enso"
+
+    @property
+    def key(self) -> Tuple[str, str, str]:
+        return (self.src, self.type, self.dst)
+
+
+@dataclass
+class Graph:
+    root: str
+    nodes: Dict[str, Node] = field(default_factory=dict)
+    edges: List[Edge] = field(default_factory=list)
+    meta: Dict[str, Any] = field(default_factory=dict)
+    _edge_set: Set[Tuple[str, str, str]] = field(default_factory=set, repr=False)
+
+    def add_node(self, node: Node) -> None:
+        if node.id in self.nodes:
+            self.nodes[node.id].merge_from(node)
+        else:
+            self.nodes[node.id] = node
+
+    def add_edge(self, edge: Edge) -> None:
+        if edge.key not in self._edge_set:
+            self.edges.append(edge)
+            self._edge_set.add(edge.key)
+
+    def to_dict(self) -> Dict[str, Any]:
+        def _node_to_dict(node: Node) -> Dict[str, Any]:
+            data = asdict(node)
+            if node.price and isinstance(node.price, Price):
+                data["price"] = asdict(node.price)
+            return data
+
+        return {
+            "root": self.root,
+            "nodes": [_node_to_dict(node) for node in self.nodes.values()],
+            "edges": [asdict(edge) for edge in self.edges],
+            "meta": self.meta,
+        }
+
+    def to_json(self, compact: bool = False) -> str:
+        if compact:
+            return json.dumps(self.to_dict(), separators=(",", ":"), sort_keys=False)
+        return json.dumps(self.to_dict(), indent=2, sort_keys=False)
+
+    def to_dot(self, min_tvl: float = 0.0) -> str:
+        _VENUE_KINDS = {"lending_market", "dex_pool"}
+        if min_tvl > 0:
+            skip_ids = {
+                n.id for n in self.nodes.values()
+                if n.kind in _VENUE_KINDS and (n.tvl is None or n.tvl < min_tvl)
+            }
+        else:
+            skip_ids = set()
+
+        role_color = {
+            "plain": "#C3B091",
+            "wrapper": "#C3B091",
+            "lp": "#F8C0D8",
+            "vault_share": "#FFF3B0",
+            "staked": "#90EE90",
+            "stripped": "#DDA0DD",
+            "collateral": "#FFB366",
+            "other": "#D0D0D0",
+        }
+        kind_color = {
+            "token": None,
+            "lending_market": "#FEEA9D",
+            "dex_pool": "#E7A29D",
+            "venue": "#F4EEEA",
+        }
+        # Protocol-specific overrides (checked before kind/role)
+        protocol_color = {
+            "pendle": "#B8E6B8",       # light green — PT/YT/SY
+            "morpho": "#FEEA9D",       # pale yellow — lending markets
+            "aave-v3": "#FDE68A",      # deeper yellow — Aave
+            "euler": "#E8A317",        # dark gold — Euler vaults
+            "uniswap-v3": "#E7A29D",   # salmon — dex pools
+        }
+        lines = [
+            "digraph G {",
+            "  rankdir=LR;",
+            '  node [shape=box, style="rounded,filled", fontname="Helvetica"];',
+        ]
+        for node in self.nodes.values():
+            if node.id in skip_ids:
+                continue
+            color = (
+                protocol_color.get(node.protocol or "")
+                or protocol_color.get((node.project or "").lower())
+                or kind_color.get(node.kind)
+                or role_color.get(node.role, "#D0D0D0")
+            )
+            label = node.label or node.symbol or node.address or node.id
+            sub = []
+            if node.kind and node.kind != "token":
+                sub.append(node.kind)
+            if node.symbol and node.symbol != label:
+                sub.append(node.symbol)
+            if node.role and node.role != "plain":
+                sub.append(node.role)
+            if node.protocol:
+                sub.append(node.protocol)
+            if sub:
+                label = f"{label}\\n({', '.join(sub)})"
+            penwidth = ', penwidth=3' if node.id == self.root else ''
+            lines.append(f'  "{node.id}" [label="{label}", fillcolor="{color}"{penwidth}];')
+        for edge in self.edges:
+            if edge.src in skip_ids or edge.dst in skip_ids:
+                continue
+            lines.append(f'  "{edge.src}" -> "{edge.dst}" [label="{edge.type}"];')
+        lines.append("}")
+        return "\n".join(lines)
+
+
+_LST_SYMBOLS = {"stETH", "wstETH", "rETH", "eETH", "weETH", "cbETH", "mETH", "sfrxETH", "BETH"}
+
+
+def infer_role_from_enso(token_payload: Dict[str, Any]) -> str:
+    underlyings = token_payload.get("underlyingTokens") or []
+    symbol = (token_payload.get("symbol") or "").strip()
+    slug = (token_payload.get("protocolSlug") or "").lower()
+
+    # Pendle principal/yield tokens
+    if "pendle" in slug and (symbol.startswith("PT-") or symbol.startswith("YT-")):
+        return "stripped"
+
+    # Liquid staking derivatives
+    if symbol in _LST_SYMBOLS:
+        return "staked"
+
+    # Count-based fallback
+    if len(underlyings) >= 2:
+        return "lp"
+    if len(underlyings) == 1:
+        return "wrapper"
+    return "plain"
+
+
+def edge_type_for_source_role(role: str) -> str:
+    # This mapper is structural-only. Venue verbs such as PLEDGE or SWAP
+    # belong on token -> venue edges emitted by protocol adapters.
+    if role == "lp":
+        return "CONTAINS"
+    if role == "vault_share":
+        return "VAULT"
+    if role == "staked":
+        return "STAKE"
+    if role == "stripped":
+        return "STRIP"
+    return "WRAPS"
+
+
+_ENSO_NODE_OMIT_KEYS = {
+    "address",
+    "chainId",
+    "name",
+    "symbol",
+    "decimals",
+    "type",
+    "project",
+    "protocolSlug",
+    "primaryAddress",
+    "apy",
+    "apyBase",
+    "apyReward",
+    "tvl",
+    "underlyingTokens",
+    "logosUri",
+    "price",
+    "sources",
+    "underlyingResolved",
+}
+
+
+def node_from_enso_payload(payload: Dict[str, Any]) -> Node:
+    address = normalize_addr(payload.get("address")) or ""
+    chain_id = int(payload.get("chainId") or payload.get("chain_id") or 1)
+    price_payload = payload.get("price") or {}
+    return Node(
+        id=token_node_id(chain_id, address),
+        address=address,
+        chainId=chain_id,
+        kind="token",
+        label=payload.get("name"),
+        symbol=payload.get("symbol"),
+        decimals=payload.get("decimals"),
+        role=infer_role_from_enso(payload),
+        protocol=payload.get("protocolSlug"),
+        project=payload.get("project"),
+        tvl=payload.get("tvl"),
+        apy_base=payload.get("apyBase"),
+        apy_reward=payload.get("apyReward"),
+        price=Price(
+            value=price_payload.get("value"),
+            timestamp=price_payload.get("timestamp"),
+            symbol=price_payload.get("symbol"),
+            confidence=price_payload.get("confidence"),
+        )
+        if payload.get("price") is not None
+        else None,
+        source="enso",
+        extra={key: value for key, value in payload.items() if key not in _ENSO_NODE_OMIT_KEYS},
+    )
+
+
+--- ./core/NEIGH_README.md ---
+# Neighborhood Graph (`neigh`)
+
+Builds a directed graph around an ERC-20 token showing how it relates to
+wrappers, LPs, vaults, lending markets, and DEX pools.
+
+## How it works
+
+1. **Double BFS** from a root token address via Enso:
+   - *Downstream* — underlyings (what the token is built on)
+   - *Upstream* — dependents (what is built on the token)
+2. **Venue adapters** run against **upstream-cone tokens only** (the root
+   plus its dependents). Downstream underlyings are not checked for venues,
+   since the goal is to find where the token and its derivatives can be
+   deployed, not where its building blocks trade.
+   - `--with-morpho` — Morpho Blue markets (LEND / PLEDGE)
+   - `--with-aave` — Aave v3 reserves (LEND / PLEDGE)
+   - `--with-euler` — Euler markets (LEND / PLEDGE via `canUseAsCollateral`)
+   - `--with-univ3` — Uniswap v3 pools (SWAP)
+
+## Node kinds
+
+| Kind             | What it represents                |
+|------------------|-----------------------------------|
+| `token`          | ERC-20 token                      |
+| `lending_market` | A supply/borrow position on a venue |
+| `dex_pool`       | A liquidity pool                  |
+
+## Edge types
+
+| Edge      | Meaning                              | Example                                  |
+|-----------|--------------------------------------|------------------------------------------|
+| `WRAPS`   | single-underlying wrapper            | wstETH wraps stETH                       |
+| `CONTAINS`| LP or multi-token underlying         | reUSD/USDC Curve LP contains reUSD       |
+| `VAULT`   | ERC-4626 vault share                 | yvUSDC vault holds USDC                  |
+| `STAKE`   | liquid staking derivative            | stETH stakes ETH                         |
+| `STRIP`   | Pendle PT / YT                       | PT-reUSD-25JUN2026 strips SY-reUSD      |
+| `LEND`    | token can be supplied to a market    | USDC lends to USDC/stcUSD @ Morpho      |
+| `PLEDGE`  | token is collateral in a market      | WETH pledges to WETH @ Euler            |
+| `SWAP`    | token trades in a pool               | USDC swaps in USDC/WETH @ Uniswap v3   |
+
+## Usage
+
+```bash
+# JSON to stdout
+uv run python core/neigh.py 0x... --with-morpho --with-euler
+
+# JSON + DOT files, filter dust markets from DOT
+uv run python core/neigh.py 0x... \
+  --with-morpho --with-aave --with-euler --with-univ3 \
+  --out graphs/token.json --dot graphs/token.dot --min-tvl 1000
+
+# Render DOT to PNG
+dot -Tpng graphs/token.dot -o graphs/token.png
+```
+
+## Key flags
+
+| Flag            | Default | Effect                                         |
+|-----------------|---------|-------------------------------------------------|
+| `--chain-id`    | 1       | Chain (Ethereum mainnet)                        |
+| `--downstream`  | 4       | BFS depth for underlyings                       |
+| `--upstream`    | 4       | BFS depth for dependents                        |
+| `--no-onchain`  | off     | Skip ERC-4626 `asset()` probes                  |
+| `--min-tvl`     | 0       | Hide venue nodes below this TVL in DOT output   |
+| `--out`         | stdout  | Write JSON graph to file                        |
+| `--dot`         | —       | Write Graphviz DOT to file                      |
+
+## Outputs
+
+- **JSON** — full graph with all nodes, edges, prices, APYs, TVLs, and
+  extras. Always complete regardless of `--min-tvl`.
+- **DOT** — visual graph for Graphviz. Venue nodes below `--min-tvl` are
+  hidden (along with their edges) to reduce clutter.
+
+## Files
+
+| File                       | Role                              |
+|----------------------------|-----------------------------------|
+| `neigh.py`                 | CLI entry point                   |
+| `neigh_bfs.py`             | Double BFS builder                |
+| `neigh_helpers.py`         | Watcher loaders, token utilities  |
+| `neighborhood_common.py`   | Graph/Node/Edge types, DOT/JSON   |
+| `neigh_adapter_morpho.py`  | Morpho venue adapter              |
+| `neigh_adapter_aave.py`    | Aave venue adapter                |
+| `neigh_adapter_euler.py`   | Euler venue adapter               |
+| `neigh_adapter_univ3.py`   | Uniswap v3 venue adapter          |
+
+
+--- ./merged_neigh_plan.md ---
+# Neighborhood Graph Plan
+
+## Completed work
+
+### Phase 1: Stabilize (done)
+
+Fixed `_is_blank(0)`, made ERC-4626 probing chain-aware, renamed `ACCEPTS` to
+`VAULT`, added logging, added PT/LST structural heuristics in
+`infer_role_from_enso()`, cleaned stale diagnostics. Tests in
+`tests/test_neigh.py` and `tests/test_neighborhood_common.py`.
+
+### Phase 2: Dark venues + module split (done)
+
+Split monolithic `neigh.py` into:
+
+| Module | Role |
+|--------|------|
+| `core/neigh.py` | Thin CLI wrapper |
+| `core/neigh_bfs.py` | Double-BFS traversal, EnsoCache, venue adapter orchestration |
+| `core/neigh_helpers.py` | Shared adapter infra: watcher loading, token filtering, Pendle expiry |
+| `core/neigh_adapter_aave.py` | Aave v3 `lending_market` nodes + LEND/PLEDGE edges |
+| `core/neigh_adapter_morpho.py` | Morpho `lending_market` nodes + LEND/PLEDGE edges |
+| `core/neigh_adapter_univ3.py` | Uniswap v3 `dex_pool` nodes + SWAP edges |
+| `core/neighborhood_common.py` | Graph model (Node, Edge, Graph), role inference, serialization |
+
+Edge types: WRAPS, CONTAINS, VAULT, STAKE, STRIP (structural) + LEND, PLEDGE,
+SWAP (venue). CLI flags: `--with-morpho`, `--with-aave`, `--with-univ3`.
+
+---
+
+## Next work
+
+### Phase A: Euler adapter
+
+Add `core/neigh_adapter_euler.py` following the established adapter pattern.
+
+**Helper:** Add `fetch_euler_markets_for_chain(chain_id)` in
+`core/neigh_helpers.py`. Returns `[]` for non-Ethereum chains (Euler is chain 1
+only). Calls `module.fetch_markets(None)` — the public watcher API, not the
+lower-level `fetch_markets_from_subgraph()` — to preserve fallback/resilience
+behavior consistent with the Aave/Morpho helpers.
+
+**Watcher:** Load via `_load_watch_module("eulerWatch.py",
+"kildef_watchers.eulerWatch")`.
+
+**Graph model:**
+
+- Node kind: `lending_market`, protocol: `euler`
+- Node ID: `node_id(chain_id, "lending_market", f"euler:{market['id']}")` —
+  uses the subgraph `id` field (the market contract address)
+- Edge types: `LEND` (supply side); `PLEDGE` if collateral-eligible — the
+  Messari subgraph exposes `canUseAsCollateral` per market (now fetched in
+  both `EulerMarkets` and `EulerMarketsLite` queries and threaded through
+  `to_rows()` as `row["canUseAsCollateral"]`). The adapter should gate PLEDGE
+  on this field, analogous to Aave's `canBeCollateral` check at
+  `neigh_adapter_aave.py:101`.
+
+**CLI:** `--with-euler`
+
+**Tests** (`tests/test_neigh_adapter_euler.py`):
+
+- Happy path: market nodes created with LEND + PLEDGE edges (when
+  `canUseAsCollateral` is true)
+- Non-Ethereum chain: no-op (returns empty)
+- Root Enso failure: venue attachment still works from stub node
+- Watcher/subgraph failure: logged warning, no crash
+
+**Files:**
+
+- `core/neigh_adapter_euler.py` (new, ~100 lines)
+- `core/neigh_helpers.py` (add `fetch_euler_markets_for_chain`)
+- `core/neigh_bfs.py` (add `with_euler` param + adapter call)
+- `core/neigh.py` (add `--with-euler` flag)
+- `tests/test_neigh_adapter_euler.py` (new)
+
+### Phase B: Pendle market metadata enrichment
+
+PT/YT/SY tokens already appear as graph nodes via Enso (role=stripped). The
+existence of a Pendle market is implicit from the PT node — adding venue nodes
+would clutter the graph. Instead, enrich existing PT nodes with market-level
+data.
+
+**Unify fetch paths:** Currently `fetch_expired_pendle_addresses()` in
+`neigh_helpers.py` fetches all markets from the Pendle v2 API but only extracts
+expiry sets. `watchers/pendleWatch.py::fetch_markets()` fetches only active
+markets. These are different data sources. Refactor: introduce a shared
+`_fetch_all_pendle_markets(chain_id)` in `neigh_helpers.py` that caches the
+full market list. Both `fetch_expired_pendle_addresses()` and the enrichment
+adapter consume it. This avoids double-fetching and ensures enrichment covers
+all markets (not just active ones).
+
+**Enrichment approach:** After BFS completes, match PT nodes to their Pendle
+market and inject market metadata into the PT node's fields/extra.
+
+**Important:** Do NOT overload `apy_base` with Pendle implied APR. In the
+current graph, `apy_base` means ongoing supply/base yield (Enso, Aave, Morpho).
+Pendle's `impliedApr` is a discount-to-maturity concept — fundamentally
+different. Keep Pendle-specific data in `extra`:
+
+- `tvl` ← market TVL (if not already set — this one is safe to use)
+- `extra.implied_apr` ← Pendle implied APR
+- `extra.base_apr` ← underlying base APR
+- `extra.reward_apr` ← reward APR
+- `extra.expiry` ← market expiry ISO timestamp
+- `extra.pendle_market_address` ← market contract address
+- `extra.pt_discount` ← discount to par (if available)
+
+No new node kind, no new edge type.
+
+**CLI:** `--with-pendle` (enriches PT nodes, doesn't add nodes)
+
+**Files:**
+
+- `core/neigh_adapter_pendle.py` (new, ~60 lines)
+- `core/neigh_helpers.py` (refactor: shared `_fetch_all_pendle_markets` cache)
+- `core/neigh_bfs.py` (add `with_pendle` param + adapter call)
+- `core/neigh.py` (add `--with-pendle` flag)
+- `tests/test_neigh_adapter_pendle.py` (new — verify PT node enrichment,
+  verify no `apy_base` overwrite)
+
+---
+
+## Deferred work
+
+### Phase C: Strategy metadata promotion
+
+Promote commonly-needed venue metadata from `extra` dicts to first-class fields.
+
+**Node fields** to add to `neighborhood_common.py`:
+
+- `liquidity_usd: Optional[float]`
+- `utilization: Optional[float]`
+- `apy_borrow: Optional[float]`
+- `expiry: Optional[str]`
+- `fetched_at: Optional[str]`
+
+**Edge metadata:**
+
+- Add `extra: Dict[str, Any]` to `Edge` dataclass
+- Edge identity stays structural `(src, type, dst)` — on duplicate, merge
+  `extra` dicts (later values win per key), matching Node's `merge_from`
+  philosophy
+- Use cases: PLEDGE edge with `max_ltv`, SWAP edge with `fee_bps`
+
+Criterion: promote if field appears in 2+ adapters or is universally
+strategy-relevant.
+
+### Phase D: CLI improvements
+
+**CLI-only** (no builder/adapter changes):
+
+- `--with-all-venues` — maps to existing boolean flags
+- `--compact` — `Graph.to_json(compact=True)` already exists
+- `--summary` — human-readable summary (CLI formatting only)
+
+**Requires builder/adapter changes:**
+
+- `--venue-types lending_market,dex_pool` — needs post-build filtering or a
+  filter param in `build_neighborhood_double_bfs()`
+- `--min-tvl 1000` — **done**: filters venue nodes (lending markets, dex pools)
+  from DOT output; JSON keeps everything. Implemented in `to_dot(min_tvl=)`
+  and wired via `--min-tvl` CLI flag.
+- **Same-pair market grouping (option)** — collapse Morpho markets with
+  identical loan/collateral labels into a single DOT node (showing the
+  dominant market by TVL). Useful when multiple vaults exist for the same
+  pair (e.g. 3× USDC/stcUSD). Not yet implemented.
+- `--cache enso_cache.json` — persist `EnsoCache` to disk between runs.
+  Currently every run re-fetches all tokens from Enso; the in-memory cache
+  is discarded on exit. Disk persistence would load on start / save on exit,
+  skipping already-seen tokens. Needs a TTL or staleness check so prices
+  and APYs don't go stale.
+- `--chains 1,8453` — needs multi-chain venue fetching in adapters (builder
+  currently takes single `chain_id`)
+
+---
+
+## Verification
+
+```bash
+# Unit tests
+PYTHONPATH=core uv run pytest tests/ -v
+
+# Smoke test
+source env
+PYTHONPATH=core uv run python core/neigh.py \
+  0x9D39A5DE30e57443BfF2A8307A4256c8797A3497 \
+  --downstream 2 --upstream 1 \
+  --with-aave --with-morpho --with-univ3 \
+  --out graphs/susde-neigh.json --dot graphs/susde-neigh.dot
+```
+
+
+Here is the first proposal:
+
+---
+
+Here's my architectural review of Phase B. I'll take the design questions head-on, then challenge some premises.
+
+---
+
+## Verdict on the Plan: Structurally Sound, Semantically Undercooked
+
+The mechanical implementation (refactor fetch, walk nodes, inject extra) is clean and follows established patterns. The real risks are in **what data goes where** and **what it means**.
+
+---
+
+## Design Question Rulings
+
+### 1. Enrich only PT nodes, or YT too?
+
+**Ruling: Enrich both PT and YT.** PT-only is wrong.
+
+- A Pendle market has exactly one PT and one YT. The market's `impliedApr` is equally meaningful for both — it's the discount-to-maturity for PT and the yield exposure for YT. They're two sides of the same position.
+- YT nodes already have `role="stripped"` and are in the graph. Withholding market data from them is an arbitrary asymmetry.
+- The lookup is trivial: build both `pt_address → market` and `yt_address → market` from the same market list.
+- **Tradeoff**: ~10 extra lines of code, zero extra API calls.
+
+### 2. Enrich SY nodes with aggregate data?
+
+**Ruling: No. Skip SY enrichment for now.**
+
+- SY is many-to-many with markets (one SY can back multiple PT/YT pairs with different expiries). Aggregating implied APR across expiries is meaningless — you'd be averaging a 2% 30-day implied with a 12% 1-year implied.
+- SY's role isn't even `"stripped"` — it falls through to `"wrapper"` or `"lp"` based on underlying count. The graph model doesn't distinguish SY from any other wrapper.
+- If SY enrichment becomes needed later, it should be a separate decision: promote SY to its own role first (`role="yield_wrapper"` or similar), then enrich.
+
+### 3. v2 API or v1 active-only?
+
+**Ruling: Stay on v2 (`/core/v2/markets/all`).** But with a caveat.
+
+- v2 is already used by `fetch_expired_pendle_addresses()` and returns all markets (active + expired), which is what we want.
+- v1 used by pendleWatch filters `isActive=true` — that's wrong for enrichment because expired-but-in-graph PTs would be missed.
+- **Critical caveat**: The v2 market objects contain a `details` dict with `impliedApy`, `base`, `reward`, `liquidity` — the same fields pendleWatch parses via `to_rows()`. But the current `fetch_expired_pendle_addresses` only reads `expiry`/`pt`/`yt`/`sy` and discards everything else. **Verify that v2 response objects include the `details` block before committing.** If v2 strips `details`, the entire enrichment approach falls apart and you'd need to call v1 separately or switch endpoints.
+- **Hedge**: Add a debug log in `_fetch_all_pendle_markets` that warns if the first market object lacks a `details` key. Fail-fast rather than silently producing empty enrichment.
+
+### 4. Enrich expired-but-in-graph PTs?
+
+**Ruling: Yes, unconditionally.**
+
+- The v2 API already returns expired markets. The data is free.
+- Expired PTs in the graph represent held positions. Their implied APR at expiry (should be ~0), expiry date, and historical TVL are useful for strategy evaluation.
+- The adapter doesn't need to distinguish — just match any PT/YT node to its market, expired or not.
+
+### 5. Abstraction boundary: `_fetch_all_pendle_markets` vs higher-level lookup?
+
+**Ruling: Keep `_fetch_all_pendle_markets` returning raw list. Build the lookup in the adapter.**
+
+- The expired-addresses consumer iterates the list differently (tracking SY active/expired state). A lookup dict would be wrong for that use case.
+- The enrichment adapter needs `pt_address → market` AND `yt_address → market`. Building these is 5 lines — not worth abstracting.
+- If a third consumer appears, promote to a shared `build_pendle_market_lookup(chain_id) → Dict[str, market]` at that point. Not before.
+
+---
+
+## Challenges to the Premise
+
+### TVL semantics are wrong
+
+The plan says: *"Sets node.tvl from market liquidity if not already set."*
+
+**This conflates two different things:**
+- `node.tvl` for token nodes = circulating supply × price (from Enso)
+- Market `liquidity` = AMM pool depth in the Pendle market
+
+A PT token with $50M circulating but $2M market depth should not show `tvl=2M`. The Enso-sourced TVL (if present) is more accurate for what `tvl` means on a token node.
+
+**Counter-proposal**: Put market liquidity in `extra.market_liquidity_usd`. Only set `node.tvl` if it's `None` AND you're confident the market liquidity is a reasonable proxy (e.g., for very illiquid PTs where Enso returns nothing). Add a comment explaining the semantic difference.
+
+### The "adapter" naming is misleading
+
+Every other adapter (`_attach_*_market_nodes`) creates new venue nodes + edges. This one mutates existing token nodes in-place. Calling it `neigh_adapter_pendle.py` with function `_enrich_pendle_pt_nodes` signals a different contract.
+
+**Options:**
+- **(A)** Name it `neigh_enricher_pendle.py` / `_enrich_pendle_nodes` — explicitly different from adapters
+- **(B)** Keep `neigh_adapter_pendle.py` but add a module docstring explaining the enrichment-only pattern
+- **(C)** Radical: make it a venue adapter that creates a `pendle_market` node + `STRIP_MARKET` edge, like Morpho/Aave create `lending_market` nodes
+
+**Recommendation: (A).** The naming should encode the behavioral difference. When someone sees `adapter_*` they expect new nodes. When they see `enricher_*` they expect mutation of existing nodes. This is a pattern you may reuse (e.g., enriching Aave aTokens with reserve data from the token side rather than the market side).
+
+### Node matching heuristic is fragile
+
+The plan says: *"symbol starts with 'PT-', project=pendle"*
+
+- `project` field comes from Enso. It may be `None`, `"Pendle"`, `"pendle"`, or some variant.
+- `symbol` prefix works for PT (`PT-`) and YT (`YT-`), but Enso could return symbols without the prefix in edge cases.
+- The `protocolSlug` field (used in `infer_role_from_enso`) is more reliable than `project`.
+
+**Recommendation**: Match on `role == "stripped"` AND `protocol` contains `"pendle"` (case-insensitive). This reuses the existing role inference rather than re-implementing symbol matching. To distinguish PT from YT for the lookup, THEN check symbol prefix — but only after the role+protocol gate.
+
+### The `_parse_pendle_addr` format difference is a latent bug
+
+v2 API returns token references as `"1-0xabc..."` strings. v1 returns nested dicts. The shared `_fetch_all_pendle_markets` will return v2 market objects. The enrichment adapter will use `_parse_pendle_addr` to extract PT/YT addresses. **This works today.**
+
+But if pendleWatch is ever migrated to consume the shared cache (a natural next step), its `to_rows()` function expects nested dicts, not string IDs. Document this format dependency in the shared fetcher's docstring.
+
+---
+
+## Radical Alternative (Considered and Rejected)
+
+**Create `pendle_market` venue nodes like other adapters do**, with a `MARKET` edge from PT → pendle_market node. This would:
+- Keep PT nodes pure (no mutation)
+- Make market data queryable as a first-class entity
+- Be consistent with the Aave/Morpho/Euler pattern
+
+**Why rejected:**
+- A Pendle market isn't a venue you "deploy" tokens to (unlike lending markets). PT/YT tokens ARE the market. Adding a venue node creates a redundant entity.
+- The plan's premise — "the existence of a Pendle market is implicit from the PT node" — is correct.
+- Enrichment-in-place is the right pattern for metadata that describes the node itself rather than a relationship.
+
+---
+
+## Revised Implementation Plan
+
+1. **Refactor `_fetch_all_pendle_markets(chain_id)` in neigh_helpers.py** — as proposed, with session-level cache. Add a warning log if `details` key is missing from first market object.
+
+2. **New enricher `core/neigh_enricher_pendle.py` (~60 lines)**
+   - `_enrich_pendle_nodes(graph, eligible_ids)` — enriches **both PT and YT**
+   - Match nodes on `role == "stripped"` AND `protocol` contains `"pendle"`
+   - Distinguish PT vs YT by symbol prefix for lookup routing
+   - Inject into `node.extra`: `implied_apr`, `base_apr`, `reward_apr`, `expiry`, `pendle_market_address`, `market_liquidity_usd`
+   - Set `node.tvl` from market liquidity **only if `node.tvl is None`**, with comment
+   - Do NOT touch `apy_base`
+
+3. **Wire into BFS and CLI** — as proposed. Call after venue adapters.
+
+4. **Tests (7 cases)**
+   - PT node enriched with implied_apr/expiry ✓
+   - YT node enriched with implied_apr/expiry ← **new**
+   - apy_base NOT overwritten ✓
+   - SY nodes not enriched ✓
+   - No matching market → node unchanged ✓
+   - Fetch failure → warning, no crash ✓
+   - Expired PT in graph → still enriched ← **new**
+
+---
+
+## Summary of Decisions
+
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| PT-only vs PT+YT | **Both PT and YT** | Same market, same data, no extra cost |
+| SY enrichment | **No** | Many-to-many, no sensible aggregate |
+| v1 vs v2 API | **v2** (verify `details` presence) | Already cached, includes expired |
+| Expired PT enrichment | **Yes** | Free data, useful for held positions |
+| Abstraction boundary | **Raw list in helper, lookup in enricher** | Different consumers iterate differently |
+| `node.tvl` from market liquidity | **Only if `None`**, store in `extra` too | Different semantic from token TVL |
+| File naming | **`neigh_enricher_pendle.py`** | Signals mutation-only, no new nodes |
+| Node matching | **`role + protocol`**, not `symbol + project` | Reuses existing inference, more robust |
+
+Respond as the assistant only. Do not include tool logs.
+mcp: mail starting
+mcp: arxiv starting
+mcp: mail ready
+mcp: arxiv ready
+mcp startup: ready: mail, arxiv
+codex
+**Findings (highest risk first)**  
+1. High: The proposed `pt_address -> market` (and `yt_address -> market`) lookup is under-specified for collisions. If multiple markets map to the same PT/YT over time, last-write wins is nondeterministic and can silently pick the wrong market snapshot. You need an explicit selection rule (active-first, highest liquidity, latest update, or keep a list).  
+2. High: There is a semantic contradiction with expired tokens. Upstream BFS currently skips expired Pendle dependents in [core/neigh_bfs.py](/Users/v/Code_2026/KilDef/core/neigh_bfs.py), so “enrich expired PTs in graph” is only true for roots/downstream survivors, not generally. Decide whether Phase B is historical-aware or active-only and make traversal + enrichment consistent.  
+3. High: Session-level cache in [core/neigh_helpers.py](/Users/v/Code_2026/KilDef/core/neigh_helpers.py) has no freshness model. Long-lived processes will serve stale APR/TVL, and concurrency can produce racey cache state. Add TTL/versioning and fetched-at metadata.  
+4. Medium: Writing market liquidity into `node.tvl` still risks semantic drift. Token TVL and market liquidity are different objects. Treat liquidity as separate, and only fallback to `tvl` under explicit policy.  
+5. Medium: Flat keys in `node.extra` (`implied_apr`, `base_apr`, etc.) invite key collisions across adapters. Namespace Pendle metadata under one object (for example a `pendle` sub-blob).  
+6. Medium: Role/symbol/project matching is brittle. Best match key is address membership in Pendle market payload; classification fields should be secondary guards, not primary identity.  
+7. Low: “Adapter” naming remains misleading if this is mutation-only. Distinct “enricher” concept is cleaner and scales better for future metadata-only passes.
+
+**Architectural challenge to premise**  
+The bigger issue is mixing two concerns in the same graph object: structural topology and volatile market snapshots. That coupling will keep creating schema debt.
+
+**Radical alternatives**  
+1. Keep the graph structural-only; move Pendle market data to a sidecar snapshot index keyed by node id + timestamp.  
+2. Add a second “observation layer” (time-series/event records) instead of mutating nodes in place.  
+3. Go fully temporal: represent PT/YT metadata as dated state transitions; queries choose “latest” or “as-of” views.
+
+**Debate rulings**  
+- PT vs YT: enrich both, but label as market-level fields (not token-intrinsic).  
+- SY: do not aggregate yet; ambiguous and easy to mislead.  
+- API: v2 all-markets is right baseline, but validate field completeness contractually.  
+- Expired: either support explicitly across traversal+enrichment, or drop it entirely; partial support is misleading.
+tokens used
+26 534
+
+[2026-03-25T11:16:54.257Z] codex:gpt-5.3-codex
+OpenAI Codex v0.115.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/KilDef
+model: gpt-5.3-codex
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019d24b5-f2f0-76c3-a14d-5559ea702b4c
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: ## Phase B: Pendle Market Metadata Enrichment — Plan Review
+
+PT/YT/SY tokens already appear in the neighborhood graph as regular nodes via
+Enso BFS (role=stripped, edge type=STRIP). But they carry no Pendle-specific
+data — no implied APR, no market TVL, no expiry. This phase enriches existing PT
+nodes with market-level metadata without adding new nodes or edges.
+
+### Proposed implementation
+
+1. **Refactor shared market fetch (core/neigh_helpers.py)**
+   - Extract the paginated fetch loop from `fetch_expired_pendle_addresses()` into `_fetch_all_pendle_markets(chain_id)` with session-level caching
+   - `fetch_expired_pendle_addresses()` becomes a thin consumer of the shared fetch
+   - No behavior change, just eliminates redundant API calls
+
+2. **New adapter (core/neigh_adapter_pendle.py, ~50 lines)**
+   - `_enrich_pendle_pt_nodes(graph, eligible_ids)` — does NOT create nodes or edges
+   - Builds pt_address → market lookup from `_fetch_all_pendle_markets()`
+   - Walks graph nodes matching PT pattern (symbol starts with "PT-", project=pendle)
+   - Injects into node.extra: implied_apr, base_apr, reward_apr, expiry, pendle_market_address
+   - Sets node.tvl from market liquidity if not already set
+   - Does NOT overwrite apy_base (Pendle implied APR is a different concept)
+
+3. **Wire into BFS and CLI**
+   - Add `with_pendle: bool` to `build_neighborhood_double_bfs()`
+   - Add `--with-pendle` CLI flag
+   - Call after venue adapters with same eligible_ids=upstream_ids
+
+4. **Tests (5 cases)**
+   - PT node enriched with implied_apr/expiry
+   - apy_base NOT overwritten
+   - YT/SY nodes not enriched
+   - No matching market → node unchanged
+   - Fetch failure → warning, no crash
+
+### Key design questions for debate
+- Is enriching only PT nodes correct, or should YT nodes also get market data?
+- Should the adapter also enrich SY nodes with aggregate data across their markets?
+- Is the v2 API (`/core/v2/markets/all`) the right source, or should we use the v1 active-only endpoint from pendleWatch?
+- Should expired-but-in-graph PT nodes also get enriched (e.g. for historical context)?
+- Is `_fetch_all_pendle_markets` the right abstraction boundary, or should we expose a higher-level lookup?
+
+--- ./core/neigh_helpers.py ---
+# -*- coding: utf-8 -*-
+"""Shared adapter infrastructure for neighborhood venue adapters."""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
+
+from neighborhood_common import Graph, Node, normalize_addr
+from providers import http_client
+from utils import get_logger
+
+log = get_logger("neigh")
+
+_WATCHER_MODULE_CACHE: Dict[str, Any] = {}
+
+
+def _load_watch_module(filename: str, import_name: str):
+    if import_name in _WATCHER_MODULE_CACHE:
+        module = _WATCHER_MODULE_CACHE[import_name]
+        return None if module is False else module
+
+    module_path = Path(__file__).resolve().parents[1] / "watchers" / filename
+    if not module_path.exists():
+        log.warning("Watcher not found at %s", module_path)
+        _WATCHER_MODULE_CACHE[import_name] = False
+        return None
+
+    try:
+        watchers_dir = str(module_path.parent)
+        repo_root = str(module_path.parents[1])
+        for path in (watchers_dir, repo_root):
+            if path not in sys.path:
+                sys.path.insert(0, path)
+        spec = importlib.util.spec_from_file_location(import_name, module_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot create import spec for {module_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _WATCHER_MODULE_CACHE[import_name] = module
+        return module
+    except Exception as exc:
+        log.warning("Failed to load watcher %s: %s", filename, exc)
+        _WATCHER_MODULE_CACHE[import_name] = False
+        return None
+
+
+def fetch_aave_markets_for_chain(chain_id: int) -> List[Dict[str, Any]]:
+    module = _load_watch_module("aaveWatch.py", "kildef_watchers.aaveWatch")
+    if module is None:
+        return []
+    return module.fetch_markets([int(chain_id)])
+
+
+def fetch_morpho_markets_for_chain(chain_id: int) -> List[Dict[str, Any]]:
+    module = _load_watch_module("morphoWatch.py", "kildef_watchers.morphoWatch")
+    if module is None:
+        return []
+    return module.fetch_markets([int(chain_id)])
+
+
+def fetch_euler_markets_for_chain(chain_id: int) -> List[Dict[str, Any]]:
+    if int(chain_id) != 1:
+        return []
+    module = _load_watch_module("eulerWatch.py", "kildef_watchers.eulerWatch")
+    if module is None:
+        return []
+    raw = module.fetch_markets_from_subgraph()
+    rows, _ = module.to_rows(raw, {}, None)
+    return rows
+
+
+def _token_nodes_by_chain(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> Dict[int, Dict[str, Node]]:
+    token_nodes: Dict[int, Dict[str, Node]] = {}
+    for node in graph.nodes.values():
+        if node.kind != "token" or not node.address:
+            continue
+        if eligible_ids is not None and node.id not in eligible_ids:
+            continue
+        token_nodes.setdefault(int(node.chainId), {})[node.address.lower()] = node
+    return token_nodes
+
+
+_PENDLE_EXPIRY_CACHE: Dict[int, Set[str]] = {}
+
+
+def _parse_pendle_addr(token_id: str) -> Optional[str]:
+    """Extract address from Pendle token id like '1-0xabc...'."""
+    if not token_id or "-" not in token_id:
+        return None
+    return normalize_addr(token_id.split("-", 1)[1])
+
+
+def fetch_expired_pendle_addresses(chain_id: int) -> Set[str]:
+    """Return expired Pendle PT, YT, and orphaned SY addresses for *chain_id*.
+
+    An SY is considered expired when ALL markets that reference it are expired.
+    """
+    if chain_id in _PENDLE_EXPIRY_CACHE:
+        return _PENDLE_EXPIRY_CACHE[chain_id]
+
+    expired: Set[str] = set()
+    now = datetime.now(timezone.utc)
+
+    # Fetch all markets (paginated)
+    all_markets: List[Dict[str, Any]] = []
+    skip = 0
+    while True:
+        try:
+            resp = http_client.get(
+                "https://api-v2.pendle.finance/core/v2/markets/all",
+                params={"chainId": chain_id, "limit": 100, "skip": skip},
+            )
+            data = resp.json()
+            results = data.get("results") or []
+        except Exception as exc:
+            log.warning("Pendle markets fetch failed for chain %s: %s", chain_id, exc)
+            break
+        if not results:
+            break
+        all_markets.extend(results)
+        skip += len(results)
+        if skip >= (data.get("total") or 0):
+            break
+
+    # Track SY → {has_active_market}
+    sy_has_active: Dict[str, bool] = {}
+
+    for market in all_markets:
+        expiry_str = market.get("expiry")
+        if not expiry_str:
+            continue
+        try:
+            expiry = datetime.fromisoformat(expiry_str.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            continue
+
+        is_expired = expiry < now
+
+        pt_addr = _parse_pendle_addr(market.get("pt") or "")
+        yt_addr = _parse_pendle_addr(market.get("yt") or "")
+        sy_addr = _parse_pendle_addr(market.get("sy") or "")
+
+        if is_expired:
+            if pt_addr:
+                expired.add(pt_addr)
+            if yt_addr:
+                expired.add(yt_addr)
+        else:
+            # Active market — its SY is still live
+            if sy_addr:
+                sy_has_active[sy_addr] = True
+
+        # Register SY if not already marked active
+        if sy_addr and sy_addr not in sy_has_active:
+            sy_has_active.setdefault(sy_addr, False)
+
+    # SYs where all markets are expired
+    for sy_addr, has_active in sy_has_active.items():
+        if not has_active:
+            expired.add(sy_addr)
+
+    _PENDLE_EXPIRY_CACHE[chain_id] = expired
+    log.debug("Pendle: %d expired tokens on chain %s", len(expired), chain_id)
+    return expired
+
+
+def _enrich_token_node(token_node: Node, *, symbol: Optional[str] = None, label: Optional[str] = None, project: Optional[str] = None) -> None:
+    if symbol and not token_node.symbol:
+        token_node.symbol = symbol
+    if label and (not token_node.label or token_node.label == token_node.address):
+        token_node.label = label
+    if project and not token_node.project:
+        token_node.project = project
+
+
+--- ./core/neigh_adapter_euler.py ---
+# -*- coding: utf-8 -*-
+"""Euler venue adapter for neighborhood graph."""
+
+from __future__ import annotations
+
+from typing import Optional, Set
+
+from neighborhood_common import Edge, Graph, Node, node_id, normalize_addr
+from neigh_helpers import (
+    _enrich_token_node,
+    _token_nodes_by_chain,
+    fetch_euler_markets_for_chain,
+)
+from utils import get_logger, safe_float
+
+log = get_logger("neigh")
+
+
+def _attach_euler_market_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+    token_nodes_by_chain = _token_nodes_by_chain(graph, eligible_ids=eligible_ids)
+    if not token_nodes_by_chain:
+        return
+
+    for chain_id, token_nodes in token_nodes_by_chain.items():
+        try:
+            rows = fetch_euler_markets_for_chain(chain_id)
+        except Exception as exc:
+            log.warning("Euler market fetch failed for chain %s: %s", chain_id, exc)
+            continue
+
+        for row in rows:
+            asset_addr = normalize_addr(row.get("asset_addr"))
+            if not asset_addr:
+                continue
+
+            token_node = token_nodes.get(asset_addr)
+            if token_node is None:
+                continue
+
+            asset_symbol = row.get("asset") or row.get("asset_symbol") or token_node.symbol or "token"
+            _enrich_token_node(token_node, symbol=asset_symbol, label=asset_symbol)
+
+            market_addr = normalize_addr(row.get("market_addr"))
+            market_node_id = node_id(chain_id, "lending_market", f"euler:{market_addr or asset_addr}")
+
+            market_node = Node(
+                id=market_node_id,
+                address=market_addr,
+                chainId=chain_id,
+                kind="lending_market",
+                label=f"{asset_symbol} @ Euler",
+                symbol=asset_symbol,
+                role="other",
+                protocol="euler",
+                project="Euler",
+                tvl=safe_float(row.get("supplyUSD"), default=None),
+                apy_base=safe_float(row.get("supplyAPY"), default=None),
+                source="eulerWatch",
+                extra={
+                    "market_address": market_addr,
+                    "asset_address": asset_addr,
+                    "can_use_as_collateral": bool(row.get("canUseAsCollateral")),
+                    "liquidity_usd": safe_float(row.get("liquidityUSD"), default=None),
+                    "borrow_usd": safe_float(row.get("borrowUSD"), default=None),
+                    "borrow_apy": safe_float(row.get("borrowAPY"), default=None),
+                    "utilization": safe_float(row.get("util"), default=None),
+                    "net_supply_apy": safe_float(row.get("netSupplyAPY"), default=None),
+                },
+            )
+            graph.add_node(market_node)
+            graph.add_edge(Edge(
+                src=token_node.id,
+                dst=market_node.id,
+                type="LEND",
+                notes="euler market",
+                source="eulerWatch",
+            ))
+
+            if row.get("canUseAsCollateral"):
+                graph.add_edge(Edge(
+                    src=token_node.id,
+                    dst=market_node.id,
+                    type="PLEDGE",
+                    notes="euler collateral",
+                    source="eulerWatch",
+                ))
+
+
+--- ./core/neigh_adapter_aave.py ---
+# -*- coding: utf-8 -*-
+"""Aave v3 venue adapter for neighborhood graph."""
+
+from __future__ import annotations
+
+from typing import Any, Optional, Set
+
+from neighborhood_common import Edge, Graph, Node, node_id, normalize_addr
+from neigh_helpers import (
+    _enrich_token_node,
+    _token_nodes_by_chain,
+    fetch_aave_markets_for_chain,
+)
+from utils import get_logger, safe_float
+
+log = get_logger("neigh")
+
+
+def _extract_aave_percent(data: Any) -> Optional[float]:
+    if isinstance(data, dict):
+        data = data.get("value")
+    return safe_float(data, default=None)
+
+
+def _extract_aave_usd(data: Any) -> Optional[float]:
+    if isinstance(data, dict):
+        data = data.get("usd")
+    return safe_float(data, default=None)
+
+
+def _attach_aave_market_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+    token_nodes_by_chain = _token_nodes_by_chain(graph, eligible_ids=eligible_ids)
+    if not token_nodes_by_chain:
+        return
+
+    for chain_id, token_nodes in token_nodes_by_chain.items():
+        try:
+            markets = fetch_aave_markets_for_chain(chain_id)
+        except Exception as exc:
+            log.warning("Aave market fetch failed for chain %s: %s", chain_id, exc)
+            continue
+
+        for market in markets:
+            market_name = market.get("name") or "Aave v3"
+            market_addr = normalize_addr(market.get("address"))
+            if not market_addr:
+                continue
+
+            for reserve in market.get("reserves") or []:
+                underlying = reserve.get("underlyingToken") or {}
+                asset_addr = normalize_addr(underlying.get("address"))
+                if not asset_addr:
+                    continue
+
+                token_node = token_nodes.get(asset_addr)
+                if token_node is None:
+                    continue
+                supply = reserve.get("supplyInfo") or {}
+                borrow = reserve.get("borrowInfo") or {}
+                asset_symbol = underlying.get("symbol") or token_node.symbol or "token"
+                _enrich_token_node(token_node, symbol=asset_symbol, label=asset_symbol)
+                market_node_id = node_id(chain_id, "lending_market", f"aave:{market_addr}:{asset_addr}")
+
+                market_node = Node(
+                    id=market_node_id,
+                    address=market_addr,
+                    chainId=chain_id,
+                    kind="lending_market",
+                    label=f"{asset_symbol} reserve @ {market_name}",
+                    symbol=asset_symbol,
+                    role="other",
+                    protocol="aave-v3",
+                    project="Aave",
+                    tvl=_extract_aave_usd(reserve.get("size")),
+                    apy_base=_extract_aave_percent(supply.get("apy")),
+                    source="aaveWatch",
+                    extra={
+                        "market_name": market_name,
+                        "market_address": market_addr,
+                        "asset_address": asset_addr,
+                        "can_be_collateral": bool(supply.get("canBeCollateral")),
+                        "max_ltv": _extract_aave_percent(supply.get("maxLTV")),
+                        "liq_threshold": _extract_aave_percent(supply.get("liquidationThreshold")),
+                        "liq_bonus": _extract_aave_percent(supply.get("liquidationBonus")),
+                        "liquidity_usd": _extract_aave_usd(borrow.get("availableLiquidity")),
+                        "borrow_usd": _extract_aave_usd(borrow.get("total")),
+                        "borrow_apy": _extract_aave_percent(borrow.get("apy")),
+                        "utilization": _extract_aave_percent(borrow.get("utilizationRate")),
+                        "oracle": normalize_addr(reserve.get("usdOracleAddress")),
+                    },
+                )
+                graph.add_node(market_node)
+                graph.add_edge(Edge(
+                    src=token_node.id,
+                    dst=market_node.id,
+                    type="LEND",
+                    notes="aave reserve",
+                    source="aaveWatch",
+                ))
+
+                if bool(supply.get("canBeCollateral")):
+                    max_ltv = _extract_aave_percent(supply.get("maxLTV"))
+                    note = None if max_ltv is None else f"maxLTV={max_ltv:.4f}"
+                    graph.add_edge(Edge(
+                        src=token_node.id,
+                        dst=market_node.id,
+                        type="PLEDGE",
+                        notes=note,
+                        source="aaveWatch",
+                    ))
+
+
+--- ./core/neigh_adapter_morpho.py ---
+# -*- coding: utf-8 -*-
+"""Morpho venue adapter for neighborhood graph."""
+
+from __future__ import annotations
+
+from typing import Optional, Set
+
+from neighborhood_common import Edge, Graph, Node, node_id, normalize_addr
+from neigh_helpers import (
+    _enrich_token_node,
+    _token_nodes_by_chain,
+    fetch_morpho_markets_for_chain,
+)
+from utils import get_logger, safe_float
+
+log = get_logger("neigh")
+
+
+def _attach_morpho_market_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+    token_nodes_by_chain = _token_nodes_by_chain(graph, eligible_ids=eligible_ids)
+    if not token_nodes_by_chain:
+        return
+
+    for chain_id, token_nodes in token_nodes_by_chain.items():
+        try:
+            markets = fetch_morpho_markets_for_chain(chain_id)
+        except Exception as exc:
+            log.warning("Morpho market fetch failed for chain %s: %s", chain_id, exc)
+            continue
+
+        for market in markets:
+            loan = market.get("loanAsset") or {}
+            coll = market.get("collateralAsset") or {}
+            loan_addr = normalize_addr(loan.get("address"))
+            coll_addr = normalize_addr(coll.get("address"))
+            loan_node = token_nodes.get(loan_addr) if loan_addr else None
+            coll_node = token_nodes.get(coll_addr) if coll_addr else None
+            if loan_node is None and coll_node is None:
+                continue
+
+            unique_key = market.get("uniqueKey") or ""
+            if not unique_key:
+                continue
+
+            loan_symbol = loan.get("symbol") or "loan"
+            coll_symbol = coll.get("symbol") or "collateral"
+            _enrich_token_node(loan_node, symbol=loan_symbol, label=loan_symbol) if loan_node else None
+            _enrich_token_node(coll_node, symbol=coll_symbol, label=coll_symbol) if coll_node else None
+
+            state = market.get("state") or {}
+            market_node = Node(
+                id=node_id(chain_id, "lending_market", f"morpho:{unique_key}"),
+                address=None,
+                chainId=chain_id,
+                kind="lending_market",
+                label=f"{loan_symbol}/{coll_symbol} @ Morpho",
+                symbol=f"{loan_symbol}/{coll_symbol}",
+                role="other",
+                protocol="morpho",
+                project="Morpho",
+                tvl=safe_float(state.get("supplyAssetsUsd"), default=None),
+                apy_base=safe_float(state.get("avgSupplyApy"), default=None),
+                source="morphoWatch",
+                extra={
+                    "unique_key": unique_key,
+                    "loan_asset": loan_addr,
+                    "collateral_asset": coll_addr,
+                    "oracle": normalize_addr(market.get("oracleAddress")),
+                    "irm": normalize_addr(market.get("irmAddress")),
+                    "lltv": safe_float(market.get("lltv"), default=None),
+                    "supply_usd": safe_float(state.get("supplyAssetsUsd"), default=None),
+                    "borrow_usd": safe_float(state.get("borrowAssetsUsd"), default=None),
+                    "liquidity_usd": safe_float(state.get("liquidityAssetsUsd"), default=None),
+                    "utilization": safe_float(state.get("utilization"), default=None),
+                    "apy_supply": safe_float(state.get("avgSupplyApy"), default=None),
+                    "apy_borrow": safe_float(state.get("avgBorrowApy"), default=None),
+                    "apy_net": safe_float(state.get("avgNetSupplyApy"), default=None),
+                },
+            )
+            graph.add_node(market_node)
+
+            if loan_node is not None:
+                graph.add_edge(Edge(
+                    src=loan_node.id,
+                    dst=market_node.id,
+                    type="LEND",
+                    notes="morpho loanAsset",
+                    source="morphoWatch",
+                ))
+            if coll_node is not None:
+                graph.add_edge(Edge(
+                    src=coll_node.id,
+                    dst=market_node.id,
+                    type="PLEDGE",
+                    notes="morpho collateralAsset",
+                    source="morphoWatch",
+                ))
+
+
+--- ./core/neigh_bfs.py ---
+# -*- coding: utf-8 -*-
+"""
+BFS traversal + Enso caching for neighborhood graph builder.
+"""
+
+from __future__ import annotations
+
+import time
+from typing import Any, Dict, List, Optional, Set, Tuple, Deque
+from collections import deque
+
+from providers.enso import (
+    fetch_enso_token_with_price,
+    find_tokens_with_underlying,
+    EnsoAPIError,
+)
+
+from neighborhood_common import (
+    Edge,
+    Graph,
+    Node,
+    edge_type_for_source_role,
+    node_id,
+    node_from_enso_payload,
+    normalize_addr,
+    token_node_id,
+)
+
+from protocols import web3 as web3_utils
+from utils import get_logger
+
+from neigh_adapter_aave import _attach_aave_market_nodes
+from neigh_adapter_euler import _attach_euler_market_nodes
+from neigh_adapter_morpho import _attach_morpho_market_nodes
+from neigh_adapter_univ3 import _attach_univ3_pool_nodes
+from neigh_helpers import fetch_expired_pendle_addresses
+
+log = get_logger("neigh")
+
+_ERC4626_ASSET_ABI = [{"inputs":[],"name":"asset","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
+
+
+def _erc4626_asset(chain_id: int, address: str) -> Optional[str]:
+    """Return the ERC-4626 asset() address, or None if not a vault."""
+    w3 = web3_utils.get_web3(chain_id)
+    if not w3:
+        return None
+    try:
+        c = w3.eth.contract(address=w3.to_checksum_address(address), abi=_ERC4626_ASSET_ABI)
+        return normalize_addr(c.functions.asset().call())
+    except Exception:
+        return None
+
+
+# ----------------------------------------------------------------------------
+# Fetch/caching
+# ----------------------------------------------------------------------------
+
+class EnsoCache:
+    def __init__(self):
+        self.token: Dict[Tuple[int, str], Dict[str, Any]] = {}
+        self.dependents: Dict[Tuple[int, str], List[Dict[str, Any]]] = {}
+
+    def get_token(self, chain_id: int, address: str) -> Optional[Dict[str, Any]]:
+        return self.token.get((chain_id, address))
+
+    def put_token(self, chain_id: int, address: str, payload: Dict[str, Any]) -> None:
+        self.token[(chain_id, address)] = payload
+
+    def get_dependents(self, chain_id: int, address: str) -> Optional[List[Dict[str, Any]]]:
+        return self.dependents.get((chain_id, address))
+
+    def put_dependents(self, chain_id: int, address: str, items: List[Dict[str, Any]]) -> None:
+        self.dependents[(chain_id, address)] = items
+
+
+def fetch_token_cached(cache: EnsoCache, chain_id: int, address: str) -> Dict[str, Any]:
+    cached = cache.get_token(chain_id, address)
+    if cached:
+        return cached
+    payload = fetch_enso_token_with_price(address=address, chain_id=chain_id, underlying=0)
+    cache.put_token(chain_id, address, payload)
+    return payload
+
+
+def list_underlyings_from_payload(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    return payload.get("underlyingTokens") or []
+
+
+def list_dependents_cached(cache: EnsoCache, chain_id: int, address: str, page_size: int = 1000) -> List[Dict[str, Any]]:
+    """
+    Retrieve *all* dependents (wrappers/LPs/etc.) that reference `address` as underlying,
+    by paging until empty.
+    """
+    cached = cache.get_dependents(chain_id, address)
+    if cached is not None:
+        return cached
+
+    all_items: List[Dict[str, Any]] = []
+    seen_ids: Set[str] = set()
+    page = 1
+    while True:
+        try:
+            res = find_tokens_with_underlying(address=address, chain_id=chain_id, page_size=page_size, page=page)
+            items = res.get("items") or []
+        except EnsoAPIError as exc:
+            log.warning("Enso dependents fetch failed for %s:%s page=%d: %s", address, chain_id, page, exc)
+            items = []
+
+        # dedupe by (chainId,address)
+        new_count = 0
+        for it in items:
+            a = normalize_addr(it.get("address"))
+            ch = int(it.get("chainId") or chain_id)
+            if not a:
+                continue
+            key = f"{ch}:{a}"
+            if key not in seen_ids:
+                seen_ids.add(key)
+                all_items.append(it)
+                new_count += 1
+
+        if len(items) == 0 or new_count == 0:
+            break
+        page += 1
+
+    cache.put_dependents(chain_id, address, all_items)
+    return all_items
+
+
+# ----------------------------------------------------------------------------
+# Double BFS
+# ----------------------------------------------------------------------------
+
+def build_neighborhood_double_bfs(
+    token_address: str,
+    chain_id: int = 1,
+    downstream_depth: int = 4,  # U direction (underlyings)
+    upstream_depth: int = 4,    # U* direction (dependents)
+    onchain_probe: bool = True,
+    with_morpho: bool = False,
+    with_aave: bool = False,
+    with_euler: bool = False,
+    with_univ3: bool = False,
+) -> Graph:
+    """
+    EXACT cones:
+      - Downstream cone: Z s.t. Z ∈ ⋃_{k=1..downstream_depth} U^k(Y)
+      - Upstream cone:   X s.t. Y ∈ ⋃_{k=1..upstream_depth} U^k(X)  (i.e., (U*)^k(Y))
+    No mixing of directions during traversal.
+    """
+    addr0 = normalize_addr(token_address)
+    if not addr0:
+        raise ValueError(f"Invalid token address: {token_address}")
+    root_id = token_node_id(chain_id, addr0)
+
+    g = Graph(root=root_id, meta={
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "downstream": downstream_depth,
+        "upstream": upstream_depth,
+        "sources": [
+            "Edges and nodes come from Enso (plus optional ERC-4626 probe)",
+        ],
+    })
+
+    cache = EnsoCache()
+
+    root_fetch_failed = False
+
+    # Ensure root node exists
+    try:
+        root_payload = fetch_token_cached(cache, chain_id, addr0)
+    except EnsoAPIError as exc:
+        root_node = Node(
+            id=root_id,
+            address=addr0,
+            chainId=chain_id,
+            kind="token",
+            label=addr0,
+            role="other",
+            extra={"error": str(exc)},
+        )
+        g.add_node(root_node)
+        root_fetch_failed = True
+    else:
+        root_node = node_from_enso_payload(root_payload)
+        g.add_node(root_node)
+
+        # Optional promotion via ERC-4626 probe for the root
+        asset_addr = _erc4626_asset(chain_id, addr0) if onchain_probe else None
+        if asset_addr:
+            root_node.role = "vault_share"
+
+    if root_fetch_failed and onchain_probe:
+        asset_addr = _erc4626_asset(chain_id, addr0)
+        if asset_addr:
+            root_node = g.nodes[root_id]
+            root_node.role = "vault_share"
+            asset_id = token_node_id(chain_id, asset_addr)
+            g.add_node(Node(
+                id=asset_id,
+                address=asset_addr,
+                chainId=chain_id,
+                kind="token",
+                label=asset_addr,
+                role="plain",
+                source="onchain",
+            ))
+            g.add_edge(Edge(
+                src=root_id,
+                dst=asset_id,
+                type="VAULT",
+                notes="erc4626.asset()",
+                source="onchain",
+            ))
+
+    # ------------------ Downstream BFS (U) ------------------
+    if not root_fetch_failed and downstream_depth > 0:
+        visited_ds: Set[Tuple[int, str]] = set()
+        q_ds: Deque[Tuple[int, str, int]] = deque()
+        q_ds.append((chain_id, addr0, 0))
+        while q_ds:
+            ch, addr, d = q_ds.popleft()
+            if (ch, addr) in visited_ds:
+                continue
+            visited_ds.add((ch, addr))
+
+            log.debug("downstream BFS: expanding %s depth=%d", addr, d)
+
+            if d == downstream_depth:
+                continue  # at boundary, do not expand
+
+            # fetch this token & its underlyings
+            try:
+                tok = fetch_token_cached(cache, ch, addr)
+            except EnsoAPIError as exc:
+                log.warning("Enso fetch failed for %s:%s: %s", ch, addr, exc)
+                continue
+
+            src_node = node_from_enso_payload(tok)
+            g.add_node(src_node)
+
+            # promotion via ERC-4626 (for non-root too)
+            asset_addr = _erc4626_asset(ch, addr) if onchain_probe else None
+            if asset_addr:
+                src_node.role = "vault_share"
+
+            under = list_underlyings_from_payload(tok)
+            for child in under:
+                caddr = normalize_addr(child.get("address"))
+                cchain = int(child.get("chainId") or ch)
+                if not caddr:
+                    continue
+
+                child_payload = cache.get_token(cchain, caddr)
+                if child_payload is None:
+                    # create minimal node first; full payload when/if visited
+                    child_node = Node(
+                        id=token_node_id(cchain, caddr),
+                        address=caddr,
+                        chainId=cchain,
+                        kind="token",
+                        label=child.get("name") or caddr,
+                        symbol=child.get("symbol"),
+                        role="plain",
+                        source="enso",
+                    )
+                    g.add_node(child_node)
+                else:
+                    g.add_node(node_from_enso_payload(child_payload))
+
+                edge_type = edge_type_for_source_role(src_node.role)
+                if asset_addr and caddr == asset_addr:
+                    edge_type = "VAULT"
+                    src_node.role = "vault_share"
+
+                g.add_edge(Edge(
+                    src=src_node.id,
+                    dst=token_node_id(cchain, caddr),
+                    type=edge_type,
+                    notes=None if edge_type != "WRAPS" else "enso.underlyingTokens",
+                    source="onchain" if edge_type == "VAULT" else "enso",
+                ))
+
+                if d + 1 < downstream_depth:
+                    q_ds.append((cchain, caddr, d + 1))
+
+    # ------------------ Upstream BFS (U*) ------------------
+    # Track upstream node IDs (root + dependents) for venue adapter filtering.
+    # Venue adapters should only attach to tokens that are "about" the root,
+    # i.e. the root itself and its upstream cone — not downstream underlyings.
+    upstream_ids: Set[str] = {root_id}
+
+    if not root_fetch_failed and upstream_depth > 0:
+        visited_us: Set[Tuple[int, str]] = set()
+        q_us: Deque[Tuple[int, str, int]] = deque()
+        q_us.append((chain_id, addr0, 0))
+        while q_us:
+            ch, addr, d = q_us.popleft()
+            if (ch, addr) in visited_us:
+                continue
+            visited_us.add((ch, addr))
+
+            log.debug("upstream BFS: expanding %s depth=%d", addr, d)
+
+            if d == upstream_depth:
+                continue  # at boundary, do not expand
+
+            # find direct dependents of this 'addr' (reverse step)
+            dependents = list_dependents_cached(cache, ch, addr, page_size=1000)
+
+            # ensure the current node exists (once, not per-dependent)
+            try:
+                cur_payload = fetch_token_cached(cache, ch, addr)
+                cur_node = node_from_enso_payload(cur_payload)
+                g.add_node(cur_node)
+            except EnsoAPIError as exc:
+                log.warning("Enso fetch failed for %s:%s: %s", ch, addr, exc)
+                cur_node = Node(
+                    id=token_node_id(ch, addr),
+                    address=addr,
+                    chainId=ch,
+                    kind="token",
+                    label=addr,
+                    role="other",
+                )
+                g.add_node(cur_node)
+
+            expired_pendle = fetch_expired_pendle_addresses(ch)
+
+            for dep in dependents:
+                daddr = normalize_addr(dep.get("address"))
+                dchain = int(dep.get("chainId") or ch)
+                if not daddr:
+                    continue
+
+                if daddr in expired_pendle:
+                    log.debug("upstream BFS: skipping expired Pendle token %s", daddr)
+                    continue
+
+                dep_node = node_from_enso_payload(dep)
+                g.add_node(dep_node)
+                upstream_ids.add(dep_node.id)
+
+                # optional on-chain probe for dependent
+                dep_asset = _erc4626_asset(dchain, daddr) if onchain_probe else None
+                if dep_asset and dep_asset == addr:
+                    dep_node.role = "vault_share"
+
+                edge_type = edge_type_for_source_role(dep_node.role)
+                if dep_asset and dep_asset == addr:
+                    edge_type = "VAULT"
+
+                g.add_edge(Edge(
+                    src=dep_node.id,
+                    dst=cur_node.id,
+                    type=edge_type,
+                    notes="dependents (enso)",
+                    source="onchain" if edge_type == "VAULT" else "enso",
+                ))
+
+                # enqueue next reverse hop if within radius
+                if d + 1 < upstream_depth:
+                    q_us.append((dchain, daddr, d + 1))
+
+    if with_morpho:
+        _attach_morpho_market_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "morpho" not in adapters:
+            adapters.append("morpho")
+
+    if with_aave:
+        _attach_aave_market_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "aave" not in adapters:
+            adapters.append("aave")
+
+    if with_euler:
+        _attach_euler_market_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "euler" not in adapters:
+            adapters.append("euler")
+
+    if with_univ3:
+        _attach_univ3_pool_nodes(g, eligible_ids=upstream_ids)
+        adapters = g.meta.setdefault("venueAdapters", [])
+        if "univ3" not in adapters:
+            adapters.append("univ3")
+
+    return g
+
+
+--- ./core/neigh.py ---
+# -*- coding: utf-8 -*-
+"""
+Neighborhood builder CLI — thin wrapper around neigh_bfs.
+"""
+
+from __future__ import annotations
+
+import os
+import argparse
+from typing import List, Optional
+
+from neigh_bfs import build_neighborhood_double_bfs
+
+
+def _main(argv: Optional[List[str]] = None) -> int:
+    p = argparse.ArgumentParser(description="Builds token neighborhood via double BFS (using Enso).")
+    p.add_argument("address", help="ERC-20 address (0x...)")
+    p.add_argument("--chain-id", type=int, default=1)
+    p.add_argument("--downstream", type=int, default=4, help="Depth N for underlyings cone (U direction)")
+    p.add_argument("--upstream", type=int, default=4, help="Depth n for dependents cone (U* direction)")
+    p.add_argument("--no-onchain", action="store_true", help="Disable ERC-4626 asset() probe")
+    p.add_argument("--with-morpho", action="store_true", help="Attach Morpho market nodes and venue edges")
+    p.add_argument("--with-aave", action="store_true", help="Attach Aave reserve nodes and venue edges")
+    p.add_argument("--with-euler", action="store_true", help="Attach Euler market nodes and venue edges")
+    p.add_argument("--with-univ3", action="store_true", help="Attach Uniswap v3 pool nodes and SWAP edges")
+    p.add_argument("--out", type=str, default=None, help="Write JSON graph to this path")
+    p.add_argument("--dot", type=str, default=None, help="Write Graphviz DOT to this path")
+    p.add_argument("--min-tvl", type=float, default=0.0, help="Hide venue nodes (markets/pools) below this TVL in DOT output")
+
+    args = p.parse_args(argv)
+
+    g = build_neighborhood_double_bfs(
+        token_address=args.address,
+        chain_id=args.chain_id,
+        downstream_depth=max(0, int(args.downstream)),
+        upstream_depth=max(0, int(args.upstream)),
+        onchain_probe=not args.no_onchain,
+        with_morpho=args.with_morpho,
+        with_aave=args.with_aave,
+        with_euler=args.with_euler,
+        with_univ3=args.with_univ3,
+    )
+
+    payload = g.to_json()
+    if args.out:
+        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            fh.write(payload + "\n")
+    else:
+        print(payload)
+
+    if args.dot:
+        dot = g.to_dot(min_tvl=args.min_tvl)
+        os.makedirs(os.path.dirname(os.path.abspath(args.dot)), exist_ok=True)
+        with open(args.dot, "w", encoding="utf-8") as fh:
+            fh.write(dot + "\n")
+
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(_main())
+
+
+--- ./core/neighborhood_common.py ---
+"""Shared neighborhood graph model and Enso payload helpers."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field, fields
+from typing import Any, Dict, Optional, Set, Tuple, List
+from urllib.parse import quote
+
+__all__ = [
+    "Price",
+    "Node",
+    "Edge",
+    "Graph",
+    "normalize_addr",
+    "node_id",
+    "token_node_id",
+    "infer_role_from_enso",
+    "edge_type_for_source_role",
+    "node_from_enso_payload",
+]
+
+
+def normalize_addr(addr: Optional[str]) -> Optional[str]:
+    if not isinstance(addr, str):
+        return None
+    addr = addr.strip()
+    if addr.startswith("0x") and len(addr) == 42:
+        return addr.lower()
+    return None
+
+
+def _normalize_node_key(key: Any) -> str:
+    raw = str(key).strip()
+    if not raw:
+        raise ValueError("Node key must not be blank")
+    if raw.startswith("0x") and len(raw) == 42:
+        raw = raw.lower()
+    return quote(raw, safe="")
+
+
+def node_id(chain_id: int, address_or_namespace: str, key: Optional[str] = None) -> str:
+    """
+    Build a stable node id.
+
+    Backward-compatible token form:
+      node_id(1, "0x...")
+
+    Generic form for non-token entities:
+      node_id(1, "lending_market", "morpho-blue:0x...")
+    """
+    if key is None:
+        namespace = "erc20"
+        raw_key = address_or_namespace
+    else:
+        namespace = str(address_or_namespace).strip().lower()
+        if not namespace:
+            raise ValueError("Node namespace must not be blank")
+        raw_key = key
+    return f"eip155:{int(chain_id)}/{namespace}:{_normalize_node_key(raw_key)}"
+
+
+def token_node_id(chain_id: int, address: str) -> str:
+    return node_id(chain_id, "erc20", address)
+
+
+@dataclass
+class Price:
+    value: Optional[float] = None
+    timestamp: Optional[int] = None
+    symbol: Optional[str] = None
+    confidence: Optional[float] = None
+
+
+def _is_blank(value: Any) -> bool:
+    return value in (None, [], {}, "")
+
+
+@dataclass
+class Node:
+    id: str
+    address: Optional[str]
+    chainId: int
+    kind: str = "token"
+    label: Optional[str] = None
+    symbol: Optional[str] = None
+    decimals: Optional[int] = None
+    role: str = "plain"
+    protocol: Optional[str] = None
+    project: Optional[str] = None
+    tvl: Optional[float] = None
+    apy_base: Optional[float] = None
+    apy_reward: Optional[float] = None
+    price: Optional[Price] = None
+    source: str = "enso"
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def merge_from(self, other: "Node") -> None:
+        for model_field in fields(self):
+            key = model_field.name
+            if key in ("id", "address", "chainId", "kind"):
+                continue
+            current = getattr(self, key)
+            incoming = getattr(other, key)
+            if _is_blank(current) and not _is_blank(incoming):
+                setattr(self, key, incoming)
+
+
+@dataclass
+class Edge:
+    src: str
+    dst: str
+    type: str
+    notes: Optional[str] = None
+    source: str = "enso"
+
+    @property
+    def key(self) -> Tuple[str, str, str]:
+        return (self.src, self.type, self.dst)
+
+
+@dataclass
+class Graph:
+    root: str
+    nodes: Dict[str, Node] = field(default_factory=dict)
+    edges: List[Edge] = field(default_factory=list)
+    meta: Dict[str, Any] = field(default_factory=dict)
+    _edge_set: Set[Tuple[str, str, str]] = field(default_factory=set, repr=False)
+
+    def add_node(self, node: Node) -> None:
+        if node.id in self.nodes:
+            self.nodes[node.id].merge_from(node)
+        else:
+            self.nodes[node.id] = node
+
+    def add_edge(self, edge: Edge) -> None:
+        if edge.key not in self._edge_set:
+            self.edges.append(edge)
+            self._edge_set.add(edge.key)
+
+    def to_dict(self) -> Dict[str, Any]:
+        def _node_to_dict(node: Node) -> Dict[str, Any]:
+            data = asdict(node)
+            if node.price and isinstance(node.price, Price):
+                data["price"] = asdict(node.price)
+            return data
+
+        return {
+            "root": self.root,
+            "nodes": [_node_to_dict(node) for node in self.nodes.values()],
+            "edges": [asdict(edge) for edge in self.edges],
+            "meta": self.meta,
+        }
+
+    def to_json(self, compact: bool = False) -> str:
+        if compact:
+            return json.dumps(self.to_dict(), separators=(",", ":"), sort_keys=False)
+        return json.dumps(self.to_dict(), indent=2, sort_keys=False)
+
+    def to_dot(self, min_tvl: float = 0.0) -> str:
+        _VENUE_KINDS = {"lending_market", "dex_pool"}
+        if min_tvl > 0:
+            skip_ids = {
+                n.id for n in self.nodes.values()
+                if n.kind in _VENUE_KINDS and (n.tvl is None or n.tvl < min_tvl)
+            }
+        else:
+            skip_ids = set()
+
+        role_color = {
+            "plain": "#C3B091",
+            "wrapper": "#C3B091",
+            "lp": "#F8C0D8",
+            "vault_share": "#FFF3B0",
+            "staked": "#90EE90",
+            "stripped": "#DDA0DD",
+            "collateral": "#FFB366",
+            "other": "#D0D0D0",
+        }
+        kind_color = {
+            "token": None,
+            "lending_market": "#FEEA9D",
+            "dex_pool": "#E7A29D",
+            "venue": "#F4EEEA",
+        }
+        # Protocol-specific overrides (checked before kind/role)
+        protocol_color = {
+            "pendle": "#B8E6B8",       # light green — PT/YT/SY
+            "morpho": "#FEEA9D",       # pale yellow — lending markets
+            "aave-v3": "#FDE68A",      # deeper yellow — Aave
+            "euler": "#E8A317",        # dark gold — Euler vaults
+            "uniswap-v3": "#E7A29D",   # salmon — dex pools
+        }
+        lines = [
+            "digraph G {",
+            "  rankdir=LR;",
+            '  node [shape=box, style="rounded,filled", fontname="Helvetica"];',
+        ]
+        for node in self.nodes.values():
+            if node.id in skip_ids:
+                continue
+            color = (
+                protocol_color.get(node.protocol or "")
+                or protocol_color.get((node.project or "").lower())
+                or kind_color.get(node.kind)
+                or role_color.get(node.role, "#D0D0D0")
+            )
+            label = node.label or node.symbol or node.address or node.id
+            sub = []
+            if node.kind and node.kind != "token":
+                sub.append(node.kind)
+            if node.symbol and node.symbol != label:
+                sub.append(node.symbol)
+            if node.role and node.role != "plain":
+                sub.append(node.role)
+            if node.protocol:
+                sub.append(node.protocol)
+            if sub:
+                label = f"{label}\\n({', '.join(sub)})"
+            penwidth = ', penwidth=3' if node.id == self.root else ''
+            lines.append(f'  "{node.id}" [label="{label}", fillcolor="{color}"{penwidth}];')
+        for edge in self.edges:
+            if edge.src in skip_ids or edge.dst in skip_ids:
+                continue
+            lines.append(f'  "{edge.src}" -> "{edge.dst}" [label="{edge.type}"];')
+        lines.append("}")
+        return "\n".join(lines)
+
+
+_LST_SYMBOLS = {"stETH", "wstETH", "rETH", "eETH", "weETH", "cbETH", "mETH", "sfrxETH", "BETH"}
+
+
+def infer_role_from_enso(token_payload: Dict[str, Any]) -> str:
+    underlyings = token_payload.get("underlyingTokens") or []
+    symbol = (token_payload.get("symbol") or "").strip()
+    slug = (token_payload.get("protocolSlug") or "").lower()
+
+    # Pendle principal/yield tokens
+    if "pendle" in slug and (symbol.startswith("PT-") or symbol.startswith("YT-")):
+        return "stripped"
+
+    # Liquid staking derivatives
+    if symbol in _LST_SYMBOLS:
+        return "staked"
+
+    # Count-based fallback
+    if len(underlyings) >= 2:
+        return "lp"
+    if len(underlyings) == 1:
+        return "wrapper"
+    return "plain"
+
+
+def edge_type_for_source_role(role: str) -> str:
+    # This mapper is structural-only. Venue verbs such as PLEDGE or SWAP
+    # belong on token -> venue edges emitted by protocol adapters.
+    if role == "lp":
+        return "CONTAINS"
+    if role == "vault_share":
+        return "VAULT"
+    if role == "staked":
+        return "STAKE"
+    if role == "stripped":
+        return "STRIP"
+    return "WRAPS"
+
+
+_ENSO_NODE_OMIT_KEYS = {
+    "address",
+    "chainId",
+    "name",
+    "symbol",
+    "decimals",
+    "type",
+    "project",
+    "protocolSlug",
+    "primaryAddress",
+    "apy",
+    "apyBase",
+    "apyReward",
+    "tvl",
+    "underlyingTokens",
+    "logosUri",
+    "price",
+    "sources",
+    "underlyingResolved",
+}
+
+
+def node_from_enso_payload(payload: Dict[str, Any]) -> Node:
+    address = normalize_addr(payload.get("address")) or ""
+    chain_id = int(payload.get("chainId") or payload.get("chain_id") or 1)
+    price_payload = payload.get("price") or {}
+    return Node(
+        id=token_node_id(chain_id, address),
+        address=address,
+        chainId=chain_id,
+        kind="token",
+        label=payload.get("name"),
+        symbol=payload.get("symbol"),
+        decimals=payload.get("decimals"),
+        role=infer_role_from_enso(payload),
+        protocol=payload.get("protocolSlug"),
+        project=payload.get("project"),
+        tvl=payload.get("tvl"),
+        apy_base=payload.get("apyBase"),
+        apy_reward=payload.get("apyReward"),
+        price=Price(
+            value=price_payload.get("value"),
+            timestamp=price_payload.get("timestamp"),
+            symbol=price_payload.get("symbol"),
+            confidence=price_payload.get("confidence"),
+        )
+        if payload.get("price") is not None
+        else None,
+        source="enso",
+        extra={key: value for key, value in payload.items() if key not in _ENSO_NODE_OMIT_KEYS},
+    )
+
+
+--- ./core/NEIGH_README.md ---
+# Neighborhood Graph (`neigh`)
+
+Builds a directed graph around an ERC-20 token showing how it relates to
+wrappers, LPs, vaults, lending markets, and DEX pools.
+
+## How it works
+
+1. **Double BFS** from a root token address via Enso:
+   - *Downstream* — underlyings (what the token is built on)
+   - *Upstream* — dependents (what is built on the token)
+2. **Venue adapters** run against **upstream-cone tokens only** (the root
+   plus its dependents). Downstream underlyings are not checked for venues,
+   since the goal is to find where the token and its derivatives can be
+   deployed, not where its building blocks trade.
+   - `--with-morpho` — Morpho Blue markets (LEND / PLEDGE)
+   - `--with-aave` — Aave v3 reserves (LEND / PLEDGE)
+   - `--with-euler` — Euler markets (LEND / PLEDGE via `canUseAsCollateral`)
+   - `--with-univ3` — Uniswap v3 pools (SWAP)
+
+## Node kinds
+
+| Kind             | What it represents                |
+|------------------|-----------------------------------|
+| `token`          | ERC-20 token                      |
+| `lending_market` | A supply/borrow position on a venue |
+| `dex_pool`       | A liquidity pool                  |
+
+## Edge types
+
+| Edge      | Meaning                              | Example                                  |
+|-----------|--------------------------------------|------------------------------------------|
+| `WRAPS`   | single-underlying wrapper            | wstETH wraps stETH                       |
+| `CONTAINS`| LP or multi-token underlying         | reUSD/USDC Curve LP contains reUSD       |
+| `VAULT`   | ERC-4626 vault share                 | yvUSDC vault holds USDC                  |
+| `STAKE`   | liquid staking derivative            | stETH stakes ETH                         |
+| `STRIP`   | Pendle PT / YT                       | PT-reUSD-25JUN2026 strips SY-reUSD      |
+| `LEND`    | token can be supplied to a market    | USDC lends to USDC/stcUSD @ Morpho      |
+| `PLEDGE`  | token is collateral in a market      | WETH pledges to WETH @ Euler            |
+| `SWAP`    | token trades in a pool               | USDC swaps in USDC/WETH @ Uniswap v3   |
+
+## Usage
+
+```bash
+# JSON to stdout
+uv run python core/neigh.py 0x... --with-morpho --with-euler
+
+# JSON + DOT files, filter dust markets from DOT
+uv run python core/neigh.py 0x... \
+  --with-morpho --with-aave --with-euler --with-univ3 \
+  --out graphs/token.json --dot graphs/token.dot --min-tvl 1000
+
+# Render DOT to PNG
+dot -Tpng graphs/token.dot -o graphs/token.png
+```
+
+## Key flags
+
+| Flag            | Default | Effect                                         |
+|-----------------|---------|-------------------------------------------------|
+| `--chain-id`    | 1       | Chain (Ethereum mainnet)                        |
+| `--downstream`  | 4       | BFS depth for underlyings                       |
+| `--upstream`    | 4       | BFS depth for dependents                        |
+| `--no-onchain`  | off     | Skip ERC-4626 `asset()` probes                  |
+| `--min-tvl`     | 0       | Hide venue nodes below this TVL in DOT output   |
+| `--out`         | stdout  | Write JSON graph to file                        |
+| `--dot`         | —       | Write Graphviz DOT to file                      |
+
+## Outputs
+
+- **JSON** — full graph with all nodes, edges, prices, APYs, TVLs, and
+  extras. Always complete regardless of `--min-tvl`.
+- **DOT** — visual graph for Graphviz. Venue nodes below `--min-tvl` are
+  hidden (along with their edges) to reduce clutter.
+
+## Files
+
+| File                       | Role                              |
+|----------------------------|-----------------------------------|
+| `neigh.py`                 | CLI entry point                   |
+| `neigh_bfs.py`             | Double BFS builder                |
+| `neigh_helpers.py`         | Watcher loaders, token utilities  |
+| `neighborhood_common.py`   | Graph/Node/Edge types, DOT/JSON   |
+| `neigh_adapter_morpho.py`  | Morpho venue adapter              |
+| `neigh_adapter_aave.py`    | Aave venue adapter                |
+| `neigh_adapter_euler.py`   | Euler venue adapter               |
+| `neigh_adapter_univ3.py`   | Uniswap v3 venue adapter          |
+
+
+--- ./merged_neigh_plan.md ---
+# Neighborhood Graph Plan
+
+## Completed work
+
+### Phase 1: Stabilize (done)
+
+Fixed `_is_blank(0)`, made ERC-4626 probing chain-aware, renamed `ACCEPTS` to
+`VAULT`, added logging, added PT/LST structural heuristics in
+`infer_role_from_enso()`, cleaned stale diagnostics. Tests in
+`tests/test_neigh.py` and `tests/test_neighborhood_common.py`.
+
+### Phase 2: Dark venues + module split (done)
+
+Split monolithic `neigh.py` into:
+
+| Module | Role |
+|--------|------|
+| `core/neigh.py` | Thin CLI wrapper |
+| `core/neigh_bfs.py` | Double-BFS traversal, EnsoCache, venue adapter orchestration |
+| `core/neigh_helpers.py` | Shared adapter infra: watcher loading, token filtering, Pendle expiry |
+| `core/neigh_adapter_aave.py` | Aave v3 `lending_market` nodes + LEND/PLEDGE edges |
+| `core/neigh_adapter_morpho.py` | Morpho `lending_market` nodes + LEND/PLEDGE edges |
+| `core/neigh_adapter_univ3.py` | Uniswap v3 `dex_pool` nodes + SWAP edges |
+| `core/neighborhood_common.py` | Graph model (Node, Edge, Graph), role inference, serialization |
+
+Edge types: WRAPS, CONTAINS, VAULT, STAKE, STRIP (structural) + LEND, PLEDGE,
+SWAP (venue). CLI flags: `--with-morpho`, `--with-aave`, `--with-univ3`.
+
+---
+
+## Next work
+
+### Phase A: Euler adapter
+
+Add `core/neigh_adapter_euler.py` following the established adapter pattern.
+
+**Helper:** Add `fetch_euler_markets_for_chain(chain_id)` in
+`core/neigh_helpers.py`. Returns `[]` for non-Ethereum chains (Euler is chain 1
+only). Calls `module.fetch_markets(None)` — the public watcher API, not the
+lower-level `fetch_markets_from_subgraph()` — to preserve fallback/resilience
+behavior consistent with the Aave/Morpho helpers.
+
+**Watcher:** Load via `_load_watch_module("eulerWatch.py",
+"kildef_watchers.eulerWatch")`.
+
+**Graph model:**
+
+- Node kind: `lending_market`, protocol: `euler`
+- Node ID: `node_id(chain_id, "lending_market", f"euler:{market['id']}")` —
+  uses the subgraph `id` field (the market contract address)
+- Edge types: `LEND` (supply side); `PLEDGE` if collateral-eligible — the
+  Messari subgraph exposes `canUseAsCollateral` per market (now fetched in
+  both `EulerMarkets` and `EulerMarketsLite` queries and threaded through
+  `to_rows()` as `row["canUseAsCollateral"]`). The adapter should gate PLEDGE
+  on this field, analogous to Aave's `canBeCollateral` check at
+  `neigh_adapter_aave.py:101`.
+
+**CLI:** `--with-euler`
+
+**Tests** (`tests/test_neigh_adapter_euler.py`):
+
+- Happy path: market nodes created with LEND + PLEDGE edges (when
+  `canUseAsCollateral` is true)
+- Non-Ethereum chain: no-op (returns empty)
+- Root Enso failure: venue attachment still works from stub node
+- Watcher/subgraph failure: logged warning, no crash
+
+**Files:**
+
+- `core/neigh_adapter_euler.py` (new, ~100 lines)
+- `core/neigh_helpers.py` (add `fetch_euler_markets_for_chain`)
+- `core/neigh_bfs.py` (add `with_euler` param + adapter call)
+- `core/neigh.py` (add `--with-euler` flag)
+- `tests/test_neigh_adapter_euler.py` (new)
+
+### Phase B: Pendle market metadata enrichment
+
+PT/YT/SY tokens already appear as graph nodes via Enso (role=stripped). The
+existence of a Pendle market is implicit from the PT node — adding venue nodes
+would clutter the graph. Instead, enrich existing PT nodes with market-level
+data.
+
+**Unify fetch paths:** Currently `fetch_expired_pendle_addresses()` in
+`neigh_helpers.py` fetches all markets from the Pendle v2 API but only extracts
+expiry sets. `watchers/pendleWatch.py::fetch_markets()` fetches only active
+markets. These are different data sources. Refactor: introduce a shared
+`_fetch_all_pendle_markets(chain_id)` in `neigh_helpers.py` that caches the
+full market list. Both `fetch_expired_pendle_addresses()` and the enrichment
+adapter consume it. This avoids double-fetching and ensures enrichment covers
+all markets (not just active ones).
+
+**Enrichment approach:** After BFS completes, match PT nodes to their Pendle
+market and inject market metadata into the PT node's fields/extra.
+
+**Important:** Do NOT overload `apy_base` with Pendle implied APR. In the
+current graph, `apy_base` means ongoing supply/base yield (Enso, Aave, Morpho).
+Pendle's `impliedApr` is a discount-to-maturity concept — fundamentally
+different. Keep Pendle-specific data in `extra`:
+
+- `tvl` ← market TVL (if not already set — this one is safe to use)
+- `extra.implied_apr` ← Pendle implied APR
+- `extra.base_apr` ← underlying base APR
+- `extra.reward_apr` ← reward APR
+- `extra.expiry` ← market expiry ISO timestamp
+- `extra.pendle_market_address` ← market contract address
+- `extra.pt_discount` ← discount to par (if available)
+
+No new node kind, no new edge type.
+
+**CLI:** `--with-pendle` (enriches PT nodes, doesn't add nodes)
+
+**Files:**
+
+- `core/neigh_adapter_pendle.py` (new, ~60 lines)
+- `core/neigh_helpers.py` (refactor: shared `_fetch_all_pendle_markets` cache)
+- `core/neigh_bfs.py` (add `with_pendle` param + adapter call)
+- `core/neigh.py` (add `--with-pendle` flag)
+- `tests/test_neigh_adapter_pendle.py` (new — verify PT node enrichment,
+  verify no `apy_base` overwrite)
+
+---
+
+## Deferred work
+
+### Phase C: Strategy metadata promotion
+
+Promote commonly-needed venue metadata from `extra` dicts to first-class fields.
+
+**Node fields** to add to `neighborhood_common.py`:
+
+- `liquidity_usd: Optional[float]`
+- `utilization: Optional[float]`
+- `apy_borrow: Optional[float]`
+- `expiry: Optional[str]`
+- `fetched_at: Optional[str]`
+
+**Edge metadata:**
+
+- Add `extra: Dict[str, Any]` to `Edge` dataclass
+- Edge identity stays structural `(src, type, dst)` — on duplicate, merge
+  `extra` dicts (later values win per key), matching Node's `merge_from`
+  philosophy
+- Use cases: PLEDGE edge with `max_ltv`, SWAP edge with `fee_bps`
+
+Criterion: promote if field appears in 2+ adapters or is universally
+strategy-relevant.
+
+### Phase D: CLI improvements
+
+**CLI-only** (no builder/adapter changes):
+
+- `--with-all-venues` — maps to existing boolean flags
+- `--compact` — `Graph.to_json(compact=True)` already exists
+- `--summary` — human-readable summary (CLI formatting only)
+
+**Requires builder/adapter changes:**
+
+- `--venue-types lending_market,dex_pool` — needs post-build filtering or a
+  filter param in `build_neighborhood_double_bfs()`
+- `--min-tvl 1000` — **done**: filters venue nodes (lending markets, dex pools)
+  from DOT output; JSON keeps everything. Implemented in `to_dot(min_tvl=)`
+  and wired via `--min-tvl` CLI flag.
+- **Same-pair market grouping (option)** — collapse Morpho markets with
+  identical loan/collateral labels into a single DOT node (showing the
+  dominant market by TVL). Useful when multiple vaults exist for the same
+  pair (e.g. 3× USDC/stcUSD). Not yet implemented.
+- `--cache enso_cache.json` — persist `EnsoCache` to disk between runs.
+  Currently every run re-fetches all tokens from Enso; the in-memory cache
+  is discarded on exit. Disk persistence would load on start / save on exit,
+  skipping already-seen tokens. Needs a TTL or staleness check so prices
+  and APYs don't go stale.
+- `--chains 1,8453` — needs multi-chain venue fetching in adapters (builder
+  currently takes single `chain_id`)
+
+---
+
+## Verification
+
+```bash
+# Unit tests
+PYTHONPATH=core uv run pytest tests/ -v
+
+# Smoke test
+source env
+PYTHONPATH=core uv run python core/neigh.py \
+  0x9D39A5DE30e57443BfF2A8307A4256c8797A3497 \
+  --downstream 2 --upstream 1 \
+  --with-aave --with-morpho --with-univ3 \
+  --out graphs/susde-neigh.json --dot graphs/susde-neigh.dot
+```
+
+
+Here is the first proposal:
+
+---
+
+Here's my architectural review of Phase B. I'll take the design questions head-on, then challenge some premises.
+
+---
+
+## Verdict on the Plan: Structurally Sound, Semantically Undercooked
+
+The mechanical implementation (refactor fetch, walk nodes, inject extra) is clean and follows established patterns. The real risks are in **what data goes where** and **what it means**.
+
+---
+
+## Design Question Rulings
+
+### 1. Enrich only PT nodes, or YT too?
+
+**Ruling: Enrich both PT and YT.** PT-only is wrong.
+
+- A Pendle market has exactly one PT and one YT. The market's `impliedApr` is equally meaningful for both — it's the discount-to-maturity for PT and the yield exposure for YT. They're two sides of the same position.
+- YT nodes already have `role="stripped"` and are in the graph. Withholding market data from them is an arbitrary asymmetry.
+- The lookup is trivial: build both `pt_address → market` and `yt_address → market` from the same market list.
+- **Tradeoff**: ~10 extra lines of code, zero extra API calls.
+
+### 2. Enrich SY nodes with aggregate data?
+
+**Ruling: No. Skip SY enrichment for now.**
+
+- SY is many-to-many with markets (one SY can back multiple PT/YT pairs with different expiries). Aggregating implied APR across expiries is meaningless — you'd be averaging a 2% 30-day implied with a 12% 1-year implied.
+- SY's role isn't even `"stripped"` — it falls through to `"wrapper"` or `"lp"` based on underlying count. The graph model doesn't distinguish SY from any other wrapper.
+- If SY enrichment becomes needed later, it should be a separate decision: promote SY to its own role first (`role="yield_wrapper"` or similar), then enrich.
+
+### 3. v2 API or v1 active-only?
+
+**Ruling: Stay on v2 (`/core/v2/markets/all`).** But with a caveat.
+
+- v2 is already used by `fetch_expired_pendle_addresses()` and returns all markets (active + expired), which is what we want.
+- v1 used by pendleWatch filters `isActive=true` — that's wrong for enrichment because expired-but-in-graph PTs would be missed.
+- **Critical caveat**: The v2 market objects contain a `details` dict with `impliedApy`, `base`, `reward`, `liquidity` — the same fields pendleWatch parses via `to_rows()`. But the current `fetch_expired_pendle_addresses` only reads `expiry`/`pt`/`yt`/`sy` and discards everything else. **Verify that v2 response objects include the `details` block before committing.** If v2 strips `details`, the entire enrichment approach falls apart and you'd need to call v1 separately or switch endpoints.
+- **Hedge**: Add a debug log in `_fetch_all_pendle_markets` that warns if the first market object lacks a `details` key. Fail-fast rather than silently producing empty enrichment.
+
+### 4. Enrich expired-but-in-graph PTs?
+
+**Ruling: Yes, unconditionally.**
+
+- The v2 API already returns expired markets. The data is free.
+- Expired PTs in the graph represent held positions. Their implied APR at expiry (should be ~0), expiry date, and historical TVL are useful for strategy evaluation.
+- The adapter doesn't need to distinguish — just match any PT/YT node to its market, expired or not.
+
+### 5. Abstraction boundary: `_fetch_all_pendle_markets` vs higher-level lookup?
+
+**Ruling: Keep `_fetch_all_pendle_markets` returning raw list. Build the lookup in the adapter.**
+
+- The expired-addresses consumer iterates the list differently (tracking SY active/expired state). A lookup dict would be wrong for that use case.
+- The enrichment adapter needs `pt_address → market` AND `yt_address → market`. Building these is 5 lines — not worth abstracting.
+- If a third consumer appears, promote to a shared `build_pendle_market_lookup(chain_id) → Dict[str, market]` at that point. Not before.
+
+---
+
+## Challenges to the Premise
+
+### TVL semantics are wrong
+
+The plan says: *"Sets node.tvl from market liquidity if not already set."*
+
+**This conflates two different things:**
+- `node.tvl` for token nodes = circulating supply × price (from Enso)
+- Market `liquidity` = AMM pool depth in the Pendle market
+
+A PT token with $50M circulating but $2M market depth should not show `tvl=2M`. The Enso-sourced TVL (if present) is more accurate for what `tvl` means on a token node.
+
+**Counter-proposal**: Put market liquidity in `extra.market_liquidity_usd`. Only set `node.tvl` if it's `None` AND you're confident the market liquidity is a reasonable proxy (e.g., for very illiquid PTs where Enso returns nothing). Add a comment explaining the semantic difference.
+
+### The "adapter" naming is misleading
+
+Every other adapter (`_attach_*_market_nodes`) creates new venue nodes + edges. This one mutates existing token nodes in-place. Calling it `neigh_adapter_pendle.py` with function `_enrich_pendle_pt_nodes` signals a different contract.
+
+**Options:**
+- **(A)** Name it `neigh_enricher_pendle.py` / `_enrich_pendle_nodes` — explicitly different from adapters
+- **(B)** Keep `neigh_adapter_pendle.py` but add a module docstring explaining the enrichment-only pattern
+- **(C)** Radical: make it a venue adapter that creates a `pendle_market` node + `STRIP_MARKET` edge, like Morpho/Aave create `lending_market` nodes
+
+**Recommendation: (A).** The naming should encode the behavioral difference. When someone sees `adapter_*` they expect new nodes. When they see `enricher_*` they expect mutation of existing nodes. This is a pattern you may reuse (e.g., enriching Aave aTokens with reserve data from the token side rather than the market side).
+
+### Node matching heuristic is fragile
+
+The plan says: *"symbol starts with 'PT-', project=pendle"*
+
+- `project` field comes from Enso. It may be `None`, `"Pendle"`, `"pendle"`, or some variant.
+- `symbol` prefix works for PT (`PT-`) and YT (`YT-`), but Enso could return symbols without the prefix in edge cases.
+- The `protocolSlug` field (used in `infer_role_from_enso`) is more reliable than `project`.
+
+**Recommendation**: Match on `role == "stripped"` AND `protocol` contains `"pendle"` (case-insensitive). This reuses the existing role inference rather than re-implementing symbol matching. To distinguish PT from YT for the lookup, THEN check symbol prefix — but only after the role+protocol gate.
+
+### The `_parse_pendle_addr` format difference is a latent bug
+
+v2 API returns token references as `"1-0xabc..."` strings. v1 returns nested dicts. The shared `_fetch_all_pendle_markets` will return v2 market objects. The enrichment adapter will use `_parse_pendle_addr` to extract PT/YT addresses. **This works today.**
+
+But if pendleWatch is ever migrated to consume the shared cache (a natural next step), its `to_rows()` function expects nested dicts, not string IDs. Document this format dependency in the shared fetcher's docstring.
+
+---
+
+## Radical Alternative (Considered and Rejected)
+
+**Create `pendle_market` venue nodes like other adapters do**, with a `MARKET` edge from PT → pendle_market node. This would:
+- Keep PT nodes pure (no mutation)
+- Make market data queryable as a first-class entity
+- Be consistent with the Aave/Morpho/Euler pattern
+
+**Why rejected:**
+- A Pendle market isn't a venue you "deploy" tokens to (unlike lending markets). PT/YT tokens ARE the market. Adding a venue node creates a redundant entity.
+- The plan's premise — "the existence of a Pendle market is implicit from the PT node" — is correct.
+- Enrichment-in-place is the right pattern for metadata that describes the node itself rather than a relationship.
+
+---
+
+## Revised Implementation Plan
+
+1. **Refactor `_fetch_all_pendle_markets(chain_id)` in neigh_helpers.py** — as proposed, with session-level cache. Add a warning log if `details` key is missing from first market object.
+
+2. **New enricher `core/neigh_enricher_pendle.py` (~60 lines)**
+   - `_enrich_pendle_nodes(graph, eligible_ids)` — enriches **both PT and YT**
+   - Match nodes on `role == "stripped"` AND `protocol` contains `"pendle"`
+   - Distinguish PT vs YT by symbol prefix for lookup routing
+   - Inject into `node.extra`: `implied_apr`, `base_apr`, `reward_apr`, `expiry`, `pendle_market_address`, `market_liquidity_usd`
+   - Set `node.tvl` from market liquidity **only if `node.tvl is None`**, with comment
+   - Do NOT touch `apy_base`
+
+3. **Wire into BFS and CLI** — as proposed. Call after venue adapters.
+
+4. **Tests (7 cases)**
+   - PT node enriched with implied_apr/expiry ✓
+   - YT node enriched with implied_apr/expiry ← **new**
+   - apy_base NOT overwritten ✓
+   - SY nodes not enriched ✓
+   - No matching market → node unchanged ✓
+   - Fetch failure → warning, no crash ✓
+   - Expired PT in graph → still enriched ← **new**
+
+---
+
+## Summary of Decisions
+
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| PT-only vs PT+YT | **Both PT and YT** | Same market, same data, no extra cost |
+| SY enrichment | **No** | Many-to-many, no sensible aggregate |
+| v1 vs v2 API | **v2** (verify `details` presence) | Already cached, includes expired |
+| Expired PT enrichment | **Yes** | Free data, useful for held positions |
+| Abstraction boundary | **Raw list in helper, lookup in enricher** | Different consumers iterate differently |
+| `node.tvl` from market liquidity | **Only if `None`**, store in `extra` too | Different semantic from token TVL |
+| File naming | **`neigh_enricher_pendle.py`** | Signals mutation-only, no new nodes |
+| Node matching | **`role + protocol`**, not `symbol + project` | Reuses existing inference, more robust |
+
+Turn 1 - Assistant
+**Findings (highest risk first)**  
+1. High: The proposed `pt_address -> market` (and `yt_address -> market`) lookup is under-specified for collisions. If multiple markets map to the same PT/YT over time, last-write wins is nondeterministic and can silently pick the wrong market snapshot. You need an explicit selection rule (active-first, highest liquidity, latest update, or keep a list).  
+2. High: There is a semantic contradiction with expired tokens. Upstream BFS currently skips expired Pendle dependents in [core/neigh_bfs.py](/Users/v/Code_2026/KilDef/core/neigh_bfs.py), so “enrich expired PTs in graph” is only true for roots/downstream survivors, not generally. Decide whether Phase B is historical-aware or active-only and make traversal + enrichment consistent.  
+3. High: Session-level cache in [core/neigh_helpers.py](/Users/v/Code_2026/KilDef/core/neigh_helpers.py) has no freshness model. Long-lived processes will serve stale APR/TVL, and concurrency can produce racey cache state. Add TTL/versioning and fetched-at metadata.  
+4. Medium: Writing market liquidity into `node.tvl` still risks semantic drift. Token TVL and market liquidity are different objects. Treat liquidity as separate, and only fallback to `tvl` under explicit policy.  
+5. Medium: Flat keys in `node.extra` (`implied_apr`, `base_apr`, etc.) invite key collisions across adapters. Namespace Pendle metadata under one object (for example a `pendle` sub-blob).  
+6. Medium: Role/symbol/project matching is brittle. Best match key is address membership in Pendle market payload; classification fields should be secondary guards, not primary identity.  
+7. Low: “Adapter” naming remains misleading if this is mutation-only. Distinct “enricher” concept is cleaner and scales better for future metadata-only passes.
+
+**Architectural challenge to premise**  
+The bigger issue is mixing two concerns in the same graph object: structural topology and volatile market snapshots. That coupling will keep creating schema debt.
+
+**Radical alternatives**  
+1. Keep the graph structural-only; move Pendle market data to a sidecar snapshot index keyed by node id + timestamp.  
+2. Add a second “observation layer” (time-series/event records) instead of mutating nodes in place.  
+3. Go fully temporal: represent PT/YT metadata as dated state transitions; queries choose “latest” or “as-of” views.
+
+**Debate rulings**  
+- PT vs YT: enrich both, but label as market-level fields (not token-intrinsic).  
+- SY: do not aggregate yet; ambiguous and easy to mislead.  
+- API: v2 all-markets is right baseline, but validate field completeness contractually.  
+- Expired: either support explicitly across traversal+enrichment, or drop it entirely; partial support is misleading.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Good, now I have the full picture. Let me synthesize the findings against the actual code and produce a refined plan.
+
+**Key discovery**: The collision concern (Finding #1) is a false alarm for PT/YT. In Pendle's architecture, each PT address and each YT address maps to exactly one market — the relationship is 1:1 by construction. The 1:many problem only applies to SY (one SY backs multiple markets with different expiries), which is another reason to skip SY enrichment. I'll add a collision-detection warning as a safety net.
+
+**Expired token contradiction (Finding #2)**: `neigh_bfs.py:329-339` skips expired Pendle dependents during upstream BFS. So expired PT/YT nodes only appear in the graph if they're the root itself or found downstream. The enricher doesn't need to care — it decorates whatever nodes exist. But the plan must acknowledge this narrow scope rather than claiming "expired PTs get enriched" as a general feature.
+
+**Cache staleness (Finding #3)**: The neighborhood CLI is a single-run process. The module-level `_PENDLE_EXPIRY_CACHE` and proposed `_PENDLE_MARKETS_CACHE` both die with the process. Staleness isn't a real risk here. Adding TTL/versioning is premature for a CLI tool. Adding `fetched_at` to the enrichment output is cheap and useful — do that.
+
+**Architectural challenge (structural vs volatile)**: Sound observation, wrong phase. Decoupling topology from volatile snapshots is a design-epoch change. Phase C (strategy metadata promotion) is the natural place to evaluate whether promoted fields should become an observation layer. Not Phase B's job.
+
+Here's the refined plan:
+
+---
+
+## Phase B: Pendle Market Metadata Enrichment — Refined Plan
+
+### 1. Refactor shared market fetch (`core/neigh_helpers.py`)
+
+Extract the paginated fetch loop from `fetch_expired_pendle_addresses()` into:
+
+```python
+_PENDLE_MARKETS_CACHE: Dict[int, List[Dict[str, Any]]] = {}
+
+def _fetch_all_pendle_markets(chain_id: int) -> List[Dict[str, Any]]:
+    """Fetch all Pendle markets (active + expired) for chain_id, cached per session."""
+```
+
+- Session-level cache (module global), same pattern as `_PENDLE_EXPIRY_CACHE`
+- Log a warning if the first market object lacks a `details` key (fail-fast for v2 schema drift)
+- `fetch_expired_pendle_addresses()` becomes a thin consumer — iterates the shared list, extracts expiry sets. No behavior change.
+
+### 2. New enricher (`core/neigh_enricher_pendle.py`, ~65 lines)
+
+**Not** called `adapter` — enrichers mutate existing nodes; adapters create new ones.
+
+```python
+def _enrich_pendle_nodes(graph: Graph, eligible_ids: Optional[Set[str]] = None) -> None:
+```
+
+**Lookup construction:**
+- From `_fetch_all_pendle_markets(chain_id)`, build two dicts: `pt_addr → market` and `yt_addr → market`
+- PT→market and YT→market are 1:1 by Pendle's architecture. If a collision is detected, log a warning and keep the market with higher liquidity (defensive, shouldn't happen).
+
+**Node matching — address-first, not symbol-first:**
+- Primary key: node's address appears in the pt_addr or yt_addr lookup
+- Secondary guard: `node.role == "stripped"` or `node.protocol` contains `"pendle"` (prevents false matches on address reuse across protocols — practically impossible but cheap to check)
+- Do NOT match on symbol prefix as primary identity — it's brittle across Enso payload variants
+
+**Enriches both PT and YT nodes.** Same market data, labeled as market-level fields.
+
+**Data written — namespaced under `extra["pendle"]`:**
+```python
+node.extra["pendle"] = {
+    "market_address": str,
+    "implied_apr": float | None,
+    "base_apr": float | None,
+    "reward_apr": float | None,
+    "expiry": str | None,          # ISO8601
+    "market_liquidity_usd": float | None,
+    "fetched_at": str,             # ISO8601 timestamp of enrichment
+}
+```
+
+Namespacing under `"pendle"` prevents flat-key collisions with other enrichers/adapters.
+
+**`node.tvl`**: Set from market liquidity **only if `node.tvl is None`**. Add inline comment: `# market liquidity as proxy — not circulating-supply TVL`. Store the canonical value in `extra["pendle"]["market_liquidity_usd"]` regardless.
+
+**`node.apy_base`**: Never touched. Pendle implied APR is discount-to-maturity, not ongoing yield.
+
+**SY nodes**: Not enriched. SY→market is 1:many; aggregation is misleading.
+
+### 3. Wire into BFS and CLI
+
+`core/neigh_bfs.py`:
+- Add `with_pendle: bool = False` to `build_neighborhood_double_bfs()`
+- Call `_enrich_pendle_nodes(g, eligible_ids=upstream_ids)` after venue adapters
+- Append `"pendle"` to `meta["venueAdapters"]` (even though it's an enricher — keeps the CLI discovery pattern consistent)
+
+`core/neigh.py`:
+- Add `--with-pendle` flag: `"Enrich PT/YT nodes with Pendle market metadata"`
+
+### 4. Expired token scope (clarification, not code change)
+
+The upstream BFS already filters out expired Pendle dependents (`neigh_bfs.py:337-339`). The enricher decorates **whatever PT/YT nodes exist in the graph** — it doesn't decide which nodes enter. This means:
+- Active PTs/YTs in the upstream cone: enriched
+- The root token (if it's a PT/YT): enriched, even if expired
+- Expired PTs/YTs that entered via downstream BFS: enriched (rare edge case)
+- Expired PTs/YTs that would have been upstream dependents: not in graph, not enriched
+
+This is the correct behavior — traversal policy and decoration are orthogonal. No code change needed, but document this in the enricher's docstring.
+
+### 5. Tests (`tests/test_neigh_enricher_pendle.py`, 7 cases)
+
+| # | Case | Asserts |
+|---|------|---------|
+| 1 | PT node enriched | `extra["pendle"]["implied_apr"]` and `["expiry"]` present |
+| 2 | YT node enriched | Same market data as sibling PT |
+| 3 | `apy_base` untouched | Original value preserved after enrichment |
+| 4 | `tvl` fallback | Set from market liquidity only when `None` |
+| 5 | SY node ignored | No `"pendle"` key in SY node's extra |
+| 6 | No matching market | Node unchanged, no error |
+| 7 | Fetch failure | Warning logged, graph intact, no crash |
+
+### Files touched
+
+| File | Change |
+|------|--------|
+| `core/neigh_helpers.py` | Extract `_fetch_all_pendle_markets()`, refactor `fetch_expired_pendle_addresses()` |
+| `core/neigh_enricher_pendle.py` | **New** (~65 lines) |
+| `core/neigh_bfs.py` | Add `with_pendle` param, import + call enricher |
+| `core/neigh.py` | Add `--with-pendle` CLI flag |
+| `tests/test_neigh_enricher_pendle.py` | **New** (7 test cases) |
+
+### What this plan does NOT do
+
+- Create new node kinds or edge types
+- Enrich SY nodes (1:many problem, deferred)
+- Add TTL/versioning to the session cache (single-run CLI, unnecessary)
+- Decouple topology from volatile data (design-epoch change, evaluate in Phase C)
+- Touch `apy_base` or `apy_reward` on enriched nodes
+
+### Note for Phase C
+
+The `extra["pendle"]` namespace pattern should become the convention for all adapters. When Phase C promotes fields like `liquidity_usd` and `expiry` to first-class Node fields, evaluate whether an observation layer (sidecar snapshot index keyed by node id + timestamp) is a better home for volatile market data than inline node mutation. Phase B intentionally does not solve this — it uses the existing `extra` dict pattern and keeps the scope tight.
+
+---
+
+Want me to implement this?
+
+Respond as the assistant only. Do not include tool logs.
+mcp: mail starting
+mcp: arxiv starting
+mcp: mail ready
+mcp: arxiv ready
+mcp startup: ready: mail, arxiv
+codex
+Yes, implement this plan. It is tight and correctly scoped for Phase B.
+
+Two refinements before coding:
+
+1. Keep metadata semantics clean: prefer `meta["enrichers"] += ["pendle"]` instead of reusing `meta["venueAdapters"]` for a mutation-only pass.
+2. Make enricher chain-aware: collect eligible Pendle nodes by `chainId` and call `_fetch_all_pendle_markets(chain_id)` per chain, not just root chain.
+
+One extra test worth adding:
+
+3. Existing `node.extra` preservation: enrichment should merge into `extra["pendle"]` without overwriting unrelated keys in `extra`.
+
+If you implement with those tweaks, this is production-ready for Phase B.
+tokens used
+25 721
+
