@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // shelley.ts — multi-agent debate engine (TypeScript entrypoint)
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 
 // === Dials (inlined from dials.py) ===
@@ -34,9 +34,11 @@ const DIAL_PROMPTS: Record<DialLevel, string> = {
   1: "Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.",
 };
 
+const DIAL_EXPONENT = Math.max(0.1, parseFloat(process.env.DIAL_EXPONENT ?? "1"));
+
 function getDial(roundZeroIdx: number, total: number): DialLevel {
   if (total <= 1) return 5;
-  const t = roundZeroIdx / (total - 1);
+  const t = Math.pow(roundZeroIdx / (total - 1), DIAL_EXPONENT);
   const dial = Math.min(5, Math.max(1, Math.round(5 - 4 * t)));
   return dial as DialLevel;
 }
@@ -114,7 +116,7 @@ interface CliResult {
   timedOut: boolean;
 }
 
-function codexReasoningEffortForModel(model: string): string {
+function codexReasoningEffort(): string {
   const raw = process.env.CODEX_REASONING_EFFORT ?? "high";
   const requested = raw.trim().toLowerCase();
   if (!requested || !VALID_REASONING_EFFORTS.has(requested)) {
@@ -248,7 +250,7 @@ function composeCodexPrompt(opts: CallOpts): string {
 }
 
 async function callCodex(opts: CallOpts): Promise<TurnResult> {
-  const reasoningEffort = codexReasoningEffortForModel(opts.model);
+  const reasoningEffort = codexReasoningEffort();
   const args = ["codex", "exec", "--sandbox", "read-only", "-c", `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`];
   if (opts.model) args.push("--model", opts.model);
   args.push(composeCodexPrompt(opts));
@@ -289,6 +291,258 @@ function parseBackend(specRaw: string): BackendSpec {
 
 async function call(backend: Backend, opts: CallOpts): Promise<TurnResult> {
   return backend === "codex" ? callCodex(opts) : callClaude(opts);
+}
+
+// === Moderator ===
+
+interface ModeratorGuidance {
+  dialOverride: DialLevel | null;
+  injection: string;
+  flags: { drifting: boolean; tooConvergent: boolean; urgentConverge: boolean };
+}
+
+interface ModeratorConfig {
+  enabled: boolean;
+  spec: BackendSpec;
+  level: 1 | 2 | 3;
+}
+
+const MODERATOR_SYSTEM = `You are a debate moderator. You observe exchanges between an architect (Agent A) and a reviewer (Agent B) in a structured design debate. Your job is to keep the debate productive.
+
+You will receive: the debate topic, the current round/total, the default creativity dial level, and the most recent exchange.
+
+Respond with EXACTLY this JSON (no markdown, no explanation):
+{"dialOverride": <1-5 or null>, "injection": "<1-3 sentences of guidance for the next agent>", "flags": {"drifting": <bool>, "tooConvergent": <bool>, "urgentConverge": <bool>}}
+
+Rules:
+- If the agents are on track, set injection to "" and dialOverride to null.
+- If drifting off topic, nudge them back with a specific question.
+- If converging too early (rounds remain but agents agree on everything), push for deeper challenge or unexplored angles.
+- If running out of rounds, urge convergence on remaining open items.`;
+
+const DEFAULT_MODERATOR_GUIDANCE: ModeratorGuidance = {
+  dialOverride: null, injection: "", flags: { drifting: false, tooConvergent: false, urgentConverge: false },
+};
+
+async function callModerator(
+  config: ModeratorConfig,
+  topic: string,
+  round: number,
+  totalRounds: number,
+  defaultDial: DialLevel,
+  nextAgent: AgentKey,
+  lastText: string,
+): Promise<ModeratorGuidance> {
+  const prompt = `Topic: ${topic.slice(0, 500)}
+Round: ${round}/${totalRounds} | Default dial: ${defaultDial}/5 (${DIAL_LABELS[defaultDial]})
+Next agent: ${nextAgent} | Aggressiveness: ${config.level}/3
+
+Most recent exchange:
+${lastText.slice(0, 3000)}`;
+
+  try {
+    const r = await call(config.spec.backend, {
+      agentKey: "A", // reuse key; moderator is stateless
+      model: config.spec.model,
+      systemPrompt: MODERATOR_SYSTEM,
+      sessionId: crypto.randomUUID(),
+      prompt,
+    });
+    const parsed = JSON.parse(r.text.replace(/^```json\s*|```\s*$/g, "").trim());
+    return {
+      dialOverride: (parsed.dialOverride >= 1 && parsed.dialOverride <= 5) ? parsed.dialOverride : null,
+      injection: typeof parsed.injection === "string" ? parsed.injection : "",
+      flags: {
+        drifting: !!parsed.flags?.drifting,
+        tooConvergent: !!parsed.flags?.tooConvergent,
+        urgentConverge: !!parsed.flags?.urgentConverge,
+      },
+    };
+  } catch {
+    return DEFAULT_MODERATOR_GUIDANCE;
+  }
+}
+
+function parseModeratorConfig(): ModeratorConfig {
+  const raw = process.env.MODERATOR;
+  if (!raw) return { enabled: false, spec: { backend: "claude", model: "" }, level: 2 };
+  const spec = parseBackend(raw);
+  const lvl = parseInt(process.env.MODERATOR_LEVEL ?? "2", 10);
+  const level = (lvl >= 1 && lvl <= 3 ? lvl : 2) as 1 | 2 | 3;
+  return { enabled: true, spec, level };
+}
+
+// === Expert Panel ===
+
+interface ExpertScore {
+  expert: string;
+  scores: { convergence: number; depth: number; feasibility: number; dynamics: number };
+  commentary: string;
+  bestIdea: string;
+  weakness: string;
+}
+
+interface PanelReport {
+  overallScore: number;
+  expertScores: ExpertScore[];
+  synthesis: {
+    keyConclusions: string[];
+    unresolvedDisagreements: string[];
+    bestIdeas: string[];
+    weaknesses: string[];
+    recommendation: string;
+  };
+  metadata: {
+    topic: string;
+    rounds: number;
+    models: { A: string; B: string };
+    moderatorEnabled: boolean;
+    totalDebateSeconds: number;
+    totalPanelSeconds: number;
+  };
+}
+
+interface ExpertPersona {
+  name: string;
+  focus: string;
+}
+
+const EXPERT_PERSONAS: ExpertPersona[] = [
+  { name: "Pragmatist", focus: "whether the debate produced an actionable, implementable plan. Focus on feasibility, concrete next steps, and whether the scope is realistic" },
+  { name: "Devil's Advocate", focus: "what the debate missed. Focus on unstated assumptions, unexamined risks, and arguments that were conceded too easily" },
+  { name: "Architect", focus: "the technical depth and architectural soundness. Focus on whether design decisions are well-reasoned and tradeoffs properly analyzed" },
+];
+
+function expertPrompt(persona: ExpertPersona, topic: string, transcript: string): string {
+  return `You are ${persona.name}, an expert evaluating a design debate.
+Your focus: ${persona.focus}.
+
+Calibration: 5 is average. Most debates land 4-7. Reserve 8+ for exceptional. 3 means the debate failed to produce useful output.
+
+Topic:
+${topic.slice(0, 1000)}
+
+Transcript:
+${transcript}
+
+Score this debate on four dimensions (1-10 each):
+1. Convergence quality: Did the agents reach a clear, actionable plan?
+2. Intellectual depth: Were arguments substantive?
+3. Practical feasibility: Is the final plan implementable?
+4. Debate dynamics: Did agents genuinely challenge each other?
+
+Respond with EXACTLY this JSON (no markdown, no explanation):
+{"scores": {"convergence": N, "depth": N, "feasibility": N, "dynamics": N}, "commentary": "2-5 sentences", "bestIdea": "single best idea", "weakness": "single biggest weakness"}`;
+}
+
+const SYNTHESIZER_PROMPT_PREFIX = `You are synthesizing three expert evaluations of a design debate. Produce a final report merging their assessments. Where experts disagree, identify the disagreement rather than averaging it away.
+
+Respond with EXACTLY this JSON (no markdown, no explanation):
+{"keyConclusions": ["...", "...", "..."], "unresolvedDisagreements": ["..."], "bestIdeas": ["...", "..."], "weaknesses": ["...", "..."], "recommendation": "1-2 sentences"}
+
+`;
+
+async function callExpert(spec: BackendSpec, persona: ExpertPersona, topic: string, transcript: string): Promise<ExpertScore> {
+  const r = await call(spec.backend, {
+    agentKey: "A",
+    model: spec.model,
+    sessionId: crypto.randomUUID(),
+    prompt: expertPrompt(persona, topic, transcript),
+  });
+  const parsed = JSON.parse(r.text.replace(/^```json\s*|```\s*$/g, "").trim());
+  const s = parsed.scores ?? {};
+  const clamp = (n: unknown) => Math.min(10, Math.max(1, typeof n === "number" ? Math.round(n) : 5));
+  return {
+    expert: persona.name,
+    scores: { convergence: clamp(s.convergence), depth: clamp(s.depth), feasibility: clamp(s.feasibility), dynamics: clamp(s.dynamics) },
+    commentary: String(parsed.commentary ?? ""),
+    bestIdea: String(parsed.bestIdea ?? ""),
+    weakness: String(parsed.weakness ?? ""),
+  };
+}
+
+async function runExpertPanel(
+  spec: BackendSpec,
+  topic: string,
+  transcript: string,
+  metadata: Omit<PanelReport["metadata"], "totalPanelSeconds">,
+): Promise<PanelReport> {
+  const panelStart = Date.now();
+
+  // Run all 3 experts in parallel
+  const expertScores = await Promise.all(
+    EXPERT_PERSONAS.map((p) => callExpert(spec, p, topic, transcript)),
+  );
+
+  // Synthesizer
+  const synthPrompt = SYNTHESIZER_PROMPT_PREFIX + `Topic: ${topic.slice(0, 500)}\n\nExpert evaluations:\n` + JSON.stringify(expertScores, null, 2);
+  const synthR = await call(spec.backend, {
+    agentKey: "A",
+    model: spec.model,
+    sessionId: crypto.randomUUID(),
+    prompt: synthPrompt,
+  });
+  const synthesis = JSON.parse(synthR.text.replace(/^```json\s*|```\s*$/g, "").trim());
+
+  // Compute overall score
+  const allScores = expertScores.flatMap((e) => Object.values(e.scores));
+  const overallScore = Math.round((allScores.reduce((a, b) => a + b, 0) / allScores.length) * 10) / 10;
+
+  const totalPanelSeconds = Math.round((Date.now() - panelStart) / 1000);
+
+  return {
+    overallScore,
+    expertScores,
+    synthesis: {
+      keyConclusions: synthesis.keyConclusions ?? [],
+      unresolvedDisagreements: synthesis.unresolvedDisagreements ?? [],
+      bestIdeas: synthesis.bestIdeas ?? [],
+      weaknesses: synthesis.weaknesses ?? [],
+      recommendation: String(synthesis.recommendation ?? ""),
+    },
+    metadata: { ...metadata, totalPanelSeconds },
+  };
+}
+
+function logPanelReport(report: PanelReport) {
+  log("---");
+  log("");
+  log("## Expert Panel");
+  log("");
+  log(`**Overall Score: ${report.overallScore}/10**`);
+  log("");
+  log("| Expert | Convergence | Depth | Feasibility | Dynamics |");
+  log("|--------|:-----------:|:-----:|:-----------:|:--------:|");
+  for (const e of report.expertScores) {
+    log(`| ${e.expert} | ${e.scores.convergence} | ${e.scores.depth} | ${e.scores.feasibility} | ${e.scores.dynamics} |`);
+  }
+  log("");
+  for (const e of report.expertScores) {
+    log(`**${e.expert}:** ${e.commentary}`);
+    log("");
+  }
+  if (report.synthesis.keyConclusions.length > 0) {
+    log("**Key Conclusions:**");
+    for (const c of report.synthesis.keyConclusions) log(`- ${c}`);
+    log("");
+  }
+  if (report.synthesis.unresolvedDisagreements.length > 0) {
+    log("**Unresolved Disagreements:**");
+    for (const d of report.synthesis.unresolvedDisagreements) log(`- ${d}`);
+    log("");
+  }
+  if (report.synthesis.recommendation) {
+    log(`**Recommendation:** ${report.synthesis.recommendation}`);
+    log("");
+  }
+  log(`*Panel evaluation took ${report.metadata.totalPanelSeconds}s.*`);
+  log("");
+}
+
+function parsePanelConfig(): BackendSpec | null {
+  const raw = process.env.PANEL;
+  if (!raw) return null;
+  return parseBackend(raw);
 }
 
 // === Arg parsing ===
@@ -441,14 +695,17 @@ async function main() {
   const args = parseArgs();
   const specA = parseBackend(process.env.MODEL_A ?? "claude:claude-opus-4-6");
   const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
-  if (specA.backend === "codex") codexReasoningEffortForModel(specA.model);
-  if (specB.backend === "codex") codexReasoningEffortForModel(specB.model);
+  if (specA.backend === "codex") codexReasoningEffort();
+  if (specB.backend === "codex") codexReasoningEffort();
   const resumeLog = process.env.RESUME_FROM_LOG;
   const startRoundEnv = parsePositiveInt(process.env.START_ROUND, 1, "START_ROUND");
   const seedPromptFromFile = process.env.SEED_PROMPT_A_FILE
     ? readFileSync(process.env.SEED_PROMPT_A_FILE, "utf8").trim()
     : "";
   const seedPromptFromEnv = (process.env.SEED_PROMPT_A ?? "").trim();
+
+  const moderatorConfig = parseModeratorConfig();
+  const panelSpec = parsePanelConfig();
 
   const SYSTEM_A =
     "You are a software architect in a debate. Propose and refine implementation plans. Be concise. Output bulleted decisions, tradeoffs, and architectural patterns. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.";
@@ -518,6 +775,9 @@ async function main() {
   log(`| **Rounds** | ${args.rounds} |`);
   log(`| **Timeout** | ${SHELLEY_TIMEOUT_MS}ms |`);
   log(`| **Debug stderr** | \`${stderrFile}\` |`);
+  if (moderatorConfig.enabled) log(`| **Moderator** | \`${moderatorConfig.spec.model}\` · level ${moderatorConfig.level} |`);
+  if (panelSpec) log(`| **Panel** | \`${panelSpec.model}\` |`);
+  if (DIAL_EXPONENT !== 1) log(`| **Dial exponent** | ${DIAL_EXPONENT} |`);
   if (startRound > 1) log(`| **Start round** | ${startRound} |`);
   if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
   log("");
@@ -542,15 +802,28 @@ async function main() {
 
   // --- Rounds ---
   const turns: TurnRecord[] = [];
+  let transcriptBody = "";
   for (let r = startRound; r <= args.rounds; r++) {
-    const dial = getDial(r - 1, args.rounds);
-    const prefix = dialPrefix(dial);
+    const defaultDial = getDial(r - 1, args.rounds);
     const firstTurnInRun = r === startRound;
 
     log("---");
     log("");
-    log(`## Round ${r}/${args.rounds} — ${DIAL_LABELS[dial]} (${dial}/5)`);
+    log(`## Round ${r}/${args.rounds} — ${DIAL_LABELS[defaultDial]} (${defaultDial}/5)`);
     log("");
+
+    // Moderator guidance for Agent A (skip round 1 — no prior text to evaluate)
+    let dialA = defaultDial;
+    let injectionA = "";
+    if (moderatorConfig.enabled && r > startRound && promptForA) {
+      const g = await callModerator(moderatorConfig, args.topic, r, args.rounds, defaultDial, "A", promptForA);
+      if (g.dialOverride !== null) dialA = g.dialOverride;
+      injectionA = g.injection;
+      if (injectionA || g.dialOverride !== null) {
+        log(`<!-- moderator r=${r} nextAgent=A dial=${defaultDial}->${dialA} injection="${injectionA}" -->`);
+      }
+    }
+    const prefixA = dialPrefix(dialA) + (injectionA ? `[Moderator] ${injectionA}\n\n` : "");
 
     // Agent A
     let rA: TurnResult;
@@ -560,9 +833,9 @@ async function main() {
         model: specA.model,
         ...(firstTurnInRun
           ? (startRound === 1
-            ? { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefix}Plan this: ${args.topic}${context}` }
-            : { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefix}${promptForA}` })
-          : { resume: sessionA, prompt: `${prefix}${promptForA}` }),
+            ? { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefixA}Plan this: ${args.topic}${context}` }
+            : { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefixA}${promptForA}` })
+          : { resume: sessionA, prompt: `${prefixA}${promptForA}` }),
       });
     } catch (e) {
       log(`> **ERROR:** Agent A failed in round ${r}: ${e}`);
@@ -578,6 +851,20 @@ async function main() {
     log(rA.text);
     log("");
     turns.push({ round: r, agent: "A", model: specA.model, seconds: rA.seconds });
+    transcriptBody += `## Round ${r} — Agent A\n\n${rA.text}\n\n`;
+
+    // Moderator guidance for Agent B
+    let dialB = defaultDial;
+    let injectionB = "";
+    if (moderatorConfig.enabled) {
+      const g = await callModerator(moderatorConfig, args.topic, r, args.rounds, defaultDial, "B", rA.text);
+      if (g.dialOverride !== null) dialB = g.dialOverride;
+      injectionB = g.injection;
+      if (injectionB || g.dialOverride !== null) {
+        log(`<!-- moderator r=${r} nextAgent=B dial=${defaultDial}->${dialB} injection="${injectionB}" -->`);
+      }
+    }
+    const prefixB = dialPrefix(dialB) + (injectionB ? `[Moderator] ${injectionB}\n\n` : "");
 
     // Agent B
     let rB: TurnResult;
@@ -590,10 +877,10 @@ async function main() {
             ? {
               systemPrompt: SYSTEM_B,
               sessionId: sessionB,
-              prompt: `${prefix}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
+              prompt: `${prefixB}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
             }
-            : { systemPrompt: SYSTEM_B, sessionId: sessionB, prompt: `${prefix}${rA.text}` })
-          : { resume: sessionB, prompt: `${prefix}${rA.text}` }),
+            : { systemPrompt: SYSTEM_B, sessionId: sessionB, prompt: `${prefixB}${rA.text}` })
+          : { resume: sessionB, prompt: `${prefixB}${rA.text}` }),
       });
     } catch (e) {
       log(`> **ERROR:** Agent B failed in round ${r}: ${e}`);
@@ -609,18 +896,44 @@ async function main() {
     log(rB.text);
     log("");
     turns.push({ round: r, agent: "B", model: specB.model, seconds: rB.seconds });
+    transcriptBody += `## Round ${r} — Agent B\n\n${rB.text}\n\n`;
 
     promptForA = rB.text;
   }
 
   // --- Footer ---
   const endTime = new Date().toLocaleString("sv-SE").slice(0, 16);
+  const totalDebateSeconds = turns.reduce((s, t) => s + t.seconds, 0);
   log("---");
   log("");
   log(`*Debate finished ${endTime}. ${args.rounds} rounds.*`);
   log("");
   writeFooter(turns);
   log("");
+
+  // --- Expert Panel ---
+  if (panelSpec) {
+    process.stdout.write("\nRunning expert panel...\n");
+    try {
+      const report = await runExpertPanel(panelSpec, args.topic, transcriptBody, {
+        topic: args.topic.slice(0, 200),
+        rounds: args.rounds,
+        models: { A: specA.model, B: specB.model },
+        moderatorEnabled: moderatorConfig.enabled,
+        totalDebateSeconds,
+      });
+      logPanelReport(report);
+
+      // Write JSON output
+      const panelOutputPath = process.env.PANEL_OUTPUT ?? `${logFile.replace(/\.md$/, "")}_panel.json`;
+      writeFileSync(panelOutputPath, JSON.stringify(report, null, 2) + "\n");
+      process.stdout.write(`Panel report saved to ${panelOutputPath}\n`);
+    } catch (e) {
+      log(`> **PANEL ERROR:** ${e}`);
+      process.stderr.write(`Panel failed: ${e}\n`);
+    }
+  }
+
   process.stdout.write(`\nLog saved to ${logFile}\n`);
 }
 

@@ -78,6 +78,11 @@ Format: `backend:model` where backend is `claude` or `codex`. A bare model name 
 | `START_ROUND` | `1` | Round to start at (requires seed prompt) |
 | `SEED_PROMPT_A` | — | Text seed for Agent A when resuming |
 | `SEED_PROMPT_A_FILE` | — | File containing seed for Agent A |
+| `MODERATOR` | — | Enable moderator, e.g. `claude:claude-haiku-4-5` |
+| `MODERATOR_LEVEL` | `2` | Moderator aggressiveness: `1\|2\|3` |
+| `DIAL_EXPONENT` | `1` | Dial curve shape: <1 cools early, >1 stays wild longer |
+| `PANEL` | — | Enable expert panel, e.g. `claude:claude-opus-4-6` |
+| `PANEL_OUTPUT` | `{log}_panel.json` | Override panel JSON output path |
 
 ## Resuming an Interrupted Debate
 
@@ -89,9 +94,62 @@ RESUME_FROM_LOG=debates/my-topic/20260325_140000.md bun shelley.ts -f debates/my
 
 Shelley parses the log to find the last completed round and Agent B's final output, then continues from the next round. The transcript is written to a *new* file (does not append to the old one).
 
+## Dynamic Moderator
+
+When `MODERATOR` is set, a lightweight agent runs between every turn, observing the latest exchange and producing structured guidance for the next agent. The moderator can:
+
+- Nudge agents back on topic if they're drifting
+- Push for more creativity if the debate converges too early
+- Urge convergence when rounds are running out
+- Override the dial level for the next turn
+
+The moderator **augments** the fixed dial schedule — it doesn't replace it. Guidance is logged as HTML comments in the transcript (visible in source, hidden when rendered).
+
+```bash
+# Enable moderator with haiku, aggressiveness 2
+MODERATOR=claude:claude-haiku-4-5 bun shelley.ts -f debates/my-topic/topic.md 5
+
+# More aggressive moderator
+MODERATOR=claude:claude-haiku-4-5 MODERATOR_LEVEL=3 bun shelley.ts -f debates/my-topic/topic.md 5
+```
+
+## Expert Panel
+
+When `PANEL` is set, three expert agents independently evaluate the debate after it concludes, then a synthesizer merges their assessments:
+
+- **Pragmatist** — Is the plan actionable and implementable?
+- **Devil's Advocate** — What was missed? What was conceded too easily?
+- **Architect** — Are the design decisions technically sound?
+
+Each expert scores four dimensions (1-10): convergence quality, intellectual depth, practical feasibility, debate dynamics. The synthesizer produces key conclusions, unresolved disagreements, and a recommendation.
+
+Output: `{timestamp}_panel.json` (machine-readable) + `## Expert Panel` section appended to the transcript.
+
+```bash
+# Run debate with panel evaluation
+PANEL=claude:claude-opus-4-6 bun shelley.ts -f debates/my-topic/topic.md 5
+
+# Full setup: moderator (haiku) + panel (opus)
+MODERATOR=claude:claude-haiku-4-5 PANEL=claude:claude-opus-4-6 bun shelley.ts -f debates/my-topic/topic.md 5
+```
+
+## Parameter Optimization
+
+`optimize.py` uses Optuna to search for optimal debate parameters, using panel scores as the reward signal.
+
+```bash
+# Run 20 trials on a topic
+uv run optimize.py --topic debates/stock-trades/topic.md --trials 20
+
+# Average over 2 reps per config to handle non-determinism
+uv run optimize.py --topic debates/stock-trades/topic.md --trials 20 --reps 2
+```
+
+Parameters searched: dial exponent, round count, moderator level/model, agent A/B models. Study persists to `optuna_shelley.db` (SQLite) and is resumable across runs.
+
 ## How the Dial Works
 
-The dial maps each round to a creativity level via linear interpolation from 5 down to 1:
+The dial maps each round to a creativity level from 5 down to 1. By default the interpolation is linear, but `DIAL_EXPONENT` changes the curve shape (`5 - 4 * t^exponent`):
 
 | Rounds | Dial sequence |
 |--------|--------------|
