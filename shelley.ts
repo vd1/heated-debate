@@ -122,11 +122,6 @@ function codexReasoningEffortForModel(model: string): string {
       `Invalid CODEX_REASONING_EFFORT=${JSON.stringify(raw)}. Expected one of: minimal, low, medium, high, xhigh.`,
     );
   }
-  if (requested === "xhigh" && !model.toLowerCase().includes("codex")) {
-    throw new Error(
-      `Invalid combo: CODEX_REASONING_EFFORT=xhigh is not supported for model "${model}". Use minimal|low|medium|high or a codex model.`,
-    );
-  }
   return requested;
 }
 
@@ -223,7 +218,7 @@ interface CodexHistoryTurn {
 
 const codexHistory: Record<AgentKey, CodexHistoryTurn[]> = { A: [], B: [] };
 const CODEX_HISTORY_WINDOW = Math.max(1, parseInt(process.env.CODEX_HISTORY_WINDOW ?? "6", 10) || 6);
-const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5.3-codex";
+const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5.4";
 
 function composeCodexPrompt(opts: CallOpts): string {
   const history = codexHistory[opts.agentKey];
@@ -444,7 +439,7 @@ function writeFooter(turns: TurnRecord[]) {
 
 async function main() {
   const args = parseArgs();
-  const specA = parseBackend(process.env.MODEL_A ?? `codex:${DEFAULT_CODEX_MODEL}`);
+  const specA = parseBackend(process.env.MODEL_A ?? "claude:claude-opus-4-6");
   const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
   if (specA.backend === "codex") codexReasoningEffortForModel(specA.model);
   if (specB.backend === "codex") codexReasoningEffortForModel(specB.model);
