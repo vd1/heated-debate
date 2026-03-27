@@ -1,0 +1,2803 @@
+# Shelley stderr log
+# transcript: debates/multi-agent-tutoring/20260326_151915.md
+# started: 2026-03-26T14:19:15.287Z
+
+[2026-03-26T14:24:02.101Z] codex:gpt-5.4
+OpenAI Codex v0.116.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019d2a87-2caf-7db1-8e64-b083a70d7f71
+--------
+user
+System role:
+You are a critical code reviewer in a debate. Challenge proposals, find flaws, and suggest improvements. Be concise. Output feedback on the architectural approach and risks. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: ## Multi-Agent Tutoring System for Exam Prep
+
+A student is preparing for a high-school history exam on the Cold War (1947-1991).
+The lecture covered: origins (Truman Doctrine, Marshall Plan), key crises (Berlin,
+Cuba, Korea, Vietnam), detente, arms race, and collapse of the USSR. The exam will
+test both factual recall (dates, names, treaties) and analytical reasoning (causes,
+consequences, compare/contrast essay questions).
+
+Design a multi-agent system that helps the student study effectively.
+
+### Proposed agent roster (debate whether this is right)
+- **Narrator** -- presents structured summaries of each topic segment
+- **Quizmaster** -- asks narrow recall questions (dates, names, events)
+- **Socratic challenger** -- asks open-ended analytical questions ("Why did detente fail?")
+- **Fact-checker** -- validates student answers and corrects misconceptions
+- **Context agent** -- provides broader context when the student is stuck ("The Marshall Plan connects to...")
+- **Progress tracker** -- monitors coverage gaps and steers the session
+
+### Student profile and session constraints
+The system should ask the student upfront:
+- **Depth preference:** minimal effort (just pass) -> thorough understanding -> board-sweeping mastery
+- **Time budget:** exam is tomorrow vs. next week vs. next month
+- **Session structure:** single marathon vs. spaced sessions over days
+
+These inputs should drive agent behavior: a "just pass tomorrow" student gets mostly Quizmaster + Fact-checker drilling key facts; a "deep mastery over 2 weeks" student gets more Socratic challenger + competing interpretations + spaced repetition across sessions.
+
+### Key design questions for debate
+- Is this the right set of agents, or should some be merged/split? Is six too many?
+- Should agents run in a fixed sequence (narrate -> quiz -> discuss -> review) or should the student's performance dynamically route to the right agent?
+- How should the system balance factual drill vs. deeper analytical questioning? What ratio, and who decides?
+- When the student gives a wrong answer, which agent responds -- the fact-checker, the context agent, or the Socratic challenger? Does it depend on the type of error?
+- How does the system decide the student is "ready" for the exam?
+- Should there be a simulated exam agent that runs a mock test at the end?
+- Should the system use gamification or prediction markets? E.g., the student bets confidence points on their answers, earning/losing points -- and the system uses those confidence signals to identify weak spots. Does this help motivation, or is it a distraction for exam prep?
+- Could agents themselves use an internal prediction market to decide which topic to cover next (each agent "bids" on what it thinks the student needs most)?
+- Should some agents deliberately present competing interpretations of the same events? E.g., one agent frames the Cold War as primarily an ideological struggle, another as a geopolitical power contest, another as an economic competition. This exposes the student to historiographic debate and builds critical thinking -- but does it confuse a student who just needs to pass an exam? How do you balance "multiple perspectives" with "there's a right answer on the test"?
+
+Here is the first proposal:
+
+# Multi-Agent Tutoring System: Architectural Plan
+
+## Radical premise challenge
+
+The proposal has **six agents solving a problem that needs three agents and an orchestrator.** Six peer agents is a coordination nightmare — the heated-debate engine already shows that even two agents need careful turn management. More importantly, tutoring isn't a symmetric debate; it's **asymmetric service delivery to a human in the loop.** The student breaks the existing A↔B symmetry entirely.
+
+---
+
+## Agent Roster: Merge to Four
+
+**Kill the six-agent roster. Merge to three teaching agents + one conductor.**
+
+- **Lecturer** (Narrator + Context agent merged)
+  - Presents structured material, provides broader connections when student is stuck
+  - Rationale: Narrating and providing context are the same cognitive operation — delivering information. Splitting them creates an artificial handoff where the Lecturer mid-explanation would need to "call" the Context agent. Absurd.
+
+- **Driller** (Quizmaster + Fact-checker merged)
+  - Asks recall questions, evaluates answers, corrects with authoritative facts
+  - Rationale: The agent asking "When was the Berlin Blockade?" is the natural agent to say "No, it was 1948, not 1946." Splitting question-asking from answer-checking creates a pointless relay. The Driller owns the recall loop end-to-end.
+
+- **Socratic** (unchanged, but scoped)
+  - Asks analytical/causal/comparative questions, pushes deeper with follow-ups
+  - Never gives answers directly — always probes
+  - Only deployed when depth preference ≥ "thorough"
+
+- **Conductor** (Progress tracker, repurposed as the Moderator)
+  - **Not a peer agent** — this is the orchestrator/moderator
+  - Tracks coverage map, routes to the right teaching agent, decides session pacing
+  - Maps directly to the existing moderator architecture: observes, injects guidance, overrides routing
+
+**Why this is right:**
+- Three teaching agents map to three pedagogical modes: inform → test → analyze
+- Conductor maps cleanly to the existing moderator primitive
+- Student input replaces Agent B — the student is the "second participant" in each exchange
+- Total LLM calls per turn: 1 conductor decision + 1 teaching agent response = 2 (vs. 6 if every agent deliberates)
+
+---
+
+## The Student Is Not an Agent — The Student Is the Environment
+
+**Critical architectural decision: the student is not modeled as an LLM agent.** The student provides real input via stdin. This means:
+
+- The orchestration loop becomes: **Conductor selects agent → Agent generates prompt/content → Student responds → Conductor evaluates and routes next**
+- The heated-debate `A→B→A→B` loop becomes `Conductor→Agent[i]→Student→Conductor→Agent[j]→Student→...`
+- Agent selection is **dynamic per turn**, not fixed alternation
+- The Conductor sees: student's answer + which agent asked + correctness signal + coverage state
+
+---
+
+## Dynamic Routing Over Fixed Sequences
+
+**Fixed sequences are wrong for tutoring.** A student who aces recall questions shouldn't sit through 10 more Driller rounds before getting Socratic challenges. A student who can't place the Korean War shouldn't get pushed into essay analysis.
+
+**Routing logic (Conductor decides):**
+
+- **Entry:** Always start with Lecturer on the first uncovered topic
+- **After Lecturer segment:** Route to Driller (test comprehension of what was just presented)
+- **After correct Driller answer:** Either advance to next topic (Lecturer) or deepen (Socratic) — based on depth preference
+- **After wrong Driller answer:**
+  - If factual error (wrong date, wrong name): Driller corrects and re-asks
+  - If conceptual confusion (misattributes cause, conflates events): Route to Lecturer for re-explanation, then Socratic to probe the gap
+  - If student says "I don't know": Route to Lecturer with a hint, then back to Driller
+- **After Socratic exchange:** Route back to Driller for a different topic (prevents fatigue on one thread)
+
+**This is essentially a finite state machine with the Conductor as the transition function.**
+
+States: `{Lecture, Drill, Socratic, Review, MockExam, Done}`
+Transitions: driven by student performance + coverage + time budget
+
+---
+
+## The Depth Dial: Repurposing the Creativity Dial
+
+The creativity dial (5→1) maps beautifully to a **pedagogical depth dial**:
+
+| Dial | Creativity meaning | Tutoring meaning | Agent mix |
+|------|-------------------|-------------------|-----------|
+| 5 | Wild exploration | Deep historiographic debate, competing interpretations | Heavy Socratic, multi-perspective |
+| 4 | Creative alternatives | Analytical questions, cause-effect chains | Socratic + Driller |
+| 3 | Balanced | Mix of recall and analysis | Even Driller/Socratic split |
+| 2 | Focused refinement | Targeted drilling on weak areas | Heavy Driller, some Lecturer |
+| 1 | Precise convergence | Pure exam simulation, rapid recall | Driller only, mock exam mode |
+
+**But the dial should NOT auto-decay from 5→1 over rounds.** Instead:
+- **Student's depth preference sets the ceiling** ("just pass" = max dial 2; "mastery" = dial 5)
+- **Time remaining sets the floor** (exam tomorrow = decay faster toward 1; exam next month = stay at ceiling longer)
+- **Conductor dynamically adjusts** within the band based on performance
+
+---
+
+## Wrong-Answer Routing: The Interesting Decision
+
+**Who responds to a wrong answer depends on the failure mode, not a fixed rule:**
+
+| Error type | Signal | Responding agent | Rationale |
+|------------|--------|-----------------|-----------|
+| Wrong fact (date, name, treaty) | Student says "1952" for Korean War start | Driller | Quick correction + re-ask. Don't over-philosophize a factual miss. |
+| Conceptual confusion | Student says "Détente failed because of Vietnam" | Socratic | Probe: "What was the US position on Vietnam during détente? Were they related?" Let the student find the gap. |
+| Total blank / "I don't know" | No answer or vague response | Lecturer | Re-present the material with different framing or mnemonic. No shame spiral. |
+| Partially correct but shallow | Student gives a correct but surface-level essay answer | Socratic | Push deeper: "You said X caused Y — but what made X possible? What if X hadn't happened?" |
+| Confident but wrong | Student bets high confidence on wrong answer | **Lecturer then Socratic** | Two-step: correct the misconception authoritatively, then probe why they were confident (reveals systematic misunderstanding) |
+
+**The Conductor classifies error type using a lightweight LLM call** (Haiku-class model for speed). This classification drives routing.
+
+---
+
+## Competing Interpretations: Gated by Depth
+
+**This is the most provocative design question, and the answer is: yes, but only for mastery-track students, and never as free-floating confusion.**
+
+- **Depth ≤ 2 ("just pass"):** No competing interpretations. Present the textbook consensus. The exam has expected answers; teach those.
+- **Depth 3 ("thorough"):** Mention that historians disagree, but anchor to the textbook framing. "Some historians emphasize ideology, others power politics — your textbook focuses on ideology, so lead with that on the exam."
+- **Depth ≥ 4 ("mastery"):** Actively deploy competing frames. Have the Socratic agent present Event X through two lenses and ask the student to argue both sides. This is the best essay prep possible — but only if the student has the factual foundation first.
+
+**Implementation: not separate "perspective agents" — the Socratic agent switches frames via prompt engineering.** Adding three more agents (ideological, geopolitical, economic) is agent proliferation for zero benefit. One Socratic agent with parameterized framing instructions achieves the same thing.
+
+---
+
+## Gamification and Confidence Markets
+
+**Two separate proposals here. One is excellent, one is a trap.**
+
+### Student confidence betting — YES, build this
+- After each Driller question, student rates confidence 1-5 before answering
+- **Overconfidence on wrong answers** = highest-priority weak spots (student doesn't know what they don't know)
+- **Underconfidence on correct answers** = reassurance opportunities, build exam confidence
+- **Well-calibrated** = student is ready
+- This is backed by metacognition research (calibration training measurably improves exam performance)
+- Implementation: simple numeric input, tracked in Conductor's state, used for routing priority
+
+### Internal agent prediction market — NO, this is over-engineering
+- Having agents "bid" on what to cover next sounds elegant but is just a weighted voting mechanism with extra LLM calls
+- The Conductor already has all the information (coverage map, accuracy per topic, confidence calibration, time remaining) — it can make the routing decision directly
+- An internal market adds 3 extra LLM calls per turn for a decision that a single Conductor call handles
+- **Kill this. It's intellectually fun but architecturally wasteful for a tutoring system.**
+- *Where it WOULD make sense:* a research-planning system where agents have genuinely different information and expertise. In tutoring, all agents see the same student state.
+
+---
+
+## Readiness Assessment: When Is the Student Done?
+
+**Four-signal readiness model:**
+
+- **Coverage:** ≥ 90% of syllabus topics have been Driller-tested at least once
+- **Accuracy:** Rolling accuracy on Driller questions ≥ 80% (configurable by depth preference)
+- **Depth:** For mastery-track: ≥ 3 Socratic exchanges with substantive analytical answers
+- **Calibration:** Student's confidence ratings correlate with actual accuracy (Brier score < threshold)
+
+**"Ready" is not binary — it's a heat map.** The Conductor maintains a per-topic score and shows the student:
+- Green: solid on this topic
+- Yellow: knows basics, gaps in detail
+- Red: major gaps
+
+**The student decides when to stop.** The system advises but doesn't gatekeep.
+
+---
+
+## Mock Exam: Yes, as the Capstone
+
+- **Simulated exam agent** = the Driller in "exam mode" (dial 1, no hints, timed)
+- Mix of recall questions (60%) and one essay prompt (40%) — matching real exam format
+- Graded by the Conductor, with a breakdown of what to review in remaining time
+- **If the student has time:** mock exam → review weak spots → second mock exam
+- Maps to the existing "expert panel" primitive: the mock exam IS the panel evaluation, adapted for pedagogy
+
+---
+
+## Mapping to heated-debate Primitives
+
+| Tutoring concept | heated-debate primitive | Modification needed |
+|-----------------|------------------------|-------------------|
+| Conductor | Moderator | Heavier routing logic; maintains coverage state; classifies errors |
+| Lecturer / Driller / Socratic | Agent A/B | Extend from 2 fixed agents to 3 selectable agents; system prompt swapped per turn |
+| Student | (new) stdin input | Replace one agent's LLM call with human input; async wait |
+| Depth preference | Creativity dial | Reinterpret levels; student-set ceiling; dynamic floor |
+| Coverage map | (new) | JSON state object maintained by Conductor across turns |
+| Confidence betting | (new) | Numeric input captured alongside student answer |
+| Mock exam | Expert panel | Repurpose as assessment + scoring |
+| Session structure | Resume/checkpoint | Use existing `RESUME_FROM_LOG` for spaced sessions over days |
+
+---
+
+## Key Tradeoffs Acknowledged
+
+- **Merging agents loses specialization** → Mitigated by parameterized system prompts within each merged agent
+- **Dynamic routing adds Conductor overhead** → One Haiku-class call per turn (~200ms); worth it for adaptive learning
+- **No competing interpretations for low-depth** → Students who "just want to pass" miss critical thinking; acceptable given their stated goal
+- **Student in the loop breaks automated orchestration** → Can't auto-run 5 rounds overnight; sessions are necessarily interactive
+- **Confidence betting adds friction** → Make it optional per question; default to "medium" if student skips
+
+---
+
+## Summary of Decisions
+
+- **3 teaching agents + 1 conductor** (not 6 peers)
+- **Dynamic routing** via Conductor FSM (not fixed sequence)
+- **Depth dial** repurposed from creativity dial, student-set ceiling
+- **Error-type-dependent routing** for wrong answers
+- **Competing interpretations gated** by depth preference ≥ 4
+- **Student confidence betting** — yes
+- **Internal agent prediction market** — no
+- **Mock exam as capstone** — yes, repurposing expert panel
+- **Readiness = coverage × accuracy × calibration heat map**, student-decided termination
+
+Respond as the assistant only. Do not include tool logs.
+mcp: arxiv starting
+mcp: mail starting
+mcp: mail ready
+mcp: arxiv ready
+mcp startup: ready: mail, arxiv
+codex
+**Findings**
+
+1. The proposal still designs around agent taxonomy instead of learning outcomes. `Lecturer / Driller / Socratic / Conductor` is cleaner than six peers, but it is still an internal-org chart, not a student model. The real architecture should center on a competency graph: factual recall, causal chains, compare/contrast essays, chronology, and misconception clusters. Agents should be an implementation detail, not the top-level design.
+
+2. The `finite state machine + error classifier` is too brittle for tutoring. Student errors are rarely cleanly “fact vs concept vs blank.” A wrong Korea answer might reflect chronology confusion, vocabulary mismatch, or essay-level misunderstanding. Routing off a single classifier will mis-handle edge cases and create bad pedagogical jumps. You want probabilistic mastery estimates, not crisp state transitions.
+
+3. “Socratic never gives answers directly” is dogma, not pedagogy. For a student with the exam tomorrow, this is actively harmful. Under time pressure, the system needs a mode that collapses uncertainty fast: tell the correct answer, give the minimal explanation, then test transfer. Pure probing is appropriate only when mastery is the goal and cognitive load is low.
+
+4. The plan is topic-driven, but the exam is skill-driven. Marching through “origins, crises, détente, arms race, collapse” mirrors the lecture, not the test. The stronger structure is by exam task: timeline recall, actor/event matching, causation chains, compare/contrast, and essay argument construction. Otherwise the student may know the story and still underperform on exam-form questions.
+
+5. Confidence betting is plausible, but mandatory per-question confidence input will create friction and false precision. High-school students are bad at calibration, especially when stressed. Use confidence sparingly at checkpoints or only on uncertain items. Otherwise the system starts optimizing a measurement artifact instead of studying.
+
+6. Readiness metrics are underspecified and easy to game. `90% coverage + 80% accuracy + Brier threshold` can be satisfied with shallow, recent, narrow success. Readiness should require transfer: answer the same concept in multiple formats and after delay. If the student can name the Marshall Plan but cannot use it in a causation essay, they are not ready.
+
+7. Mock exam as a capstone is too late. The mock should appear early and repeatedly in miniature. The system needs diagnostic exam fragments from the start, or it cannot calibrate to actual exam demand.
+
+**Architectural Risk**
+
+The biggest hidden risk is that you are building a conversation router, not a tutor. The system may become impressive at handing off between personas while remaining mediocre at deciding what the student should do next. That is the classic multi-agent failure mode: theatrical specialization, weak policy.
+
+**Radical Alternatives**
+
+- Collapse to one visible tutor plus two hidden subsystems: a mastery estimator and a curriculum planner. The student experiences coherence; the system keeps adaptivity.
+- Flip the architecture: make the primary agent an `Exam Simulator`, not a lecturer. Everything else exists to repair failures exposed by realistic exam tasks.
+- Replace topic agents with failure-mode agents: `Chronology fixer`, `Causation coach`, `Essay adversary`, `Misconception detector`. That maps much better to exam performance.
+- For mastery-track students, use structured perspective-switching inside essay practice, not a separate Socratic lane. Competing interpretations belong in argument training, not as free-standing discussion.
+
+**Bottom Line**
+
+Merging six into four is directionally right, but still too agent-centric. The stronger design is: one coherent tutor interface, hidden assessment/planning machinery, early and repeated exam-style diagnostics, and routing based on estimated mastery of skills rather than topic-by-topic conversational state.
+tokens used
+11 290
+
+[2026-03-26T14:26:46.046Z] codex:gpt-5.4
+OpenAI Codex v0.116.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019d2a89-bad8-71b1-be7c-2b0abd7bad6e
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: ## Multi-Agent Tutoring System for Exam Prep
+
+A student is preparing for a high-school history exam on the Cold War (1947-1991).
+The lecture covered: origins (Truman Doctrine, Marshall Plan), key crises (Berlin,
+Cuba, Korea, Vietnam), detente, arms race, and collapse of the USSR. The exam will
+test both factual recall (dates, names, treaties) and analytical reasoning (causes,
+consequences, compare/contrast essay questions).
+
+Design a multi-agent system that helps the student study effectively.
+
+### Proposed agent roster (debate whether this is right)
+- **Narrator** -- presents structured summaries of each topic segment
+- **Quizmaster** -- asks narrow recall questions (dates, names, events)
+- **Socratic challenger** -- asks open-ended analytical questions ("Why did detente fail?")
+- **Fact-checker** -- validates student answers and corrects misconceptions
+- **Context agent** -- provides broader context when the student is stuck ("The Marshall Plan connects to...")
+- **Progress tracker** -- monitors coverage gaps and steers the session
+
+### Student profile and session constraints
+The system should ask the student upfront:
+- **Depth preference:** minimal effort (just pass) -> thorough understanding -> board-sweeping mastery
+- **Time budget:** exam is tomorrow vs. next week vs. next month
+- **Session structure:** single marathon vs. spaced sessions over days
+
+These inputs should drive agent behavior: a "just pass tomorrow" student gets mostly Quizmaster + Fact-checker drilling key facts; a "deep mastery over 2 weeks" student gets more Socratic challenger + competing interpretations + spaced repetition across sessions.
+
+### Key design questions for debate
+- Is this the right set of agents, or should some be merged/split? Is six too many?
+- Should agents run in a fixed sequence (narrate -> quiz -> discuss -> review) or should the student's performance dynamically route to the right agent?
+- How should the system balance factual drill vs. deeper analytical questioning? What ratio, and who decides?
+- When the student gives a wrong answer, which agent responds -- the fact-checker, the context agent, or the Socratic challenger? Does it depend on the type of error?
+- How does the system decide the student is "ready" for the exam?
+- Should there be a simulated exam agent that runs a mock test at the end?
+- Should the system use gamification or prediction markets? E.g., the student bets confidence points on their answers, earning/losing points -- and the system uses those confidence signals to identify weak spots. Does this help motivation, or is it a distraction for exam prep?
+- Could agents themselves use an internal prediction market to decide which topic to cover next (each agent "bids" on what it thinks the student needs most)?
+- Should some agents deliberately present competing interpretations of the same events? E.g., one agent frames the Cold War as primarily an ideological struggle, another as a geopolitical power contest, another as an economic competition. This exposes the student to historiographic debate and builds critical thinking -- but does it confuse a student who just needs to pass an exam? How do you balance "multiple perspectives" with "there's a right answer on the test"?
+
+Here is the first proposal:
+
+# Multi-Agent Tutoring System: Architectural Plan
+
+## Radical premise challenge
+
+The proposal has **six agents solving a problem that needs three agents and an orchestrator.** Six peer agents is a coordination nightmare — the heated-debate engine already shows that even two agents need careful turn management. More importantly, tutoring isn't a symmetric debate; it's **asymmetric service delivery to a human in the loop.** The student breaks the existing A↔B symmetry entirely.
+
+---
+
+## Agent Roster: Merge to Four
+
+**Kill the six-agent roster. Merge to three teaching agents + one conductor.**
+
+- **Lecturer** (Narrator + Context agent merged)
+  - Presents structured material, provides broader connections when student is stuck
+  - Rationale: Narrating and providing context are the same cognitive operation — delivering information. Splitting them creates an artificial handoff where the Lecturer mid-explanation would need to "call" the Context agent. Absurd.
+
+- **Driller** (Quizmaster + Fact-checker merged)
+  - Asks recall questions, evaluates answers, corrects with authoritative facts
+  - Rationale: The agent asking "When was the Berlin Blockade?" is the natural agent to say "No, it was 1948, not 1946." Splitting question-asking from answer-checking creates a pointless relay. The Driller owns the recall loop end-to-end.
+
+- **Socratic** (unchanged, but scoped)
+  - Asks analytical/causal/comparative questions, pushes deeper with follow-ups
+  - Never gives answers directly — always probes
+  - Only deployed when depth preference ≥ "thorough"
+
+- **Conductor** (Progress tracker, repurposed as the Moderator)
+  - **Not a peer agent** — this is the orchestrator/moderator
+  - Tracks coverage map, routes to the right teaching agent, decides session pacing
+  - Maps directly to the existing moderator architecture: observes, injects guidance, overrides routing
+
+**Why this is right:**
+- Three teaching agents map to three pedagogical modes: inform → test → analyze
+- Conductor maps cleanly to the existing moderator primitive
+- Student input replaces Agent B — the student is the "second participant" in each exchange
+- Total LLM calls per turn: 1 conductor decision + 1 teaching agent response = 2 (vs. 6 if every agent deliberates)
+
+---
+
+## The Student Is Not an Agent — The Student Is the Environment
+
+**Critical architectural decision: the student is not modeled as an LLM agent.** The student provides real input via stdin. This means:
+
+- The orchestration loop becomes: **Conductor selects agent → Agent generates prompt/content → Student responds → Conductor evaluates and routes next**
+- The heated-debate `A→B→A→B` loop becomes `Conductor→Agent[i]→Student→Conductor→Agent[j]→Student→...`
+- Agent selection is **dynamic per turn**, not fixed alternation
+- The Conductor sees: student's answer + which agent asked + correctness signal + coverage state
+
+---
+
+## Dynamic Routing Over Fixed Sequences
+
+**Fixed sequences are wrong for tutoring.** A student who aces recall questions shouldn't sit through 10 more Driller rounds before getting Socratic challenges. A student who can't place the Korean War shouldn't get pushed into essay analysis.
+
+**Routing logic (Conductor decides):**
+
+- **Entry:** Always start with Lecturer on the first uncovered topic
+- **After Lecturer segment:** Route to Driller (test comprehension of what was just presented)
+- **After correct Driller answer:** Either advance to next topic (Lecturer) or deepen (Socratic) — based on depth preference
+- **After wrong Driller answer:**
+  - If factual error (wrong date, wrong name): Driller corrects and re-asks
+  - If conceptual confusion (misattributes cause, conflates events): Route to Lecturer for re-explanation, then Socratic to probe the gap
+  - If student says "I don't know": Route to Lecturer with a hint, then back to Driller
+- **After Socratic exchange:** Route back to Driller for a different topic (prevents fatigue on one thread)
+
+**This is essentially a finite state machine with the Conductor as the transition function.**
+
+States: `{Lecture, Drill, Socratic, Review, MockExam, Done}`
+Transitions: driven by student performance + coverage + time budget
+
+---
+
+## The Depth Dial: Repurposing the Creativity Dial
+
+The creativity dial (5→1) maps beautifully to a **pedagogical depth dial**:
+
+| Dial | Creativity meaning | Tutoring meaning | Agent mix |
+|------|-------------------|-------------------|-----------|
+| 5 | Wild exploration | Deep historiographic debate, competing interpretations | Heavy Socratic, multi-perspective |
+| 4 | Creative alternatives | Analytical questions, cause-effect chains | Socratic + Driller |
+| 3 | Balanced | Mix of recall and analysis | Even Driller/Socratic split |
+| 2 | Focused refinement | Targeted drilling on weak areas | Heavy Driller, some Lecturer |
+| 1 | Precise convergence | Pure exam simulation, rapid recall | Driller only, mock exam mode |
+
+**But the dial should NOT auto-decay from 5→1 over rounds.** Instead:
+- **Student's depth preference sets the ceiling** ("just pass" = max dial 2; "mastery" = dial 5)
+- **Time remaining sets the floor** (exam tomorrow = decay faster toward 1; exam next month = stay at ceiling longer)
+- **Conductor dynamically adjusts** within the band based on performance
+
+---
+
+## Wrong-Answer Routing: The Interesting Decision
+
+**Who responds to a wrong answer depends on the failure mode, not a fixed rule:**
+
+| Error type | Signal | Responding agent | Rationale |
+|------------|--------|-----------------|-----------|
+| Wrong fact (date, name, treaty) | Student says "1952" for Korean War start | Driller | Quick correction + re-ask. Don't over-philosophize a factual miss. |
+| Conceptual confusion | Student says "Détente failed because of Vietnam" | Socratic | Probe: "What was the US position on Vietnam during détente? Were they related?" Let the student find the gap. |
+| Total blank / "I don't know" | No answer or vague response | Lecturer | Re-present the material with different framing or mnemonic. No shame spiral. |
+| Partially correct but shallow | Student gives a correct but surface-level essay answer | Socratic | Push deeper: "You said X caused Y — but what made X possible? What if X hadn't happened?" |
+| Confident but wrong | Student bets high confidence on wrong answer | **Lecturer then Socratic** | Two-step: correct the misconception authoritatively, then probe why they were confident (reveals systematic misunderstanding) |
+
+**The Conductor classifies error type using a lightweight LLM call** (Haiku-class model for speed). This classification drives routing.
+
+---
+
+## Competing Interpretations: Gated by Depth
+
+**This is the most provocative design question, and the answer is: yes, but only for mastery-track students, and never as free-floating confusion.**
+
+- **Depth ≤ 2 ("just pass"):** No competing interpretations. Present the textbook consensus. The exam has expected answers; teach those.
+- **Depth 3 ("thorough"):** Mention that historians disagree, but anchor to the textbook framing. "Some historians emphasize ideology, others power politics — your textbook focuses on ideology, so lead with that on the exam."
+- **Depth ≥ 4 ("mastery"):** Actively deploy competing frames. Have the Socratic agent present Event X through two lenses and ask the student to argue both sides. This is the best essay prep possible — but only if the student has the factual foundation first.
+
+**Implementation: not separate "perspective agents" — the Socratic agent switches frames via prompt engineering.** Adding three more agents (ideological, geopolitical, economic) is agent proliferation for zero benefit. One Socratic agent with parameterized framing instructions achieves the same thing.
+
+---
+
+## Gamification and Confidence Markets
+
+**Two separate proposals here. One is excellent, one is a trap.**
+
+### Student confidence betting — YES, build this
+- After each Driller question, student rates confidence 1-5 before answering
+- **Overconfidence on wrong answers** = highest-priority weak spots (student doesn't know what they don't know)
+- **Underconfidence on correct answers** = reassurance opportunities, build exam confidence
+- **Well-calibrated** = student is ready
+- This is backed by metacognition research (calibration training measurably improves exam performance)
+- Implementation: simple numeric input, tracked in Conductor's state, used for routing priority
+
+### Internal agent prediction market — NO, this is over-engineering
+- Having agents "bid" on what to cover next sounds elegant but is just a weighted voting mechanism with extra LLM calls
+- The Conductor already has all the information (coverage map, accuracy per topic, confidence calibration, time remaining) — it can make the routing decision directly
+- An internal market adds 3 extra LLM calls per turn for a decision that a single Conductor call handles
+- **Kill this. It's intellectually fun but architecturally wasteful for a tutoring system.**
+- *Where it WOULD make sense:* a research-planning system where agents have genuinely different information and expertise. In tutoring, all agents see the same student state.
+
+---
+
+## Readiness Assessment: When Is the Student Done?
+
+**Four-signal readiness model:**
+
+- **Coverage:** ≥ 90% of syllabus topics have been Driller-tested at least once
+- **Accuracy:** Rolling accuracy on Driller questions ≥ 80% (configurable by depth preference)
+- **Depth:** For mastery-track: ≥ 3 Socratic exchanges with substantive analytical answers
+- **Calibration:** Student's confidence ratings correlate with actual accuracy (Brier score < threshold)
+
+**"Ready" is not binary — it's a heat map.** The Conductor maintains a per-topic score and shows the student:
+- Green: solid on this topic
+- Yellow: knows basics, gaps in detail
+- Red: major gaps
+
+**The student decides when to stop.** The system advises but doesn't gatekeep.
+
+---
+
+## Mock Exam: Yes, as the Capstone
+
+- **Simulated exam agent** = the Driller in "exam mode" (dial 1, no hints, timed)
+- Mix of recall questions (60%) and one essay prompt (40%) — matching real exam format
+- Graded by the Conductor, with a breakdown of what to review in remaining time
+- **If the student has time:** mock exam → review weak spots → second mock exam
+- Maps to the existing "expert panel" primitive: the mock exam IS the panel evaluation, adapted for pedagogy
+
+---
+
+## Mapping to heated-debate Primitives
+
+| Tutoring concept | heated-debate primitive | Modification needed |
+|-----------------|------------------------|-------------------|
+| Conductor | Moderator | Heavier routing logic; maintains coverage state; classifies errors |
+| Lecturer / Driller / Socratic | Agent A/B | Extend from 2 fixed agents to 3 selectable agents; system prompt swapped per turn |
+| Student | (new) stdin input | Replace one agent's LLM call with human input; async wait |
+| Depth preference | Creativity dial | Reinterpret levels; student-set ceiling; dynamic floor |
+| Coverage map | (new) | JSON state object maintained by Conductor across turns |
+| Confidence betting | (new) | Numeric input captured alongside student answer |
+| Mock exam | Expert panel | Repurpose as assessment + scoring |
+| Session structure | Resume/checkpoint | Use existing `RESUME_FROM_LOG` for spaced sessions over days |
+
+---
+
+## Key Tradeoffs Acknowledged
+
+- **Merging agents loses specialization** → Mitigated by parameterized system prompts within each merged agent
+- **Dynamic routing adds Conductor overhead** → One Haiku-class call per turn (~200ms); worth it for adaptive learning
+- **No competing interpretations for low-depth** → Students who "just want to pass" miss critical thinking; acceptable given their stated goal
+- **Student in the loop breaks automated orchestration** → Can't auto-run 5 rounds overnight; sessions are necessarily interactive
+- **Confidence betting adds friction** → Make it optional per question; default to "medium" if student skips
+
+---
+
+## Summary of Decisions
+
+- **3 teaching agents + 1 conductor** (not 6 peers)
+- **Dynamic routing** via Conductor FSM (not fixed sequence)
+- **Depth dial** repurposed from creativity dial, student-set ceiling
+- **Error-type-dependent routing** for wrong answers
+- **Competing interpretations gated** by depth preference ≥ 4
+- **Student confidence betting** — yes
+- **Internal agent prediction market** — no
+- **Mock exam as capstone** — yes, repurposing expert panel
+- **Readiness = coverage × accuracy × calibration heat map**, student-decided termination
+
+Turn 1 - Assistant
+**Findings**
+
+1. The proposal still designs around agent taxonomy instead of learning outcomes. `Lecturer / Driller / Socratic / Conductor` is cleaner than six peers, but it is still an internal-org chart, not a student model. The real architecture should center on a competency graph: factual recall, causal chains, compare/contrast essays, chronology, and misconception clusters. Agents should be an implementation detail, not the top-level design.
+
+2. The `finite state machine + error classifier` is too brittle for tutoring. Student errors are rarely cleanly “fact vs concept vs blank.” A wrong Korea answer might reflect chronology confusion, vocabulary mismatch, or essay-level misunderstanding. Routing off a single classifier will mis-handle edge cases and create bad pedagogical jumps. You want probabilistic mastery estimates, not crisp state transitions.
+
+3. “Socratic never gives answers directly” is dogma, not pedagogy. For a student with the exam tomorrow, this is actively harmful. Under time pressure, the system needs a mode that collapses uncertainty fast: tell the correct answer, give the minimal explanation, then test transfer. Pure probing is appropriate only when mastery is the goal and cognitive load is low.
+
+4. The plan is topic-driven, but the exam is skill-driven. Marching through “origins, crises, détente, arms race, collapse” mirrors the lecture, not the test. The stronger structure is by exam task: timeline recall, actor/event matching, causation chains, compare/contrast, and essay argument construction. Otherwise the student may know the story and still underperform on exam-form questions.
+
+5. Confidence betting is plausible, but mandatory per-question confidence input will create friction and false precision. High-school students are bad at calibration, especially when stressed. Use confidence sparingly at checkpoints or only on uncertain items. Otherwise the system starts optimizing a measurement artifact instead of studying.
+
+6. Readiness metrics are underspecified and easy to game. `90% coverage + 80% accuracy + Brier threshold` can be satisfied with shallow, recent, narrow success. Readiness should require transfer: answer the same concept in multiple formats and after delay. If the student can name the Marshall Plan but cannot use it in a causation essay, they are not ready.
+
+7. Mock exam as a capstone is too late. The mock should appear early and repeatedly in miniature. The system needs diagnostic exam fragments from the start, or it cannot calibrate to actual exam demand.
+
+**Architectural Risk**
+
+The biggest hidden risk is that you are building a conversation router, not a tutor. The system may become impressive at handing off between personas while remaining mediocre at deciding what the student should do next. That is the classic multi-agent failure mode: theatrical specialization, weak policy.
+
+**Radical Alternatives**
+
+- Collapse to one visible tutor plus two hidden subsystems: a mastery estimator and a curriculum planner. The student experiences coherence; the system keeps adaptivity.
+- Flip the architecture: make the primary agent an `Exam Simulator`, not a lecturer. Everything else exists to repair failures exposed by realistic exam tasks.
+- Replace topic agents with failure-mode agents: `Chronology fixer`, `Causation coach`, `Essay adversary`, `Misconception detector`. That maps much better to exam performance.
+- For mastery-track students, use structured perspective-switching inside essay practice, not a separate Socratic lane. Competing interpretations belong in argument training, not as free-standing discussion.
+
+**Bottom Line**
+
+Merging six into four is directionally right, but still too agent-centric. The stronger design is: one coherent tutor interface, hidden assessment/planning machinery, early and repeated exam-style diagnostics, and routing based on estimated mastery of skills rather than topic-by-topic conversational state.
+
+Current user message:
+[Creativity: 4/5] Suggest improvements and alternatives. Challenge assumptions. Consider non-obvious solutions.
+
+Good. The debate ran one round (Opus proposed, GPT-5.4 critiqued) then seems to have been cut short. Every one of those seven findings hits a real weakness. Let me absorb them and produce the redesign.
+
+---
+
+# Redesign: Skill-Graph Tutor with Hidden Machinery
+
+## The core inversion
+
+The first plan was **agent-first**: define roles, then figure out what they do. The critique correctly says the architecture should be **outcome-first**: define what the exam tests, model the student's mastery of those skills, and let agents be disposable implementation details.
+
+### What the exam actually tests (the skill graph)
+
+A Cold War history exam doesn't test "topics." It tests **performance on task types applied to content**:
+
+| Skill node | Exam manifestation | Example |
+|---|---|---|
+| **Timeline recall** | "Put these events in order" / "When did X happen?" | Berlin Blockade → Korean War → Cuban Missile Crisis → Vietnam escalation |
+| **Actor-event binding** | "Who proposed X?" / "Which country did Y?" | Truman → Truman Doctrine, Marshall → Marshall Plan, Khrushchev → Cuban crisis |
+| **Causal chain construction** | "Why did X lead to Y?" / short-answer causation | Containment doctrine → Truman Doctrine → Marshall Plan → NATO |
+| **Compare/contrast** | Essay: "Compare two crises" or "Compare US/USSR strategies" | Berlin vs. Cuba: both brinkmanship, different resolutions, different stakes |
+| **Essay argument** | "To what extent was the Cold War inevitable?" | Thesis + evidence + counterargument + conclusion structure |
+| **Misconception resistance** | Trick questions, plausible-but-wrong multiple choice | "The Marshall Plan was a military alliance" (no, that's NATO) |
+
+These skill nodes have **prerequisite edges**: you can't construct causal chains without timeline recall and actor-event binding. You can't write a compare/contrast essay without causal chains on both events. The graph is a partial order, not a flat list.
+
+### The student model is a probability distribution, not a state machine
+
+For each skill node × content area, the system maintains a **mastery estimate** — a float between 0 and 1, decaying over time (forgetting curve), updated bayesianly on each student interaction:
+
+- Correct answer with high confidence → large upward update
+- Correct answer with low confidence → moderate upward update (lucky guess possible)
+- Wrong answer → downward update scaled by how wrong (date off by 1 year vs. completely fabricated)
+- No answer → small downward update (knowledge was not retrievable)
+- **Transfer evidence** counts double: if the student uses the Marshall Plan correctly in a causation answer after previously only getting it right in recall, that's stronger evidence of mastery than three more recall correct answers
+
+This replaces the brittle error classifier. The system doesn't need to decide "is this a factual error or conceptual confusion?" — it updates the relevant skill nodes probabilistically and lets the lowest-mastery nodes drive the next action.
+
+### Three hidden subsystems, one visible tutor
+
+The student sees **one coherent tutor persona**. Behind the curtain:
+
+**1. Mastery Estimator** (runs after every student response)
+- Updates the skill × content mastery matrix
+- Lightweight — could be rule-based (Bayesian Knowledge Tracing) or a small LLM call
+- Outputs: updated mastery vector, newly-crossed thresholds, decay alerts for stale nodes
+
+**2. Curriculum Planner** (runs before every tutor turn)
+- Inputs: mastery vector, time budget, depth preference, session history
+- Outputs: the next action — what skill to target, what content to use, what task format
+- This is the **policy**. It's the part that matters most and the part the first plan underspecified
+- Implementation: a single LLM call (Haiku-class) with the full mastery state as structured JSON input, returning a structured action
+
+**3. Tutor Interface** (the visible agent)
+- Receives the Planner's action instruction + full conversation history
+- Generates the actual student-facing content
+- Has **no routing logic of its own** — it executes what the Planner decided
+- Adapts tone and format to match the action type (direct instruction, question, feedback, exam simulation)
+- Uses a single system prompt that covers all modes — no persona switching
+
+This directly addresses the "conversation router, not a tutor" risk. The Planner is the tutor. The interface is just a mouth.
+
+## The Exam Simulator flip
+
+The most radical and correct suggestion from the critique: **start with exam simulation, not lectures.**
+
+### Session flow
+
+**Phase 0: Diagnostic (first 5 minutes)**
+- Present 8-10 rapid-fire exam-format questions sampling all skill nodes
+- Mix: 4 timeline/recall, 2 actor-event, 2 causation short-answer, 1 mini-essay prompt
+- Student answers are fast and imperfect — that's the point
+- Result: initial mastery vector. The system now knows where the student stands.
+
+**Phase 1: Targeted repair (bulk of session)**
+- Planner selects the lowest-mastery skill × content pair
+- Tutor executes the appropriate action:
+  - For recall gaps: **direct instruction + immediate test**. Not Socratic probing. "The Korean War started in 1950 when North Korea invaded the South. Now — what year did the Korean War start?" This is the "collapse uncertainty fast" mode.
+  - For causal chain gaps: **worked example + similar problem**. "Here's how containment led to the Truman Doctrine: [explanation]. Now explain how the Truman Doctrine led to the Marshall Plan."
+  - For essay gaps (mastery-track only): **structured argument exercise**. "Write a thesis statement for: 'The arms race was the primary driver of Cold War tension.' Now write one sentence of counterevidence."
+- After each student response, Mastery Estimator updates, Planner re-evaluates
+- **Key: the same content appears in multiple formats.** The Marshall Plan shows up as a recall question, then as part of a causal chain, then as evidence in an essay argument. Transfer is tested, not assumed.
+
+**Phase 2: Consolidation**
+- When mastery vector is above threshold across all weighted skill nodes
+- Or when time budget is running low
+- Run a **mini mock exam** (not a full 45-minute simulation — 10-15 questions, 5 minutes)
+- Score it, identify remaining gaps, do one more targeted pass if time allows
+- Show the student their mastery heat map and say "here's what's solid, here's what to review on your own"
+
+**The mock exam is not a capstone — it's a recurring diagnostic that bookends each session.** Session starts with diagnosis, ends with assessment, and the middle is repair.
+
+## Depth preference changes the policy, not the architecture
+
+| Depth | Planner behavior | Time allocation |
+|---|---|---|
+| **Just pass (tomorrow)** | Target only high-weight exam items. Recall + actor-event only. Skip essay skills unless exam requires one. Direct instruction always; never Socratic. | 80% drill, 15% diagnostic, 5% essay outline |
+| **Thorough (next week)** | Cover all skill nodes. Causal chains required. One full essay practice. Socratic probing for causal gaps. | 40% drill, 30% causation, 20% essay, 10% diagnostic |
+| **Mastery (next month)** | Full graph coverage including competing interpretations. Perspective-switching inside essay practice. Spaced repetition across sessions with forgetting-curve decay. | 25% drill, 25% causation, 30% essay + perspectives, 20% diagnostic/mock |
+
+The architecture is identical in all three cases. Only the Planner's weights and action selection change.
+
+## Competing interpretations belong inside essay practice
+
+Not as a separate agent. Not as a separate mode. The student encounters historiographic debate **when constructing arguments**:
+
+> "You wrote that the Cold War was primarily ideological. Now argue the opposite — that it was fundamentally about geopolitical power. Use three specific events as evidence."
+
+This is essay skill training. The competing interpretation is the exercise format, not a pedagogical philosophy imposed on the student. For "just pass" students, this never appears. For mastery students, it's the core of essay prep.
+
+## Confidence: sparse, not per-question
+
+The critique is right — mandatory per-question confidence creates friction. Revised approach:
+
+- **Diagnostic phase:** Ask confidence on every item (it's a short burst, establishing baseline)
+- **Repair phase:** Ask confidence only when the Planner detects a suspiciously easy correct answer (possible rote recall without understanding) or when revisiting a previously-failed topic
+- **Assessment phase:** Ask confidence on every item again (measuring calibration improvement)
+- **Never block on confidence.** If the student ignores the prompt, default to "medium" and move on.
+
+## Readiness is transfer-tested
+
+"Ready" means the student can use the same knowledge in at least two different task formats:
+- Marshall Plan: recall correct AND used correctly in a causal chain
+- Cuban Missile Crisis: timeline correct AND compare/contrast with Berlin done competently
+- Détente: actor-event correct AND essay argument using it as evidence
+
+The mastery matrix naturally captures this because skill nodes are separate from content nodes. The student needs sufficient mastery in both dimensions.
+
+## Mapping to shelley.ts
+
+This design needs real extension of the engine, not just a new topic file:
+
+| Component | Implementation path |
+|---|---|
+| Mastery Estimator | New module: `mastery.ts`. Bayesian Knowledge Tracing with forgetting curve. JSON state per session. |
+| Curriculum Planner | Repurpose **moderator** infrastructure. The Planner IS the moderator — it observes, decides next action, injects instruction to the Tutor. Single Haiku-class call returning structured JSON. |
+| Tutor Interface | Single agent (Agent A). System prompt covers all modes: instruction, questioning, feedback, exam simulation. No persona switching. |
+| Student input | Replace Agent B's LLM call with `readline` / stdin. The student IS Agent B. |
+| Skill graph | Static config: `skill-graph.json` defining nodes, edges, content mappings, exam weights. Loaded at session start. |
+| Session persistence | Extend `RESUME_FROM_LOG` to also serialize/restore the mastery matrix. Enables spaced repetition across days. |
+| Diagnostic/mock exam | New mode in the Planner: emit a batch of questions covering all skill nodes, score as a unit. |
+
+The creativity dial gets reinterpreted: instead of 5→1 over rounds, the Planner sets it per-turn based on what action it's requesting. Direct instruction = dial 1. Causal exploration = dial 3. Essay with competing perspectives = dial 5. The dial becomes a **per-action parameter**, not a session-level decay.
+
+## What this kills from the original design
+
+- Named teaching agents (Lecturer, Driller, Socratic) — absorbed into one Tutor with mode parameters
+- FSM routing — replaced by Planner policy over continuous mastery estimates
+- Error type classifier — replaced by Bayesian updates across multiple skill nodes
+- Capstone-only mock exam — replaced by diagnostic-first, recurring assessment
+- Topic-driven coverage — replaced by skill × content matrix
+- Per-question mandatory confidence — replaced by sparse strategic confidence probes
+
+## What survives
+
+- One orchestrating intelligence (Conductor → Planner) that makes all routing decisions
+- Student as human-in-the-loop, not an LLM agent
+- Dynamic adaptation based on student performance
+- Depth preference driving policy, not architecture
+- Competing interpretations gated by depth and embedded in essay practice
+- Session persistence for spaced repetition
+
+## Open questions for Round 3
+
+1. **BKT vs. LLM-as-estimator:** Should mastery estimation be algorithmic (Bayesian Knowledge Tracing — well-understood, fast, interpretable) or should we let a small LLM judge mastery from the conversation? BKT is faster and more predictable; LLM estimation catches subtler signals but is slower and harder to debug.
+
+2. **Single Tutor persona vs. acknowledged mode shifts:** Should the Tutor say "Now let's practice essay structure" (transparent mode shift) or should it weave transitions naturally? Transparency helps the student understand what they're practicing; seamlessness keeps flow.
+
+3. **Forgetting curve parameters:** For spaced repetition across sessions, what decay rate? Educational research suggests different rates for different content types (dates decay faster than causal understanding). Should the system calibrate per-student from diagnostic data?
+
+4. **Exam format fidelity:** How closely should the mock exam mirror the actual test format? If we know it's multiple choice, present multiple choice. If we know it's free-response, present free-response. The system should ask the student what format the exam uses — and this hasn't been captured in the student profile intake yet.
+
+Respond as the assistant only. Do not include tool logs.
+mcp: mail starting
+mcp: arxiv starting
+mcp: mail ready
+mcp: arxiv ready
+mcp startup: ready: mail, arxiv
+codex
+The redesign is materially better. It fixes the biggest flaw in the first proposal: it stops treating agent roles as the architecture and starts treating student performance as the architecture.
+
+That said, it still has three important weaknesses.
+
+1. The skill graph is better than topic flow, but it is still too clean for history. Real student failure modes are not just `timeline / causation / essay`. They include confusions like “NATO vs Marshall Plan,” “Korea vs Vietnam as interchangeable proxy wars,” and “détente as peace rather than temporary stabilization.” Those are misconception clusters, not generic skills. Add a second layer to the model: not just `skill x content`, but `misconception flags` that the planner can explicitly target.
+
+2. “One visible tutor” is good for coherence, but total persona flattening loses useful mode contrast. Studying benefits from distinct pressure regimes. The student should feel when they are in `teach mode`, `drill mode`, and `exam mode`, even if it is the same underlying tutor. Otherwise the system becomes smooth but pedagogically blurry.
+
+3. The planner is still optimizing mastery, when the real target is exam score per minute. That is not the same objective. If the exam is tomorrow, the system should aggressively prioritize high-yield items: canonical dates, named doctrines, 2-3 reusable essay frames, and the most testable comparisons. Some low-frequency skill gaps should be ignored on purpose.
+
+The strongest version is a hybrid:
+
+- One visible tutor.
+- One hidden planner.
+- One hidden estimator.
+- One hidden grader/rubric extractor.
+
+The grader is the missing piece. For history, open responses need to be decomposed into:
+- factual correctness
+- causal structure
+- use of evidence
+- exam-style answer shape
+
+That argues against pure BKT and against pure LLM estimation. Use a hybrid:
+- Rule-based extraction for dates, names, event links, chronology.
+- LLM rubric scoring for short answers and essays.
+- BKT-style update on top of those structured signals.
+
+On the open questions:
+
+1. BKT vs LLM estimator  
+Use neither alone. Pure BKT is too crude for essays; pure LLM is too unstable. Best design is `LLM extracts rubric evidence -> deterministic updater adjusts mastery state`.
+
+2. Single tutor vs explicit mode shifts  
+Use explicit mode shifts. Say “Now: 3-minute exam mode” or “Now: repair mode on chronology.” Transparency helps the student understand what is being trained.
+
+3. Forgetting curve parameters  
+Do not overfit early. Start with fixed decay by evidence type:
+- dates/names decay fastest
+- causal chains medium
+- essay structures slowest
+Then personalize only after multiple sessions.
+
+4. Exam format fidelity  
+This is not optional. Ask it upfront. A multiple-choice exam and a compare/contrast essay exam should produce very different policies.
+
+Two non-obvious additions would improve this a lot:
+
+- Add a `Last-Minute Sheet` artifact generator. The system should continuously build a one-page cram sheet from the student’s weak spots. For “exam tomorrow,” this may be more valuable than another elegant adaptive loop.
+- Add `answer compression` drills. Many students know the material but cannot produce a tight 3-sentence answer under time pressure. Practice “state claim -> give evidence -> name consequence” in strict length limits.
+
+Bottom line: the redesign is directionally right, but the final architecture should be `score-optimization tutor`, not just `mastery-estimation tutor`. For exam prep, that distinction matters.
+tokens used
+14 768
+
+[2026-03-26T14:29:07.673Z] codex:gpt-5.4
+OpenAI Codex v0.116.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019d2a8b-ec2f-7880-a66c-b22eec4a3cbd
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: ## Multi-Agent Tutoring System for Exam Prep
+
+A student is preparing for a high-school history exam on the Cold War (1947-1991).
+The lecture covered: origins (Truman Doctrine, Marshall Plan), key crises (Berlin,
+Cuba, Korea, Vietnam), detente, arms race, and collapse of the USSR. The exam will
+test both factual recall (dates, names, treaties) and analytical reasoning (causes,
+consequences, compare/contrast essay questions).
+
+Design a multi-agent system that helps the student study effectively.
+
+### Proposed agent roster (debate whether this is right)
+- **Narrator** -- presents structured summaries of each topic segment
+- **Quizmaster** -- asks narrow recall questions (dates, names, events)
+- **Socratic challenger** -- asks open-ended analytical questions ("Why did detente fail?")
+- **Fact-checker** -- validates student answers and corrects misconceptions
+- **Context agent** -- provides broader context when the student is stuck ("The Marshall Plan connects to...")
+- **Progress tracker** -- monitors coverage gaps and steers the session
+
+### Student profile and session constraints
+The system should ask the student upfront:
+- **Depth preference:** minimal effort (just pass) -> thorough understanding -> board-sweeping mastery
+- **Time budget:** exam is tomorrow vs. next week vs. next month
+- **Session structure:** single marathon vs. spaced sessions over days
+
+These inputs should drive agent behavior: a "just pass tomorrow" student gets mostly Quizmaster + Fact-checker drilling key facts; a "deep mastery over 2 weeks" student gets more Socratic challenger + competing interpretations + spaced repetition across sessions.
+
+### Key design questions for debate
+- Is this the right set of agents, or should some be merged/split? Is six too many?
+- Should agents run in a fixed sequence (narrate -> quiz -> discuss -> review) or should the student's performance dynamically route to the right agent?
+- How should the system balance factual drill vs. deeper analytical questioning? What ratio, and who decides?
+- When the student gives a wrong answer, which agent responds -- the fact-checker, the context agent, or the Socratic challenger? Does it depend on the type of error?
+- How does the system decide the student is "ready" for the exam?
+- Should there be a simulated exam agent that runs a mock test at the end?
+- Should the system use gamification or prediction markets? E.g., the student bets confidence points on their answers, earning/losing points -- and the system uses those confidence signals to identify weak spots. Does this help motivation, or is it a distraction for exam prep?
+- Could agents themselves use an internal prediction market to decide which topic to cover next (each agent "bids" on what it thinks the student needs most)?
+- Should some agents deliberately present competing interpretations of the same events? E.g., one agent frames the Cold War as primarily an ideological struggle, another as a geopolitical power contest, another as an economic competition. This exposes the student to historiographic debate and builds critical thinking -- but does it confuse a student who just needs to pass an exam? How do you balance "multiple perspectives" with "there's a right answer on the test"?
+
+Here is the first proposal:
+
+# Multi-Agent Tutoring System: Architectural Plan
+
+## Radical premise challenge
+
+The proposal has **six agents solving a problem that needs three agents and an orchestrator.** Six peer agents is a coordination nightmare — the heated-debate engine already shows that even two agents need careful turn management. More importantly, tutoring isn't a symmetric debate; it's **asymmetric service delivery to a human in the loop.** The student breaks the existing A↔B symmetry entirely.
+
+---
+
+## Agent Roster: Merge to Four
+
+**Kill the six-agent roster. Merge to three teaching agents + one conductor.**
+
+- **Lecturer** (Narrator + Context agent merged)
+  - Presents structured material, provides broader connections when student is stuck
+  - Rationale: Narrating and providing context are the same cognitive operation — delivering information. Splitting them creates an artificial handoff where the Lecturer mid-explanation would need to "call" the Context agent. Absurd.
+
+- **Driller** (Quizmaster + Fact-checker merged)
+  - Asks recall questions, evaluates answers, corrects with authoritative facts
+  - Rationale: The agent asking "When was the Berlin Blockade?" is the natural agent to say "No, it was 1948, not 1946." Splitting question-asking from answer-checking creates a pointless relay. The Driller owns the recall loop end-to-end.
+
+- **Socratic** (unchanged, but scoped)
+  - Asks analytical/causal/comparative questions, pushes deeper with follow-ups
+  - Never gives answers directly — always probes
+  - Only deployed when depth preference ≥ "thorough"
+
+- **Conductor** (Progress tracker, repurposed as the Moderator)
+  - **Not a peer agent** — this is the orchestrator/moderator
+  - Tracks coverage map, routes to the right teaching agent, decides session pacing
+  - Maps directly to the existing moderator architecture: observes, injects guidance, overrides routing
+
+**Why this is right:**
+- Three teaching agents map to three pedagogical modes: inform → test → analyze
+- Conductor maps cleanly to the existing moderator primitive
+- Student input replaces Agent B — the student is the "second participant" in each exchange
+- Total LLM calls per turn: 1 conductor decision + 1 teaching agent response = 2 (vs. 6 if every agent deliberates)
+
+---
+
+## The Student Is Not an Agent — The Student Is the Environment
+
+**Critical architectural decision: the student is not modeled as an LLM agent.** The student provides real input via stdin. This means:
+
+- The orchestration loop becomes: **Conductor selects agent → Agent generates prompt/content → Student responds → Conductor evaluates and routes next**
+- The heated-debate `A→B→A→B` loop becomes `Conductor→Agent[i]→Student→Conductor→Agent[j]→Student→...`
+- Agent selection is **dynamic per turn**, not fixed alternation
+- The Conductor sees: student's answer + which agent asked + correctness signal + coverage state
+
+---
+
+## Dynamic Routing Over Fixed Sequences
+
+**Fixed sequences are wrong for tutoring.** A student who aces recall questions shouldn't sit through 10 more Driller rounds before getting Socratic challenges. A student who can't place the Korean War shouldn't get pushed into essay analysis.
+
+**Routing logic (Conductor decides):**
+
+- **Entry:** Always start with Lecturer on the first uncovered topic
+- **After Lecturer segment:** Route to Driller (test comprehension of what was just presented)
+- **After correct Driller answer:** Either advance to next topic (Lecturer) or deepen (Socratic) — based on depth preference
+- **After wrong Driller answer:**
+  - If factual error (wrong date, wrong name): Driller corrects and re-asks
+  - If conceptual confusion (misattributes cause, conflates events): Route to Lecturer for re-explanation, then Socratic to probe the gap
+  - If student says "I don't know": Route to Lecturer with a hint, then back to Driller
+- **After Socratic exchange:** Route back to Driller for a different topic (prevents fatigue on one thread)
+
+**This is essentially a finite state machine with the Conductor as the transition function.**
+
+States: `{Lecture, Drill, Socratic, Review, MockExam, Done}`
+Transitions: driven by student performance + coverage + time budget
+
+---
+
+## The Depth Dial: Repurposing the Creativity Dial
+
+The creativity dial (5→1) maps beautifully to a **pedagogical depth dial**:
+
+| Dial | Creativity meaning | Tutoring meaning | Agent mix |
+|------|-------------------|-------------------|-----------|
+| 5 | Wild exploration | Deep historiographic debate, competing interpretations | Heavy Socratic, multi-perspective |
+| 4 | Creative alternatives | Analytical questions, cause-effect chains | Socratic + Driller |
+| 3 | Balanced | Mix of recall and analysis | Even Driller/Socratic split |
+| 2 | Focused refinement | Targeted drilling on weak areas | Heavy Driller, some Lecturer |
+| 1 | Precise convergence | Pure exam simulation, rapid recall | Driller only, mock exam mode |
+
+**But the dial should NOT auto-decay from 5→1 over rounds.** Instead:
+- **Student's depth preference sets the ceiling** ("just pass" = max dial 2; "mastery" = dial 5)
+- **Time remaining sets the floor** (exam tomorrow = decay faster toward 1; exam next month = stay at ceiling longer)
+- **Conductor dynamically adjusts** within the band based on performance
+
+---
+
+## Wrong-Answer Routing: The Interesting Decision
+
+**Who responds to a wrong answer depends on the failure mode, not a fixed rule:**
+
+| Error type | Signal | Responding agent | Rationale |
+|------------|--------|-----------------|-----------|
+| Wrong fact (date, name, treaty) | Student says "1952" for Korean War start | Driller | Quick correction + re-ask. Don't over-philosophize a factual miss. |
+| Conceptual confusion | Student says "Détente failed because of Vietnam" | Socratic | Probe: "What was the US position on Vietnam during détente? Were they related?" Let the student find the gap. |
+| Total blank / "I don't know" | No answer or vague response | Lecturer | Re-present the material with different framing or mnemonic. No shame spiral. |
+| Partially correct but shallow | Student gives a correct but surface-level essay answer | Socratic | Push deeper: "You said X caused Y — but what made X possible? What if X hadn't happened?" |
+| Confident but wrong | Student bets high confidence on wrong answer | **Lecturer then Socratic** | Two-step: correct the misconception authoritatively, then probe why they were confident (reveals systematic misunderstanding) |
+
+**The Conductor classifies error type using a lightweight LLM call** (Haiku-class model for speed). This classification drives routing.
+
+---
+
+## Competing Interpretations: Gated by Depth
+
+**This is the most provocative design question, and the answer is: yes, but only for mastery-track students, and never as free-floating confusion.**
+
+- **Depth ≤ 2 ("just pass"):** No competing interpretations. Present the textbook consensus. The exam has expected answers; teach those.
+- **Depth 3 ("thorough"):** Mention that historians disagree, but anchor to the textbook framing. "Some historians emphasize ideology, others power politics — your textbook focuses on ideology, so lead with that on the exam."
+- **Depth ≥ 4 ("mastery"):** Actively deploy competing frames. Have the Socratic agent present Event X through two lenses and ask the student to argue both sides. This is the best essay prep possible — but only if the student has the factual foundation first.
+
+**Implementation: not separate "perspective agents" — the Socratic agent switches frames via prompt engineering.** Adding three more agents (ideological, geopolitical, economic) is agent proliferation for zero benefit. One Socratic agent with parameterized framing instructions achieves the same thing.
+
+---
+
+## Gamification and Confidence Markets
+
+**Two separate proposals here. One is excellent, one is a trap.**
+
+### Student confidence betting — YES, build this
+- After each Driller question, student rates confidence 1-5 before answering
+- **Overconfidence on wrong answers** = highest-priority weak spots (student doesn't know what they don't know)
+- **Underconfidence on correct answers** = reassurance opportunities, build exam confidence
+- **Well-calibrated** = student is ready
+- This is backed by metacognition research (calibration training measurably improves exam performance)
+- Implementation: simple numeric input, tracked in Conductor's state, used for routing priority
+
+### Internal agent prediction market — NO, this is over-engineering
+- Having agents "bid" on what to cover next sounds elegant but is just a weighted voting mechanism with extra LLM calls
+- The Conductor already has all the information (coverage map, accuracy per topic, confidence calibration, time remaining) — it can make the routing decision directly
+- An internal market adds 3 extra LLM calls per turn for a decision that a single Conductor call handles
+- **Kill this. It's intellectually fun but architecturally wasteful for a tutoring system.**
+- *Where it WOULD make sense:* a research-planning system where agents have genuinely different information and expertise. In tutoring, all agents see the same student state.
+
+---
+
+## Readiness Assessment: When Is the Student Done?
+
+**Four-signal readiness model:**
+
+- **Coverage:** ≥ 90% of syllabus topics have been Driller-tested at least once
+- **Accuracy:** Rolling accuracy on Driller questions ≥ 80% (configurable by depth preference)
+- **Depth:** For mastery-track: ≥ 3 Socratic exchanges with substantive analytical answers
+- **Calibration:** Student's confidence ratings correlate with actual accuracy (Brier score < threshold)
+
+**"Ready" is not binary — it's a heat map.** The Conductor maintains a per-topic score and shows the student:
+- Green: solid on this topic
+- Yellow: knows basics, gaps in detail
+- Red: major gaps
+
+**The student decides when to stop.** The system advises but doesn't gatekeep.
+
+---
+
+## Mock Exam: Yes, as the Capstone
+
+- **Simulated exam agent** = the Driller in "exam mode" (dial 1, no hints, timed)
+- Mix of recall questions (60%) and one essay prompt (40%) — matching real exam format
+- Graded by the Conductor, with a breakdown of what to review in remaining time
+- **If the student has time:** mock exam → review weak spots → second mock exam
+- Maps to the existing "expert panel" primitive: the mock exam IS the panel evaluation, adapted for pedagogy
+
+---
+
+## Mapping to heated-debate Primitives
+
+| Tutoring concept | heated-debate primitive | Modification needed |
+|-----------------|------------------------|-------------------|
+| Conductor | Moderator | Heavier routing logic; maintains coverage state; classifies errors |
+| Lecturer / Driller / Socratic | Agent A/B | Extend from 2 fixed agents to 3 selectable agents; system prompt swapped per turn |
+| Student | (new) stdin input | Replace one agent's LLM call with human input; async wait |
+| Depth preference | Creativity dial | Reinterpret levels; student-set ceiling; dynamic floor |
+| Coverage map | (new) | JSON state object maintained by Conductor across turns |
+| Confidence betting | (new) | Numeric input captured alongside student answer |
+| Mock exam | Expert panel | Repurpose as assessment + scoring |
+| Session structure | Resume/checkpoint | Use existing `RESUME_FROM_LOG` for spaced sessions over days |
+
+---
+
+## Key Tradeoffs Acknowledged
+
+- **Merging agents loses specialization** → Mitigated by parameterized system prompts within each merged agent
+- **Dynamic routing adds Conductor overhead** → One Haiku-class call per turn (~200ms); worth it for adaptive learning
+- **No competing interpretations for low-depth** → Students who "just want to pass" miss critical thinking; acceptable given their stated goal
+- **Student in the loop breaks automated orchestration** → Can't auto-run 5 rounds overnight; sessions are necessarily interactive
+- **Confidence betting adds friction** → Make it optional per question; default to "medium" if student skips
+
+---
+
+## Summary of Decisions
+
+- **3 teaching agents + 1 conductor** (not 6 peers)
+- **Dynamic routing** via Conductor FSM (not fixed sequence)
+- **Depth dial** repurposed from creativity dial, student-set ceiling
+- **Error-type-dependent routing** for wrong answers
+- **Competing interpretations gated** by depth preference ≥ 4
+- **Student confidence betting** — yes
+- **Internal agent prediction market** — no
+- **Mock exam as capstone** — yes, repurposing expert panel
+- **Readiness = coverage × accuracy × calibration heat map**, student-decided termination
+
+Turn 1 - Assistant
+**Findings**
+
+1. The proposal still designs around agent taxonomy instead of learning outcomes. `Lecturer / Driller / Socratic / Conductor` is cleaner than six peers, but it is still an internal-org chart, not a student model. The real architecture should center on a competency graph: factual recall, causal chains, compare/contrast essays, chronology, and misconception clusters. Agents should be an implementation detail, not the top-level design.
+
+2. The `finite state machine + error classifier` is too brittle for tutoring. Student errors are rarely cleanly “fact vs concept vs blank.” A wrong Korea answer might reflect chronology confusion, vocabulary mismatch, or essay-level misunderstanding. Routing off a single classifier will mis-handle edge cases and create bad pedagogical jumps. You want probabilistic mastery estimates, not crisp state transitions.
+
+3. “Socratic never gives answers directly” is dogma, not pedagogy. For a student with the exam tomorrow, this is actively harmful. Under time pressure, the system needs a mode that collapses uncertainty fast: tell the correct answer, give the minimal explanation, then test transfer. Pure probing is appropriate only when mastery is the goal and cognitive load is low.
+
+4. The plan is topic-driven, but the exam is skill-driven. Marching through “origins, crises, détente, arms race, collapse” mirrors the lecture, not the test. The stronger structure is by exam task: timeline recall, actor/event matching, causation chains, compare/contrast, and essay argument construction. Otherwise the student may know the story and still underperform on exam-form questions.
+
+5. Confidence betting is plausible, but mandatory per-question confidence input will create friction and false precision. High-school students are bad at calibration, especially when stressed. Use confidence sparingly at checkpoints or only on uncertain items. Otherwise the system starts optimizing a measurement artifact instead of studying.
+
+6. Readiness metrics are underspecified and easy to game. `90% coverage + 80% accuracy + Brier threshold` can be satisfied with shallow, recent, narrow success. Readiness should require transfer: answer the same concept in multiple formats and after delay. If the student can name the Marshall Plan but cannot use it in a causation essay, they are not ready.
+
+7. Mock exam as a capstone is too late. The mock should appear early and repeatedly in miniature. The system needs diagnostic exam fragments from the start, or it cannot calibrate to actual exam demand.
+
+**Architectural Risk**
+
+The biggest hidden risk is that you are building a conversation router, not a tutor. The system may become impressive at handing off between personas while remaining mediocre at deciding what the student should do next. That is the classic multi-agent failure mode: theatrical specialization, weak policy.
+
+**Radical Alternatives**
+
+- Collapse to one visible tutor plus two hidden subsystems: a mastery estimator and a curriculum planner. The student experiences coherence; the system keeps adaptivity.
+- Flip the architecture: make the primary agent an `Exam Simulator`, not a lecturer. Everything else exists to repair failures exposed by realistic exam tasks.
+- Replace topic agents with failure-mode agents: `Chronology fixer`, `Causation coach`, `Essay adversary`, `Misconception detector`. That maps much better to exam performance.
+- For mastery-track students, use structured perspective-switching inside essay practice, not a separate Socratic lane. Competing interpretations belong in argument training, not as free-standing discussion.
+
+**Bottom Line**
+
+Merging six into four is directionally right, but still too agent-centric. The stronger design is: one coherent tutor interface, hidden assessment/planning machinery, early and repeated exam-style diagnostics, and routing based on estimated mastery of skills rather than topic-by-topic conversational state.
+
+Turn 2 - User
+[Creativity: 4/5] Suggest improvements and alternatives. Challenge assumptions. Consider non-obvious solutions.
+
+Good. The debate ran one round (Opus proposed, GPT-5.4 critiqued) then seems to have been cut short. Every one of those seven findings hits a real weakness. Let me absorb them and produce the redesign.
+
+---
+
+# Redesign: Skill-Graph Tutor with Hidden Machinery
+
+## The core inversion
+
+The first plan was **agent-first**: define roles, then figure out what they do. The critique correctly says the architecture should be **outcome-first**: define what the exam tests, model the student's mastery of those skills, and let agents be disposable implementation details.
+
+### What the exam actually tests (the skill graph)
+
+A Cold War history exam doesn't test "topics." It tests **performance on task types applied to content**:
+
+| Skill node | Exam manifestation | Example |
+|---|---|---|
+| **Timeline recall** | "Put these events in order" / "When did X happen?" | Berlin Blockade → Korean War → Cuban Missile Crisis → Vietnam escalation |
+| **Actor-event binding** | "Who proposed X?" / "Which country did Y?" | Truman → Truman Doctrine, Marshall → Marshall Plan, Khrushchev → Cuban crisis |
+| **Causal chain construction** | "Why did X lead to Y?" / short-answer causation | Containment doctrine → Truman Doctrine → Marshall Plan → NATO |
+| **Compare/contrast** | Essay: "Compare two crises" or "Compare US/USSR strategies" | Berlin vs. Cuba: both brinkmanship, different resolutions, different stakes |
+| **Essay argument** | "To what extent was the Cold War inevitable?" | Thesis + evidence + counterargument + conclusion structure |
+| **Misconception resistance** | Trick questions, plausible-but-wrong multiple choice | "The Marshall Plan was a military alliance" (no, that's NATO) |
+
+These skill nodes have **prerequisite edges**: you can't construct causal chains without timeline recall and actor-event binding. You can't write a compare/contrast essay without causal chains on both events. The graph is a partial order, not a flat list.
+
+### The student model is a probability distribution, not a state machine
+
+For each skill node × content area, the system maintains a **mastery estimate** — a float between 0 and 1, decaying over time (forgetting curve), updated bayesianly on each student interaction:
+
+- Correct answer with high confidence → large upward update
+- Correct answer with low confidence → moderate upward update (lucky guess possible)
+- Wrong answer → downward update scaled by how wrong (date off by 1 year vs. completely fabricated)
+- No answer → small downward update (knowledge was not retrievable)
+- **Transfer evidence** counts double: if the student uses the Marshall Plan correctly in a causation answer after previously only getting it right in recall, that's stronger evidence of mastery than three more recall correct answers
+
+This replaces the brittle error classifier. The system doesn't need to decide "is this a factual error or conceptual confusion?" — it updates the relevant skill nodes probabilistically and lets the lowest-mastery nodes drive the next action.
+
+### Three hidden subsystems, one visible tutor
+
+The student sees **one coherent tutor persona**. Behind the curtain:
+
+**1. Mastery Estimator** (runs after every student response)
+- Updates the skill × content mastery matrix
+- Lightweight — could be rule-based (Bayesian Knowledge Tracing) or a small LLM call
+- Outputs: updated mastery vector, newly-crossed thresholds, decay alerts for stale nodes
+
+**2. Curriculum Planner** (runs before every tutor turn)
+- Inputs: mastery vector, time budget, depth preference, session history
+- Outputs: the next action — what skill to target, what content to use, what task format
+- This is the **policy**. It's the part that matters most and the part the first plan underspecified
+- Implementation: a single LLM call (Haiku-class) with the full mastery state as structured JSON input, returning a structured action
+
+**3. Tutor Interface** (the visible agent)
+- Receives the Planner's action instruction + full conversation history
+- Generates the actual student-facing content
+- Has **no routing logic of its own** — it executes what the Planner decided
+- Adapts tone and format to match the action type (direct instruction, question, feedback, exam simulation)
+- Uses a single system prompt that covers all modes — no persona switching
+
+This directly addresses the "conversation router, not a tutor" risk. The Planner is the tutor. The interface is just a mouth.
+
+## The Exam Simulator flip
+
+The most radical and correct suggestion from the critique: **start with exam simulation, not lectures.**
+
+### Session flow
+
+**Phase 0: Diagnostic (first 5 minutes)**
+- Present 8-10 rapid-fire exam-format questions sampling all skill nodes
+- Mix: 4 timeline/recall, 2 actor-event, 2 causation short-answer, 1 mini-essay prompt
+- Student answers are fast and imperfect — that's the point
+- Result: initial mastery vector. The system now knows where the student stands.
+
+**Phase 1: Targeted repair (bulk of session)**
+- Planner selects the lowest-mastery skill × content pair
+- Tutor executes the appropriate action:
+  - For recall gaps: **direct instruction + immediate test**. Not Socratic probing. "The Korean War started in 1950 when North Korea invaded the South. Now — what year did the Korean War start?" This is the "collapse uncertainty fast" mode.
+  - For causal chain gaps: **worked example + similar problem**. "Here's how containment led to the Truman Doctrine: [explanation]. Now explain how the Truman Doctrine led to the Marshall Plan."
+  - For essay gaps (mastery-track only): **structured argument exercise**. "Write a thesis statement for: 'The arms race was the primary driver of Cold War tension.' Now write one sentence of counterevidence."
+- After each student response, Mastery Estimator updates, Planner re-evaluates
+- **Key: the same content appears in multiple formats.** The Marshall Plan shows up as a recall question, then as part of a causal chain, then as evidence in an essay argument. Transfer is tested, not assumed.
+
+**Phase 2: Consolidation**
+- When mastery vector is above threshold across all weighted skill nodes
+- Or when time budget is running low
+- Run a **mini mock exam** (not a full 45-minute simulation — 10-15 questions, 5 minutes)
+- Score it, identify remaining gaps, do one more targeted pass if time allows
+- Show the student their mastery heat map and say "here's what's solid, here's what to review on your own"
+
+**The mock exam is not a capstone — it's a recurring diagnostic that bookends each session.** Session starts with diagnosis, ends with assessment, and the middle is repair.
+
+## Depth preference changes the policy, not the architecture
+
+| Depth | Planner behavior | Time allocation |
+|---|---|---|
+| **Just pass (tomorrow)** | Target only high-weight exam items. Recall + actor-event only. Skip essay skills unless exam requires one. Direct instruction always; never Socratic. | 80% drill, 15% diagnostic, 5% essay outline |
+| **Thorough (next week)** | Cover all skill nodes. Causal chains required. One full essay practice. Socratic probing for causal gaps. | 40% drill, 30% causation, 20% essay, 10% diagnostic |
+| **Mastery (next month)** | Full graph coverage including competing interpretations. Perspective-switching inside essay practice. Spaced repetition across sessions with forgetting-curve decay. | 25% drill, 25% causation, 30% essay + perspectives, 20% diagnostic/mock |
+
+The architecture is identical in all three cases. Only the Planner's weights and action selection change.
+
+## Competing interpretations belong inside essay practice
+
+Not as a separate agent. Not as a separate mode. The student encounters historiographic debate **when constructing arguments**:
+
+> "You wrote that the Cold War was primarily ideological. Now argue the opposite — that it was fundamentally about geopolitical power. Use three specific events as evidence."
+
+This is essay skill training. The competing interpretation is the exercise format, not a pedagogical philosophy imposed on the student. For "just pass" students, this never appears. For mastery students, it's the core of essay prep.
+
+## Confidence: sparse, not per-question
+
+The critique is right — mandatory per-question confidence creates friction. Revised approach:
+
+- **Diagnostic phase:** Ask confidence on every item (it's a short burst, establishing baseline)
+- **Repair phase:** Ask confidence only when the Planner detects a suspiciously easy correct answer (possible rote recall without understanding) or when revisiting a previously-failed topic
+- **Assessment phase:** Ask confidence on every item again (measuring calibration improvement)
+- **Never block on confidence.** If the student ignores the prompt, default to "medium" and move on.
+
+## Readiness is transfer-tested
+
+"Ready" means the student can use the same knowledge in at least two different task formats:
+- Marshall Plan: recall correct AND used correctly in a causal chain
+- Cuban Missile Crisis: timeline correct AND compare/contrast with Berlin done competently
+- Détente: actor-event correct AND essay argument using it as evidence
+
+The mastery matrix naturally captures this because skill nodes are separate from content nodes. The student needs sufficient mastery in both dimensions.
+
+## Mapping to shelley.ts
+
+This design needs real extension of the engine, not just a new topic file:
+
+| Component | Implementation path |
+|---|---|
+| Mastery Estimator | New module: `mastery.ts`. Bayesian Knowledge Tracing with forgetting curve. JSON state per session. |
+| Curriculum Planner | Repurpose **moderator** infrastructure. The Planner IS the moderator — it observes, decides next action, injects instruction to the Tutor. Single Haiku-class call returning structured JSON. |
+| Tutor Interface | Single agent (Agent A). System prompt covers all modes: instruction, questioning, feedback, exam simulation. No persona switching. |
+| Student input | Replace Agent B's LLM call with `readline` / stdin. The student IS Agent B. |
+| Skill graph | Static config: `skill-graph.json` defining nodes, edges, content mappings, exam weights. Loaded at session start. |
+| Session persistence | Extend `RESUME_FROM_LOG` to also serialize/restore the mastery matrix. Enables spaced repetition across days. |
+| Diagnostic/mock exam | New mode in the Planner: emit a batch of questions covering all skill nodes, score as a unit. |
+
+The creativity dial gets reinterpreted: instead of 5→1 over rounds, the Planner sets it per-turn based on what action it's requesting. Direct instruction = dial 1. Causal exploration = dial 3. Essay with competing perspectives = dial 5. The dial becomes a **per-action parameter**, not a session-level decay.
+
+## What this kills from the original design
+
+- Named teaching agents (Lecturer, Driller, Socratic) — absorbed into one Tutor with mode parameters
+- FSM routing — replaced by Planner policy over continuous mastery estimates
+- Error type classifier — replaced by Bayesian updates across multiple skill nodes
+- Capstone-only mock exam — replaced by diagnostic-first, recurring assessment
+- Topic-driven coverage — replaced by skill × content matrix
+- Per-question mandatory confidence — replaced by sparse strategic confidence probes
+
+## What survives
+
+- One orchestrating intelligence (Conductor → Planner) that makes all routing decisions
+- Student as human-in-the-loop, not an LLM agent
+- Dynamic adaptation based on student performance
+- Depth preference driving policy, not architecture
+- Competing interpretations gated by depth and embedded in essay practice
+- Session persistence for spaced repetition
+
+## Open questions for Round 3
+
+1. **BKT vs. LLM-as-estimator:** Should mastery estimation be algorithmic (Bayesian Knowledge Tracing — well-understood, fast, interpretable) or should we let a small LLM judge mastery from the conversation? BKT is faster and more predictable; LLM estimation catches subtler signals but is slower and harder to debug.
+
+2. **Single Tutor persona vs. acknowledged mode shifts:** Should the Tutor say "Now let's practice essay structure" (transparent mode shift) or should it weave transitions naturally? Transparency helps the student understand what they're practicing; seamlessness keeps flow.
+
+3. **Forgetting curve parameters:** For spaced repetition across sessions, what decay rate? Educational research suggests different rates for different content types (dates decay faster than causal understanding). Should the system calibrate per-student from diagnostic data?
+
+4. **Exam format fidelity:** How closely should the mock exam mirror the actual test format? If we know it's multiple choice, present multiple choice. If we know it's free-response, present free-response. The system should ask the student what format the exam uses — and this hasn't been captured in the student profile intake yet.
+
+Turn 2 - Assistant
+The redesign is materially better. It fixes the biggest flaw in the first proposal: it stops treating agent roles as the architecture and starts treating student performance as the architecture.
+
+That said, it still has three important weaknesses.
+
+1. The skill graph is better than topic flow, but it is still too clean for history. Real student failure modes are not just `timeline / causation / essay`. They include confusions like “NATO vs Marshall Plan,” “Korea vs Vietnam as interchangeable proxy wars,” and “détente as peace rather than temporary stabilization.” Those are misconception clusters, not generic skills. Add a second layer to the model: not just `skill x content`, but `misconception flags` that the planner can explicitly target.
+
+2. “One visible tutor” is good for coherence, but total persona flattening loses useful mode contrast. Studying benefits from distinct pressure regimes. The student should feel when they are in `teach mode`, `drill mode`, and `exam mode`, even if it is the same underlying tutor. Otherwise the system becomes smooth but pedagogically blurry.
+
+3. The planner is still optimizing mastery, when the real target is exam score per minute. That is not the same objective. If the exam is tomorrow, the system should aggressively prioritize high-yield items: canonical dates, named doctrines, 2-3 reusable essay frames, and the most testable comparisons. Some low-frequency skill gaps should be ignored on purpose.
+
+The strongest version is a hybrid:
+
+- One visible tutor.
+- One hidden planner.
+- One hidden estimator.
+- One hidden grader/rubric extractor.
+
+The grader is the missing piece. For history, open responses need to be decomposed into:
+- factual correctness
+- causal structure
+- use of evidence
+- exam-style answer shape
+
+That argues against pure BKT and against pure LLM estimation. Use a hybrid:
+- Rule-based extraction for dates, names, event links, chronology.
+- LLM rubric scoring for short answers and essays.
+- BKT-style update on top of those structured signals.
+
+On the open questions:
+
+1. BKT vs LLM estimator  
+Use neither alone. Pure BKT is too crude for essays; pure LLM is too unstable. Best design is `LLM extracts rubric evidence -> deterministic updater adjusts mastery state`.
+
+2. Single tutor vs explicit mode shifts  
+Use explicit mode shifts. Say “Now: 3-minute exam mode” or “Now: repair mode on chronology.” Transparency helps the student understand what is being trained.
+
+3. Forgetting curve parameters  
+Do not overfit early. Start with fixed decay by evidence type:
+- dates/names decay fastest
+- causal chains medium
+- essay structures slowest
+Then personalize only after multiple sessions.
+
+4. Exam format fidelity  
+This is not optional. Ask it upfront. A multiple-choice exam and a compare/contrast essay exam should produce very different policies.
+
+Two non-obvious additions would improve this a lot:
+
+- Add a `Last-Minute Sheet` artifact generator. The system should continuously build a one-page cram sheet from the student’s weak spots. For “exam tomorrow,” this may be more valuable than another elegant adaptive loop.
+- Add `answer compression` drills. Many students know the material but cannot produce a tight 3-sentence answer under time pressure. Practice “state claim -> give evidence -> name consequence” in strict length limits.
+
+Bottom line: the redesign is directionally right, but the final architecture should be `score-optimization tutor`, not just `mastery-estimation tutor`. For exam prep, that distinction matters.
+
+Current user message:
+[Creativity: 2/5] Refine the current approach. Fix issues. Tighten the spec. Avoid introducing new directions.
+
+Good — the critique narrows the three remaining gaps: misconception modeling, mode transparency, and objective function. All accepted. Let me integrate everything into a tight spec.
+
+---
+
+# Final Architecture: Exam-Score-Optimized Tutoring System
+
+## System overview
+
+Four components. One visible, three hidden. One objective: **maximize expected exam score per minute of study time.**
+
+```
+Student ↔ Tutor Interface (visible)
+              ↑ action instruction
+         Curriculum Planner (hidden)
+              ↑ mastery state + rubric scores
+         Mastery Estimator (hidden)     Grader (hidden)
+              ↑ structured evidence ←────┘
+         Student response
+```
+
+## The student model (three layers)
+
+**Layer 1: Skill × Content mastery matrix**
+
+Rows = 6 skill types. Columns = content areas (≈12 for Cold War). Each cell is a float [0, 1] with a timestamp.
+
+Skills: `timeline_recall`, `actor_event_binding`, `causal_chain`, `compare_contrast`, `essay_argument`, `misconception_resistance`
+
+Content areas: `origins_containment`, `truman_doctrine`, `marshall_plan`, `berlin_crises`, `korean_war`, `nato_warsaw_pact`, `cuban_missile_crisis`, `vietnam`, `arms_race_mad`, `detente`, `reagan_sdi`, `ussr_collapse`
+
+**Layer 2: Misconception flags**
+
+Named confusion clusters, each a boolean + confidence:
+
+| Misconception ID | Description | Triggered by |
+|---|---|---|
+| `nato_marshall_conflation` | Confuses NATO (military) with Marshall Plan (economic) | Student uses "Marshall Plan" in military context or vice versa |
+| `proxy_war_interchangeable` | Treats Korea and Vietnam as equivalent | Student swaps details between the two, or says "like Korea" when discussing Vietnam without distinction |
+| `detente_as_peace` | Thinks détente ended the Cold War or was permanent peace | Student describes détente as resolution rather than temporary stabilization |
+| `cold_war_bilateral` | Ignores non-superpower actors (China, NAM, Europe) | Student frames every event as purely US vs. USSR |
+| `arms_race_one_sided` | Thinks only one side escalated | Student omits Soviet nuclear program or US first-strike debates |
+| `inevitability_bias` | Assumes Cold War was inevitable / USSR collapse was inevitable | Student cannot articulate contingency or alternative outcomes |
+
+Misconceptions are **not inferred from skill scores** — they're detected by the Grader from specific textual evidence in student responses. A student can have high recall mastery and still hold `detente_as_peace`.
+
+When a misconception flag is active, the Planner **injects targeted correction tasks** regardless of what the mastery matrix would otherwise prioritize.
+
+**Layer 3: Exam-weighted priority scores**
+
+Each skill × content cell has a **yield weight** = `P(appears on exam) × point_value × (1 - current_mastery)`. The Planner optimizes for total yield, not uniform mastery. Low-frequency exam items get deprioritized under time pressure; high-frequency items get hammered.
+
+Weights are initialized from exam format (asked upfront) and student depth preference:
+
+| Exam format | High-weight skills | Low-weight skills |
+|---|---|---|
+| Multiple choice | timeline_recall, actor_event_binding, misconception_resistance | essay_argument |
+| Short answer | causal_chain, actor_event_binding | compare_contrast |
+| Essay-heavy | essay_argument, compare_contrast, causal_chain | timeline_recall (still needed as substrate) |
+| Mixed | All weighted proportionally | — |
+
+## The four components, specified
+
+### 1. Tutor Interface (visible)
+
+**What the student sees.** Single LLM agent (Opus-class for quality). Single session with conversation history.
+
+**System prompt structure:**
+```
+You are a history exam tutor. You operate in three explicit modes:
+- TEACH: Present information clearly and concisely. Use mnemonics when helpful.
+- DRILL: Ask questions, evaluate answers, correct errors with minimal explanation.
+- EXAM: Simulate exam conditions. No hints. Strict time framing. Score afterward.
+
+You will receive a [MODE] and [ACTION] instruction before each turn.
+Follow the action precisely. Do not add unrequested material.
+Maintain a warm but efficient tone. The student's time is limited.
+```
+
+**Mode shifts are announced to the student.** "Switching to drill mode — 5 quick questions on the timeline we just covered." This gives the student distinct pressure regimes without persona fragmentation.
+
+**The Tutor never decides what to teach next.** It executes Planner instructions. If the Planner says `{mode: "DRILL", skill: "timeline_recall", content: "cuban_missile_crisis", format: "date_question"}`, the Tutor asks "What month and year was the Cuban Missile Crisis?"
+
+### 2. Grader (hidden)
+
+**Runs after every student response.** Decomposes the response into structured evidence.
+
+**For recall/binding questions (rule-extractable):**
+```json
+{
+  "question_type": "date_recall",
+  "content_area": "korean_war",
+  "correct": false,
+  "student_answer": "1952",
+  "expected": "1950",
+  "error_magnitude": "2_years",
+  "misconceptions_triggered": []
+}
+```
+
+**For causal/essay responses (LLM-scored):**
+```json
+{
+  "question_type": "causal_chain",
+  "content_area": "truman_doctrine",
+  "rubric_scores": {
+    "factual_correctness": 0.8,
+    "causal_structure": 0.5,
+    "evidence_use": 0.6,
+    "answer_shape": 0.3
+  },
+  "misconceptions_triggered": ["cold_war_bilateral"],
+  "transfer_evidence": ["marshall_plan"]
+}
+```
+
+**Implementation:** Haiku-class LLM call with a structured output schema. For pure recall, skip the LLM — pattern match against the answer key. The Grader is fast and cheap; it runs on every turn.
+
+**`transfer_evidence`** tracks when content from a different area appears correctly in the current answer. This feeds back to the Estimator as cross-skill mastery evidence.
+
+### 3. Mastery Estimator (hidden)
+
+**Runs after the Grader.** Updates the student model deterministically from structured Grader output.
+
+**Update rules (BKT-inspired, not pure BKT):**
+
+For the directly-tested skill × content cell:
+- Correct + recall: `mastery += learn_rate × (1 - mastery)` where `learn_rate = 0.3`
+- Correct + causal/essay: update each rubric dimension separately, weighted average
+- Wrong: `mastery -= slip_rate × mastery` where `slip_rate` scales with error magnitude
+- No answer: `mastery *= 0.9` (mild decay, "couldn't retrieve")
+
+For transfer evidence:
+- If content X appears correctly in an answer about content Y: `mastery[current_skill][X] += 0.15 × (1 - mastery[current_skill][X])` — smaller update but valuable signal
+
+For misconceptions:
+- Triggered: set flag to `active`, reset confidence timer
+- Not triggered on a question where it could have appeared: increment `clear_count`
+- `clear_count >= 3`: set flag to `resolved`
+
+**Forgetting curve (between sessions only):**
+- Dates/names: `mastery *= 0.85^days_elapsed`
+- Causal chains: `mastery *= 0.92^days_elapsed`
+- Essay structures: `mastery *= 0.96^days_elapsed`
+- No decay within a single session (student hasn't slept yet)
+
+**No personalization of decay rates until session 3+.** Fixed parameters first.
+
+### 4. Curriculum Planner (hidden)
+
+**Runs before every Tutor turn.** The policy engine. Optimizes for exam score per minute.
+
+**Inputs:** mastery matrix, misconception flags, exam weights, time budget remaining, session history (what's been asked, what modes have been used recently)
+
+**Output:** A single structured action:
+```json
+{
+  "mode": "DRILL",
+  "skill": "actor_event_binding",
+  "content": "marshall_plan",
+  "format": "who_proposed",
+  "reason": "highest yield cell (weight 0.8, mastery 0.2)",
+  "misconception_override": null
+}
+```
+
+**Priority logic:**
+
+1. **Active misconceptions first.** If any misconception flag is active, inject a correction task targeting that specific confusion. Misconceptions are silent mastery destroyers — they corrupt other skills downstream.
+
+2. **Highest yield cell.** `yield = exam_weight × (1 - mastery)`. Pick the cell with highest yield. This naturally deprioritizes low-frequency content and already-mastered content.
+
+3. **Format rotation.** Don't ask the same format twice in a row for the same content. If the student just answered a recall question on the Marshall Plan, the next Marshall Plan question should be causal chain or essay (tests transfer).
+
+4. **Mode pacing.** Don't stay in DRILL for more than 8 consecutive turns — switch to TEACH for a brief reset, or EXAM for a mini-diagnostic. Don't stay in TEACH for more than 2 turns — always test after teaching.
+
+5. **Time budget pressure.** When `time_remaining < 20%`:
+   - Drop all skill targets below the top 60% by yield
+   - Switch to DRILL-only mode
+   - Begin generating the Last-Minute Sheet
+
+**Implementation:** Haiku-class LLM call, or potentially rule-based if the priority logic above is sufficient. Start rule-based; add LLM only if the rules produce bad sequences.
+
+## Session protocol
+
+### Student intake (30 seconds)
+
+Four questions, asked once at session start:
+
+1. **Exam format:** Multiple choice / short answer / essay / mixed?
+2. **Time until exam:** Tomorrow / this week / next week+?
+3. **Depth goal:** Pass / solid / mastery?
+4. **Session time available now:** 15min / 30min / 60min+?
+
+These four inputs parameterize everything: exam weights, yield calculations, mode ratios, forgetting curve relevance, and whether essay/perspective skills are in scope at all.
+
+### Phase 0: Diagnostic (2-5 minutes)
+
+8-10 exam-format questions spanning all in-scope skill × content cells. Fast-paced. The student shouldn't agonize — first instinct answers are the most informative for calibration.
+
+Mix calibrated to exam format:
+- MC exam: 6 recall, 2 binding, 2 misconception traps
+- Essay exam: 3 recall, 2 causal, 2 compare-contrast prompts (short-form), 1 thesis construction
+- Mixed: proportional blend
+
+Result: initialized mastery matrix + any misconception flags triggered.
+
+### Phase 1: Targeted repair (bulk of session)
+
+Loop: `Grader → Estimator → Planner → Tutor → Student → Grader → ...`
+
+Each iteration is one exchange. The Planner selects the highest-yield action. The Tutor executes it. The student responds. The Grader scores. The Estimator updates.
+
+**Teach-then-test cadence:** When the Planner targets a cell with mastery < 0.3, it issues a TEACH action first, then immediately follows with a DRILL action on the same cell. The student gets instruction and immediate retrieval practice — not one or the other.
+
+**Answer compression drills (for essay-format exams):** When the Planner targets essay skills, it enforces strict format: "State your claim in one sentence. Give one piece of evidence. Name one consequence. Stop." This trains exam-ready answer shape under time pressure. The Grader scores `answer_shape` as a rubric dimension.
+
+### Phase 2: Consolidation (last 15-20% of session)
+
+Mini mock exam: 10-12 questions in exam format, timed, no hints. Grader scores all at once. Estimator batch-updates.
+
+Then: show the mastery heat map. Green/yellow/red per content area, with the top 3 items to review.
+
+### Last-Minute Sheet (generated continuously, delivered at end)
+
+A one-page artifact — the student's personalized cram sheet. Built incrementally by the Planner from:
+- Every misconception the student held (corrected version)
+- Every high-yield item where mastery remained below 0.6
+- The 5 most important dates/names/treaties
+- 2-3 reusable essay frames (for essay exams)
+
+Format: dense, scannable, no prose. Dates in a timeline. Names in a table. Essay frames as fill-in-the-blank templates.
+
+**For "exam tomorrow" students, this sheet may be the single highest-value output of the entire session.** The adaptive tutoring is means; the sheet is an end.
+
+## Mapping to shelley.ts extensions
+
+| Component | File | Extends |
+|---|---|---|
+| Tutor Interface | `tutor.ts` | Agent A with multi-mode system prompt; session via `claude --session-id` |
+| Grader | `grader.ts` | New module. Haiku call with structured JSON output. Rule-based fast path for recall. |
+| Mastery Estimator | `mastery.ts` | New module. Pure TypeScript, no LLM calls. BKT update rules + forgetting curve. |
+| Curriculum Planner | `planner.ts` | Extends moderator infrastructure. Structured JSON output. Rule-based first, LLM fallback. |
+| Skill graph config | `skill-graph.json` | Static config: skill nodes, content areas, prerequisite edges, exam weights. |
+| Misconception registry | `misconceptions.json` | Static config: misconception IDs, trigger patterns, correction tasks. |
+| Student model state | `session-state.json` | Serialized mastery matrix + misconception flags + session history. Enables resume across days. |
+| Last-Minute Sheet | `cram-sheet.md` | Generated artifact, updated each turn, delivered at session end. |
+| Student I/O | `student-io.ts` | Replaces Agent B's LLM call with readline stdin. Captures answer + optional confidence. |
+
+## What is now locked
+
+- **Objective:** exam score per minute, not uniform mastery
+- **Model:** skill × content matrix + misconception flags + exam-weighted yield
+- **Estimation:** LLM Grader extracts structured evidence → deterministic Estimator updates state
+- **Planning:** yield-ranked priority with misconception overrides and format rotation
+- **Interface:** one tutor, three explicit modes (TEACH/DRILL/EXAM), announced transitions
+- **Session flow:** intake → diagnostic → targeted repair → consolidation → cram sheet
+- **Artifacts:** mastery heat map + Last-Minute Sheet
+- **Decay:** fixed by evidence type, personalized only after session 3
+- **Exam format fidelity:** asked upfront, drives everything downstream
+
+Respond as the assistant only. Do not include tool logs.
+mcp: arxiv starting
+mcp: mail starting
+mcp: mail ready
+mcp: arxiv ready
+mcp startup: ready: mail, arxiv
+codex
+**Findings**
+
+1. The model still conflates `unknown` with `weak`. An 8-10 question diagnostic cannot cover the full skill × content grid, so many cells will be unobserved. If the Planner treats low-evidence cells as low-mastery cells, it will over-remediate blind spots it has not actually measured. Tighten the state to store `mastery` and `evidence_count` or `confidence` separately, and make the Planner treat unseen cells as uncertain, not deficient.
+
+2. `Active misconceptions first` is too absolute. That rule can let one flagged misconception hijack the whole session, especially if the flag was triggered from weak evidence in a single free-text answer. Keep the override, but bound it: one targeted correction, one immediate retest, then return to normal yield ranking unless the misconception reappears. Otherwise the policy stops being score-per-minute optimization.
+
+3. The Grader output for open responses is still too loose. Floating rubric scores like `0.8 / 0.5 / 0.6 / 0.3` look precise, but without anchored scoring criteria they will drift across turns and contaminate the deterministic Estimator. Tighten this by making the Grader extract concrete evidence first: matched facts, missing evidence, causal link present/absent, answer shape met/not met. Then map that to a small discrete scale.
+
+4. The Planner needs explicit base weights, not just the formula. `yield = exam_weight × (1 - mastery)` is correct, but `exam_weight` is still underspecified. Lock a default weight table by exam format and time horizon, or the policy will be arbitrary in the exact place where this design claims to be exam-optimized.
+
+5. The readiness criterion is still implied rather than specified. You have the heat map and mini-mock, but not the actual stop rule. Tighten it to something operational: no active high-impact misconceptions, expected score above threshold on the latest mini-mock, and transfer demonstrated on the top-weighted content areas. Otherwise “consolidation” has no clear end condition.
+
+**What’s Strong Now**
+
+This is now the right architecture. One visible tutor, hidden planner/estimator/grader, explicit modes, exam-format intake, recurring diagnostics, and a yield-driven policy is a coherent spec rather than an agent role-play.
+
+The remaining work is mostly precision work, not redesign. Add uncertainty tracking, bound misconception overrides, constrain grading, lock the weight table, and define readiness explicitly. After that, this is implementable.
+tokens used
+21 015
+
+[2026-03-26T14:31:09.074Z] codex:gpt-5.4
+OpenAI Codex v0.116.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019d2a8e-04cd-7f33-8494-ef35359bd3b2
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: ## Multi-Agent Tutoring System for Exam Prep
+
+A student is preparing for a high-school history exam on the Cold War (1947-1991).
+The lecture covered: origins (Truman Doctrine, Marshall Plan), key crises (Berlin,
+Cuba, Korea, Vietnam), detente, arms race, and collapse of the USSR. The exam will
+test both factual recall (dates, names, treaties) and analytical reasoning (causes,
+consequences, compare/contrast essay questions).
+
+Design a multi-agent system that helps the student study effectively.
+
+### Proposed agent roster (debate whether this is right)
+- **Narrator** -- presents structured summaries of each topic segment
+- **Quizmaster** -- asks narrow recall questions (dates, names, events)
+- **Socratic challenger** -- asks open-ended analytical questions ("Why did detente fail?")
+- **Fact-checker** -- validates student answers and corrects misconceptions
+- **Context agent** -- provides broader context when the student is stuck ("The Marshall Plan connects to...")
+- **Progress tracker** -- monitors coverage gaps and steers the session
+
+### Student profile and session constraints
+The system should ask the student upfront:
+- **Depth preference:** minimal effort (just pass) -> thorough understanding -> board-sweeping mastery
+- **Time budget:** exam is tomorrow vs. next week vs. next month
+- **Session structure:** single marathon vs. spaced sessions over days
+
+These inputs should drive agent behavior: a "just pass tomorrow" student gets mostly Quizmaster + Fact-checker drilling key facts; a "deep mastery over 2 weeks" student gets more Socratic challenger + competing interpretations + spaced repetition across sessions.
+
+### Key design questions for debate
+- Is this the right set of agents, or should some be merged/split? Is six too many?
+- Should agents run in a fixed sequence (narrate -> quiz -> discuss -> review) or should the student's performance dynamically route to the right agent?
+- How should the system balance factual drill vs. deeper analytical questioning? What ratio, and who decides?
+- When the student gives a wrong answer, which agent responds -- the fact-checker, the context agent, or the Socratic challenger? Does it depend on the type of error?
+- How does the system decide the student is "ready" for the exam?
+- Should there be a simulated exam agent that runs a mock test at the end?
+- Should the system use gamification or prediction markets? E.g., the student bets confidence points on their answers, earning/losing points -- and the system uses those confidence signals to identify weak spots. Does this help motivation, or is it a distraction for exam prep?
+- Could agents themselves use an internal prediction market to decide which topic to cover next (each agent "bids" on what it thinks the student needs most)?
+- Should some agents deliberately present competing interpretations of the same events? E.g., one agent frames the Cold War as primarily an ideological struggle, another as a geopolitical power contest, another as an economic competition. This exposes the student to historiographic debate and builds critical thinking -- but does it confuse a student who just needs to pass an exam? How do you balance "multiple perspectives" with "there's a right answer on the test"?
+
+Here is the first proposal:
+
+# Multi-Agent Tutoring System: Architectural Plan
+
+## Radical premise challenge
+
+The proposal has **six agents solving a problem that needs three agents and an orchestrator.** Six peer agents is a coordination nightmare — the heated-debate engine already shows that even two agents need careful turn management. More importantly, tutoring isn't a symmetric debate; it's **asymmetric service delivery to a human in the loop.** The student breaks the existing A↔B symmetry entirely.
+
+---
+
+## Agent Roster: Merge to Four
+
+**Kill the six-agent roster. Merge to three teaching agents + one conductor.**
+
+- **Lecturer** (Narrator + Context agent merged)
+  - Presents structured material, provides broader connections when student is stuck
+  - Rationale: Narrating and providing context are the same cognitive operation — delivering information. Splitting them creates an artificial handoff where the Lecturer mid-explanation would need to "call" the Context agent. Absurd.
+
+- **Driller** (Quizmaster + Fact-checker merged)
+  - Asks recall questions, evaluates answers, corrects with authoritative facts
+  - Rationale: The agent asking "When was the Berlin Blockade?" is the natural agent to say "No, it was 1948, not 1946." Splitting question-asking from answer-checking creates a pointless relay. The Driller owns the recall loop end-to-end.
+
+- **Socratic** (unchanged, but scoped)
+  - Asks analytical/causal/comparative questions, pushes deeper with follow-ups
+  - Never gives answers directly — always probes
+  - Only deployed when depth preference ≥ "thorough"
+
+- **Conductor** (Progress tracker, repurposed as the Moderator)
+  - **Not a peer agent** — this is the orchestrator/moderator
+  - Tracks coverage map, routes to the right teaching agent, decides session pacing
+  - Maps directly to the existing moderator architecture: observes, injects guidance, overrides routing
+
+**Why this is right:**
+- Three teaching agents map to three pedagogical modes: inform → test → analyze
+- Conductor maps cleanly to the existing moderator primitive
+- Student input replaces Agent B — the student is the "second participant" in each exchange
+- Total LLM calls per turn: 1 conductor decision + 1 teaching agent response = 2 (vs. 6 if every agent deliberates)
+
+---
+
+## The Student Is Not an Agent — The Student Is the Environment
+
+**Critical architectural decision: the student is not modeled as an LLM agent.** The student provides real input via stdin. This means:
+
+- The orchestration loop becomes: **Conductor selects agent → Agent generates prompt/content → Student responds → Conductor evaluates and routes next**
+- The heated-debate `A→B→A→B` loop becomes `Conductor→Agent[i]→Student→Conductor→Agent[j]→Student→...`
+- Agent selection is **dynamic per turn**, not fixed alternation
+- The Conductor sees: student's answer + which agent asked + correctness signal + coverage state
+
+---
+
+## Dynamic Routing Over Fixed Sequences
+
+**Fixed sequences are wrong for tutoring.** A student who aces recall questions shouldn't sit through 10 more Driller rounds before getting Socratic challenges. A student who can't place the Korean War shouldn't get pushed into essay analysis.
+
+**Routing logic (Conductor decides):**
+
+- **Entry:** Always start with Lecturer on the first uncovered topic
+- **After Lecturer segment:** Route to Driller (test comprehension of what was just presented)
+- **After correct Driller answer:** Either advance to next topic (Lecturer) or deepen (Socratic) — based on depth preference
+- **After wrong Driller answer:**
+  - If factual error (wrong date, wrong name): Driller corrects and re-asks
+  - If conceptual confusion (misattributes cause, conflates events): Route to Lecturer for re-explanation, then Socratic to probe the gap
+  - If student says "I don't know": Route to Lecturer with a hint, then back to Driller
+- **After Socratic exchange:** Route back to Driller for a different topic (prevents fatigue on one thread)
+
+**This is essentially a finite state machine with the Conductor as the transition function.**
+
+States: `{Lecture, Drill, Socratic, Review, MockExam, Done}`
+Transitions: driven by student performance + coverage + time budget
+
+---
+
+## The Depth Dial: Repurposing the Creativity Dial
+
+The creativity dial (5→1) maps beautifully to a **pedagogical depth dial**:
+
+| Dial | Creativity meaning | Tutoring meaning | Agent mix |
+|------|-------------------|-------------------|-----------|
+| 5 | Wild exploration | Deep historiographic debate, competing interpretations | Heavy Socratic, multi-perspective |
+| 4 | Creative alternatives | Analytical questions, cause-effect chains | Socratic + Driller |
+| 3 | Balanced | Mix of recall and analysis | Even Driller/Socratic split |
+| 2 | Focused refinement | Targeted drilling on weak areas | Heavy Driller, some Lecturer |
+| 1 | Precise convergence | Pure exam simulation, rapid recall | Driller only, mock exam mode |
+
+**But the dial should NOT auto-decay from 5→1 over rounds.** Instead:
+- **Student's depth preference sets the ceiling** ("just pass" = max dial 2; "mastery" = dial 5)
+- **Time remaining sets the floor** (exam tomorrow = decay faster toward 1; exam next month = stay at ceiling longer)
+- **Conductor dynamically adjusts** within the band based on performance
+
+---
+
+## Wrong-Answer Routing: The Interesting Decision
+
+**Who responds to a wrong answer depends on the failure mode, not a fixed rule:**
+
+| Error type | Signal | Responding agent | Rationale |
+|------------|--------|-----------------|-----------|
+| Wrong fact (date, name, treaty) | Student says "1952" for Korean War start | Driller | Quick correction + re-ask. Don't over-philosophize a factual miss. |
+| Conceptual confusion | Student says "Détente failed because of Vietnam" | Socratic | Probe: "What was the US position on Vietnam during détente? Were they related?" Let the student find the gap. |
+| Total blank / "I don't know" | No answer or vague response | Lecturer | Re-present the material with different framing or mnemonic. No shame spiral. |
+| Partially correct but shallow | Student gives a correct but surface-level essay answer | Socratic | Push deeper: "You said X caused Y — but what made X possible? What if X hadn't happened?" |
+| Confident but wrong | Student bets high confidence on wrong answer | **Lecturer then Socratic** | Two-step: correct the misconception authoritatively, then probe why they were confident (reveals systematic misunderstanding) |
+
+**The Conductor classifies error type using a lightweight LLM call** (Haiku-class model for speed). This classification drives routing.
+
+---
+
+## Competing Interpretations: Gated by Depth
+
+**This is the most provocative design question, and the answer is: yes, but only for mastery-track students, and never as free-floating confusion.**
+
+- **Depth ≤ 2 ("just pass"):** No competing interpretations. Present the textbook consensus. The exam has expected answers; teach those.
+- **Depth 3 ("thorough"):** Mention that historians disagree, but anchor to the textbook framing. "Some historians emphasize ideology, others power politics — your textbook focuses on ideology, so lead with that on the exam."
+- **Depth ≥ 4 ("mastery"):** Actively deploy competing frames. Have the Socratic agent present Event X through two lenses and ask the student to argue both sides. This is the best essay prep possible — but only if the student has the factual foundation first.
+
+**Implementation: not separate "perspective agents" — the Socratic agent switches frames via prompt engineering.** Adding three more agents (ideological, geopolitical, economic) is agent proliferation for zero benefit. One Socratic agent with parameterized framing instructions achieves the same thing.
+
+---
+
+## Gamification and Confidence Markets
+
+**Two separate proposals here. One is excellent, one is a trap.**
+
+### Student confidence betting — YES, build this
+- After each Driller question, student rates confidence 1-5 before answering
+- **Overconfidence on wrong answers** = highest-priority weak spots (student doesn't know what they don't know)
+- **Underconfidence on correct answers** = reassurance opportunities, build exam confidence
+- **Well-calibrated** = student is ready
+- This is backed by metacognition research (calibration training measurably improves exam performance)
+- Implementation: simple numeric input, tracked in Conductor's state, used for routing priority
+
+### Internal agent prediction market — NO, this is over-engineering
+- Having agents "bid" on what to cover next sounds elegant but is just a weighted voting mechanism with extra LLM calls
+- The Conductor already has all the information (coverage map, accuracy per topic, confidence calibration, time remaining) — it can make the routing decision directly
+- An internal market adds 3 extra LLM calls per turn for a decision that a single Conductor call handles
+- **Kill this. It's intellectually fun but architecturally wasteful for a tutoring system.**
+- *Where it WOULD make sense:* a research-planning system where agents have genuinely different information and expertise. In tutoring, all agents see the same student state.
+
+---
+
+## Readiness Assessment: When Is the Student Done?
+
+**Four-signal readiness model:**
+
+- **Coverage:** ≥ 90% of syllabus topics have been Driller-tested at least once
+- **Accuracy:** Rolling accuracy on Driller questions ≥ 80% (configurable by depth preference)
+- **Depth:** For mastery-track: ≥ 3 Socratic exchanges with substantive analytical answers
+- **Calibration:** Student's confidence ratings correlate with actual accuracy (Brier score < threshold)
+
+**"Ready" is not binary — it's a heat map.** The Conductor maintains a per-topic score and shows the student:
+- Green: solid on this topic
+- Yellow: knows basics, gaps in detail
+- Red: major gaps
+
+**The student decides when to stop.** The system advises but doesn't gatekeep.
+
+---
+
+## Mock Exam: Yes, as the Capstone
+
+- **Simulated exam agent** = the Driller in "exam mode" (dial 1, no hints, timed)
+- Mix of recall questions (60%) and one essay prompt (40%) — matching real exam format
+- Graded by the Conductor, with a breakdown of what to review in remaining time
+- **If the student has time:** mock exam → review weak spots → second mock exam
+- Maps to the existing "expert panel" primitive: the mock exam IS the panel evaluation, adapted for pedagogy
+
+---
+
+## Mapping to heated-debate Primitives
+
+| Tutoring concept | heated-debate primitive | Modification needed |
+|-----------------|------------------------|-------------------|
+| Conductor | Moderator | Heavier routing logic; maintains coverage state; classifies errors |
+| Lecturer / Driller / Socratic | Agent A/B | Extend from 2 fixed agents to 3 selectable agents; system prompt swapped per turn |
+| Student | (new) stdin input | Replace one agent's LLM call with human input; async wait |
+| Depth preference | Creativity dial | Reinterpret levels; student-set ceiling; dynamic floor |
+| Coverage map | (new) | JSON state object maintained by Conductor across turns |
+| Confidence betting | (new) | Numeric input captured alongside student answer |
+| Mock exam | Expert panel | Repurpose as assessment + scoring |
+| Session structure | Resume/checkpoint | Use existing `RESUME_FROM_LOG` for spaced sessions over days |
+
+---
+
+## Key Tradeoffs Acknowledged
+
+- **Merging agents loses specialization** → Mitigated by parameterized system prompts within each merged agent
+- **Dynamic routing adds Conductor overhead** → One Haiku-class call per turn (~200ms); worth it for adaptive learning
+- **No competing interpretations for low-depth** → Students who "just want to pass" miss critical thinking; acceptable given their stated goal
+- **Student in the loop breaks automated orchestration** → Can't auto-run 5 rounds overnight; sessions are necessarily interactive
+- **Confidence betting adds friction** → Make it optional per question; default to "medium" if student skips
+
+---
+
+## Summary of Decisions
+
+- **3 teaching agents + 1 conductor** (not 6 peers)
+- **Dynamic routing** via Conductor FSM (not fixed sequence)
+- **Depth dial** repurposed from creativity dial, student-set ceiling
+- **Error-type-dependent routing** for wrong answers
+- **Competing interpretations gated** by depth preference ≥ 4
+- **Student confidence betting** — yes
+- **Internal agent prediction market** — no
+- **Mock exam as capstone** — yes, repurposing expert panel
+- **Readiness = coverage × accuracy × calibration heat map**, student-decided termination
+
+Turn 1 - Assistant
+**Findings**
+
+1. The proposal still designs around agent taxonomy instead of learning outcomes. `Lecturer / Driller / Socratic / Conductor` is cleaner than six peers, but it is still an internal-org chart, not a student model. The real architecture should center on a competency graph: factual recall, causal chains, compare/contrast essays, chronology, and misconception clusters. Agents should be an implementation detail, not the top-level design.
+
+2. The `finite state machine + error classifier` is too brittle for tutoring. Student errors are rarely cleanly “fact vs concept vs blank.” A wrong Korea answer might reflect chronology confusion, vocabulary mismatch, or essay-level misunderstanding. Routing off a single classifier will mis-handle edge cases and create bad pedagogical jumps. You want probabilistic mastery estimates, not crisp state transitions.
+
+3. “Socratic never gives answers directly” is dogma, not pedagogy. For a student with the exam tomorrow, this is actively harmful. Under time pressure, the system needs a mode that collapses uncertainty fast: tell the correct answer, give the minimal explanation, then test transfer. Pure probing is appropriate only when mastery is the goal and cognitive load is low.
+
+4. The plan is topic-driven, but the exam is skill-driven. Marching through “origins, crises, détente, arms race, collapse” mirrors the lecture, not the test. The stronger structure is by exam task: timeline recall, actor/event matching, causation chains, compare/contrast, and essay argument construction. Otherwise the student may know the story and still underperform on exam-form questions.
+
+5. Confidence betting is plausible, but mandatory per-question confidence input will create friction and false precision. High-school students are bad at calibration, especially when stressed. Use confidence sparingly at checkpoints or only on uncertain items. Otherwise the system starts optimizing a measurement artifact instead of studying.
+
+6. Readiness metrics are underspecified and easy to game. `90% coverage + 80% accuracy + Brier threshold` can be satisfied with shallow, recent, narrow success. Readiness should require transfer: answer the same concept in multiple formats and after delay. If the student can name the Marshall Plan but cannot use it in a causation essay, they are not ready.
+
+7. Mock exam as a capstone is too late. The mock should appear early and repeatedly in miniature. The system needs diagnostic exam fragments from the start, or it cannot calibrate to actual exam demand.
+
+**Architectural Risk**
+
+The biggest hidden risk is that you are building a conversation router, not a tutor. The system may become impressive at handing off between personas while remaining mediocre at deciding what the student should do next. That is the classic multi-agent failure mode: theatrical specialization, weak policy.
+
+**Radical Alternatives**
+
+- Collapse to one visible tutor plus two hidden subsystems: a mastery estimator and a curriculum planner. The student experiences coherence; the system keeps adaptivity.
+- Flip the architecture: make the primary agent an `Exam Simulator`, not a lecturer. Everything else exists to repair failures exposed by realistic exam tasks.
+- Replace topic agents with failure-mode agents: `Chronology fixer`, `Causation coach`, `Essay adversary`, `Misconception detector`. That maps much better to exam performance.
+- For mastery-track students, use structured perspective-switching inside essay practice, not a separate Socratic lane. Competing interpretations belong in argument training, not as free-standing discussion.
+
+**Bottom Line**
+
+Merging six into four is directionally right, but still too agent-centric. The stronger design is: one coherent tutor interface, hidden assessment/planning machinery, early and repeated exam-style diagnostics, and routing based on estimated mastery of skills rather than topic-by-topic conversational state.
+
+Turn 2 - User
+[Creativity: 4/5] Suggest improvements and alternatives. Challenge assumptions. Consider non-obvious solutions.
+
+Good. The debate ran one round (Opus proposed, GPT-5.4 critiqued) then seems to have been cut short. Every one of those seven findings hits a real weakness. Let me absorb them and produce the redesign.
+
+---
+
+# Redesign: Skill-Graph Tutor with Hidden Machinery
+
+## The core inversion
+
+The first plan was **agent-first**: define roles, then figure out what they do. The critique correctly says the architecture should be **outcome-first**: define what the exam tests, model the student's mastery of those skills, and let agents be disposable implementation details.
+
+### What the exam actually tests (the skill graph)
+
+A Cold War history exam doesn't test "topics." It tests **performance on task types applied to content**:
+
+| Skill node | Exam manifestation | Example |
+|---|---|---|
+| **Timeline recall** | "Put these events in order" / "When did X happen?" | Berlin Blockade → Korean War → Cuban Missile Crisis → Vietnam escalation |
+| **Actor-event binding** | "Who proposed X?" / "Which country did Y?" | Truman → Truman Doctrine, Marshall → Marshall Plan, Khrushchev → Cuban crisis |
+| **Causal chain construction** | "Why did X lead to Y?" / short-answer causation | Containment doctrine → Truman Doctrine → Marshall Plan → NATO |
+| **Compare/contrast** | Essay: "Compare two crises" or "Compare US/USSR strategies" | Berlin vs. Cuba: both brinkmanship, different resolutions, different stakes |
+| **Essay argument** | "To what extent was the Cold War inevitable?" | Thesis + evidence + counterargument + conclusion structure |
+| **Misconception resistance** | Trick questions, plausible-but-wrong multiple choice | "The Marshall Plan was a military alliance" (no, that's NATO) |
+
+These skill nodes have **prerequisite edges**: you can't construct causal chains without timeline recall and actor-event binding. You can't write a compare/contrast essay without causal chains on both events. The graph is a partial order, not a flat list.
+
+### The student model is a probability distribution, not a state machine
+
+For each skill node × content area, the system maintains a **mastery estimate** — a float between 0 and 1, decaying over time (forgetting curve), updated bayesianly on each student interaction:
+
+- Correct answer with high confidence → large upward update
+- Correct answer with low confidence → moderate upward update (lucky guess possible)
+- Wrong answer → downward update scaled by how wrong (date off by 1 year vs. completely fabricated)
+- No answer → small downward update (knowledge was not retrievable)
+- **Transfer evidence** counts double: if the student uses the Marshall Plan correctly in a causation answer after previously only getting it right in recall, that's stronger evidence of mastery than three more recall correct answers
+
+This replaces the brittle error classifier. The system doesn't need to decide "is this a factual error or conceptual confusion?" — it updates the relevant skill nodes probabilistically and lets the lowest-mastery nodes drive the next action.
+
+### Three hidden subsystems, one visible tutor
+
+The student sees **one coherent tutor persona**. Behind the curtain:
+
+**1. Mastery Estimator** (runs after every student response)
+- Updates the skill × content mastery matrix
+- Lightweight — could be rule-based (Bayesian Knowledge Tracing) or a small LLM call
+- Outputs: updated mastery vector, newly-crossed thresholds, decay alerts for stale nodes
+
+**2. Curriculum Planner** (runs before every tutor turn)
+- Inputs: mastery vector, time budget, depth preference, session history
+- Outputs: the next action — what skill to target, what content to use, what task format
+- This is the **policy**. It's the part that matters most and the part the first plan underspecified
+- Implementation: a single LLM call (Haiku-class) with the full mastery state as structured JSON input, returning a structured action
+
+**3. Tutor Interface** (the visible agent)
+- Receives the Planner's action instruction + full conversation history
+- Generates the actual student-facing content
+- Has **no routing logic of its own** — it executes what the Planner decided
+- Adapts tone and format to match the action type (direct instruction, question, feedback, exam simulation)
+- Uses a single system prompt that covers all modes — no persona switching
+
+This directly addresses the "conversation router, not a tutor" risk. The Planner is the tutor. The interface is just a mouth.
+
+## The Exam Simulator flip
+
+The most radical and correct suggestion from the critique: **start with exam simulation, not lectures.**
+
+### Session flow
+
+**Phase 0: Diagnostic (first 5 minutes)**
+- Present 8-10 rapid-fire exam-format questions sampling all skill nodes
+- Mix: 4 timeline/recall, 2 actor-event, 2 causation short-answer, 1 mini-essay prompt
+- Student answers are fast and imperfect — that's the point
+- Result: initial mastery vector. The system now knows where the student stands.
+
+**Phase 1: Targeted repair (bulk of session)**
+- Planner selects the lowest-mastery skill × content pair
+- Tutor executes the appropriate action:
+  - For recall gaps: **direct instruction + immediate test**. Not Socratic probing. "The Korean War started in 1950 when North Korea invaded the South. Now — what year did the Korean War start?" This is the "collapse uncertainty fast" mode.
+  - For causal chain gaps: **worked example + similar problem**. "Here's how containment led to the Truman Doctrine: [explanation]. Now explain how the Truman Doctrine led to the Marshall Plan."
+  - For essay gaps (mastery-track only): **structured argument exercise**. "Write a thesis statement for: 'The arms race was the primary driver of Cold War tension.' Now write one sentence of counterevidence."
+- After each student response, Mastery Estimator updates, Planner re-evaluates
+- **Key: the same content appears in multiple formats.** The Marshall Plan shows up as a recall question, then as part of a causal chain, then as evidence in an essay argument. Transfer is tested, not assumed.
+
+**Phase 2: Consolidation**
+- When mastery vector is above threshold across all weighted skill nodes
+- Or when time budget is running low
+- Run a **mini mock exam** (not a full 45-minute simulation — 10-15 questions, 5 minutes)
+- Score it, identify remaining gaps, do one more targeted pass if time allows
+- Show the student their mastery heat map and say "here's what's solid, here's what to review on your own"
+
+**The mock exam is not a capstone — it's a recurring diagnostic that bookends each session.** Session starts with diagnosis, ends with assessment, and the middle is repair.
+
+## Depth preference changes the policy, not the architecture
+
+| Depth | Planner behavior | Time allocation |
+|---|---|---|
+| **Just pass (tomorrow)** | Target only high-weight exam items. Recall + actor-event only. Skip essay skills unless exam requires one. Direct instruction always; never Socratic. | 80% drill, 15% diagnostic, 5% essay outline |
+| **Thorough (next week)** | Cover all skill nodes. Causal chains required. One full essay practice. Socratic probing for causal gaps. | 40% drill, 30% causation, 20% essay, 10% diagnostic |
+| **Mastery (next month)** | Full graph coverage including competing interpretations. Perspective-switching inside essay practice. Spaced repetition across sessions with forgetting-curve decay. | 25% drill, 25% causation, 30% essay + perspectives, 20% diagnostic/mock |
+
+The architecture is identical in all three cases. Only the Planner's weights and action selection change.
+
+## Competing interpretations belong inside essay practice
+
+Not as a separate agent. Not as a separate mode. The student encounters historiographic debate **when constructing arguments**:
+
+> "You wrote that the Cold War was primarily ideological. Now argue the opposite — that it was fundamentally about geopolitical power. Use three specific events as evidence."
+
+This is essay skill training. The competing interpretation is the exercise format, not a pedagogical philosophy imposed on the student. For "just pass" students, this never appears. For mastery students, it's the core of essay prep.
+
+## Confidence: sparse, not per-question
+
+The critique is right — mandatory per-question confidence creates friction. Revised approach:
+
+- **Diagnostic phase:** Ask confidence on every item (it's a short burst, establishing baseline)
+- **Repair phase:** Ask confidence only when the Planner detects a suspiciously easy correct answer (possible rote recall without understanding) or when revisiting a previously-failed topic
+- **Assessment phase:** Ask confidence on every item again (measuring calibration improvement)
+- **Never block on confidence.** If the student ignores the prompt, default to "medium" and move on.
+
+## Readiness is transfer-tested
+
+"Ready" means the student can use the same knowledge in at least two different task formats:
+- Marshall Plan: recall correct AND used correctly in a causal chain
+- Cuban Missile Crisis: timeline correct AND compare/contrast with Berlin done competently
+- Détente: actor-event correct AND essay argument using it as evidence
+
+The mastery matrix naturally captures this because skill nodes are separate from content nodes. The student needs sufficient mastery in both dimensions.
+
+## Mapping to shelley.ts
+
+This design needs real extension of the engine, not just a new topic file:
+
+| Component | Implementation path |
+|---|---|
+| Mastery Estimator | New module: `mastery.ts`. Bayesian Knowledge Tracing with forgetting curve. JSON state per session. |
+| Curriculum Planner | Repurpose **moderator** infrastructure. The Planner IS the moderator — it observes, decides next action, injects instruction to the Tutor. Single Haiku-class call returning structured JSON. |
+| Tutor Interface | Single agent (Agent A). System prompt covers all modes: instruction, questioning, feedback, exam simulation. No persona switching. |
+| Student input | Replace Agent B's LLM call with `readline` / stdin. The student IS Agent B. |
+| Skill graph | Static config: `skill-graph.json` defining nodes, edges, content mappings, exam weights. Loaded at session start. |
+| Session persistence | Extend `RESUME_FROM_LOG` to also serialize/restore the mastery matrix. Enables spaced repetition across days. |
+| Diagnostic/mock exam | New mode in the Planner: emit a batch of questions covering all skill nodes, score as a unit. |
+
+The creativity dial gets reinterpreted: instead of 5→1 over rounds, the Planner sets it per-turn based on what action it's requesting. Direct instruction = dial 1. Causal exploration = dial 3. Essay with competing perspectives = dial 5. The dial becomes a **per-action parameter**, not a session-level decay.
+
+## What this kills from the original design
+
+- Named teaching agents (Lecturer, Driller, Socratic) — absorbed into one Tutor with mode parameters
+- FSM routing — replaced by Planner policy over continuous mastery estimates
+- Error type classifier — replaced by Bayesian updates across multiple skill nodes
+- Capstone-only mock exam — replaced by diagnostic-first, recurring assessment
+- Topic-driven coverage — replaced by skill × content matrix
+- Per-question mandatory confidence — replaced by sparse strategic confidence probes
+
+## What survives
+
+- One orchestrating intelligence (Conductor → Planner) that makes all routing decisions
+- Student as human-in-the-loop, not an LLM agent
+- Dynamic adaptation based on student performance
+- Depth preference driving policy, not architecture
+- Competing interpretations gated by depth and embedded in essay practice
+- Session persistence for spaced repetition
+
+## Open questions for Round 3
+
+1. **BKT vs. LLM-as-estimator:** Should mastery estimation be algorithmic (Bayesian Knowledge Tracing — well-understood, fast, interpretable) or should we let a small LLM judge mastery from the conversation? BKT is faster and more predictable; LLM estimation catches subtler signals but is slower and harder to debug.
+
+2. **Single Tutor persona vs. acknowledged mode shifts:** Should the Tutor say "Now let's practice essay structure" (transparent mode shift) or should it weave transitions naturally? Transparency helps the student understand what they're practicing; seamlessness keeps flow.
+
+3. **Forgetting curve parameters:** For spaced repetition across sessions, what decay rate? Educational research suggests different rates for different content types (dates decay faster than causal understanding). Should the system calibrate per-student from diagnostic data?
+
+4. **Exam format fidelity:** How closely should the mock exam mirror the actual test format? If we know it's multiple choice, present multiple choice. If we know it's free-response, present free-response. The system should ask the student what format the exam uses — and this hasn't been captured in the student profile intake yet.
+
+Turn 2 - Assistant
+The redesign is materially better. It fixes the biggest flaw in the first proposal: it stops treating agent roles as the architecture and starts treating student performance as the architecture.
+
+That said, it still has three important weaknesses.
+
+1. The skill graph is better than topic flow, but it is still too clean for history. Real student failure modes are not just `timeline / causation / essay`. They include confusions like “NATO vs Marshall Plan,” “Korea vs Vietnam as interchangeable proxy wars,” and “détente as peace rather than temporary stabilization.” Those are misconception clusters, not generic skills. Add a second layer to the model: not just `skill x content`, but `misconception flags` that the planner can explicitly target.
+
+2. “One visible tutor” is good for coherence, but total persona flattening loses useful mode contrast. Studying benefits from distinct pressure regimes. The student should feel when they are in `teach mode`, `drill mode`, and `exam mode`, even if it is the same underlying tutor. Otherwise the system becomes smooth but pedagogically blurry.
+
+3. The planner is still optimizing mastery, when the real target is exam score per minute. That is not the same objective. If the exam is tomorrow, the system should aggressively prioritize high-yield items: canonical dates, named doctrines, 2-3 reusable essay frames, and the most testable comparisons. Some low-frequency skill gaps should be ignored on purpose.
+
+The strongest version is a hybrid:
+
+- One visible tutor.
+- One hidden planner.
+- One hidden estimator.
+- One hidden grader/rubric extractor.
+
+The grader is the missing piece. For history, open responses need to be decomposed into:
+- factual correctness
+- causal structure
+- use of evidence
+- exam-style answer shape
+
+That argues against pure BKT and against pure LLM estimation. Use a hybrid:
+- Rule-based extraction for dates, names, event links, chronology.
+- LLM rubric scoring for short answers and essays.
+- BKT-style update on top of those structured signals.
+
+On the open questions:
+
+1. BKT vs LLM estimator  
+Use neither alone. Pure BKT is too crude for essays; pure LLM is too unstable. Best design is `LLM extracts rubric evidence -> deterministic updater adjusts mastery state`.
+
+2. Single tutor vs explicit mode shifts  
+Use explicit mode shifts. Say “Now: 3-minute exam mode” or “Now: repair mode on chronology.” Transparency helps the student understand what is being trained.
+
+3. Forgetting curve parameters  
+Do not overfit early. Start with fixed decay by evidence type:
+- dates/names decay fastest
+- causal chains medium
+- essay structures slowest
+Then personalize only after multiple sessions.
+
+4. Exam format fidelity  
+This is not optional. Ask it upfront. A multiple-choice exam and a compare/contrast essay exam should produce very different policies.
+
+Two non-obvious additions would improve this a lot:
+
+- Add a `Last-Minute Sheet` artifact generator. The system should continuously build a one-page cram sheet from the student’s weak spots. For “exam tomorrow,” this may be more valuable than another elegant adaptive loop.
+- Add `answer compression` drills. Many students know the material but cannot produce a tight 3-sentence answer under time pressure. Practice “state claim -> give evidence -> name consequence” in strict length limits.
+
+Bottom line: the redesign is directionally right, but the final architecture should be `score-optimization tutor`, not just `mastery-estimation tutor`. For exam prep, that distinction matters.
+
+Turn 3 - User
+[Creativity: 2/5] Refine the current approach. Fix issues. Tighten the spec. Avoid introducing new directions.
+
+Good — the critique narrows the three remaining gaps: misconception modeling, mode transparency, and objective function. All accepted. Let me integrate everything into a tight spec.
+
+---
+
+# Final Architecture: Exam-Score-Optimized Tutoring System
+
+## System overview
+
+Four components. One visible, three hidden. One objective: **maximize expected exam score per minute of study time.**
+
+```
+Student ↔ Tutor Interface (visible)
+              ↑ action instruction
+         Curriculum Planner (hidden)
+              ↑ mastery state + rubric scores
+         Mastery Estimator (hidden)     Grader (hidden)
+              ↑ structured evidence ←────┘
+         Student response
+```
+
+## The student model (three layers)
+
+**Layer 1: Skill × Content mastery matrix**
+
+Rows = 6 skill types. Columns = content areas (≈12 for Cold War). Each cell is a float [0, 1] with a timestamp.
+
+Skills: `timeline_recall`, `actor_event_binding`, `causal_chain`, `compare_contrast`, `essay_argument`, `misconception_resistance`
+
+Content areas: `origins_containment`, `truman_doctrine`, `marshall_plan`, `berlin_crises`, `korean_war`, `nato_warsaw_pact`, `cuban_missile_crisis`, `vietnam`, `arms_race_mad`, `detente`, `reagan_sdi`, `ussr_collapse`
+
+**Layer 2: Misconception flags**
+
+Named confusion clusters, each a boolean + confidence:
+
+| Misconception ID | Description | Triggered by |
+|---|---|---|
+| `nato_marshall_conflation` | Confuses NATO (military) with Marshall Plan (economic) | Student uses "Marshall Plan" in military context or vice versa |
+| `proxy_war_interchangeable` | Treats Korea and Vietnam as equivalent | Student swaps details between the two, or says "like Korea" when discussing Vietnam without distinction |
+| `detente_as_peace` | Thinks détente ended the Cold War or was permanent peace | Student describes détente as resolution rather than temporary stabilization |
+| `cold_war_bilateral` | Ignores non-superpower actors (China, NAM, Europe) | Student frames every event as purely US vs. USSR |
+| `arms_race_one_sided` | Thinks only one side escalated | Student omits Soviet nuclear program or US first-strike debates |
+| `inevitability_bias` | Assumes Cold War was inevitable / USSR collapse was inevitable | Student cannot articulate contingency or alternative outcomes |
+
+Misconceptions are **not inferred from skill scores** — they're detected by the Grader from specific textual evidence in student responses. A student can have high recall mastery and still hold `detente_as_peace`.
+
+When a misconception flag is active, the Planner **injects targeted correction tasks** regardless of what the mastery matrix would otherwise prioritize.
+
+**Layer 3: Exam-weighted priority scores**
+
+Each skill × content cell has a **yield weight** = `P(appears on exam) × point_value × (1 - current_mastery)`. The Planner optimizes for total yield, not uniform mastery. Low-frequency exam items get deprioritized under time pressure; high-frequency items get hammered.
+
+Weights are initialized from exam format (asked upfront) and student depth preference:
+
+| Exam format | High-weight skills | Low-weight skills |
+|---|---|---|
+| Multiple choice | timeline_recall, actor_event_binding, misconception_resistance | essay_argument |
+| Short answer | causal_chain, actor_event_binding | compare_contrast |
+| Essay-heavy | essay_argument, compare_contrast, causal_chain | timeline_recall (still needed as substrate) |
+| Mixed | All weighted proportionally | — |
+
+## The four components, specified
+
+### 1. Tutor Interface (visible)
+
+**What the student sees.** Single LLM agent (Opus-class for quality). Single session with conversation history.
+
+**System prompt structure:**
+```
+You are a history exam tutor. You operate in three explicit modes:
+- TEACH: Present information clearly and concisely. Use mnemonics when helpful.
+- DRILL: Ask questions, evaluate answers, correct errors with minimal explanation.
+- EXAM: Simulate exam conditions. No hints. Strict time framing. Score afterward.
+
+You will receive a [MODE] and [ACTION] instruction before each turn.
+Follow the action precisely. Do not add unrequested material.
+Maintain a warm but efficient tone. The student's time is limited.
+```
+
+**Mode shifts are announced to the student.** "Switching to drill mode — 5 quick questions on the timeline we just covered." This gives the student distinct pressure regimes without persona fragmentation.
+
+**The Tutor never decides what to teach next.** It executes Planner instructions. If the Planner says `{mode: "DRILL", skill: "timeline_recall", content: "cuban_missile_crisis", format: "date_question"}`, the Tutor asks "What month and year was the Cuban Missile Crisis?"
+
+### 2. Grader (hidden)
+
+**Runs after every student response.** Decomposes the response into structured evidence.
+
+**For recall/binding questions (rule-extractable):**
+```json
+{
+  "question_type": "date_recall",
+  "content_area": "korean_war",
+  "correct": false,
+  "student_answer": "1952",
+  "expected": "1950",
+  "error_magnitude": "2_years",
+  "misconceptions_triggered": []
+}
+```
+
+**For causal/essay responses (LLM-scored):**
+```json
+{
+  "question_type": "causal_chain",
+  "content_area": "truman_doctrine",
+  "rubric_scores": {
+    "factual_correctness": 0.8,
+    "causal_structure": 0.5,
+    "evidence_use": 0.6,
+    "answer_shape": 0.3
+  },
+  "misconceptions_triggered": ["cold_war_bilateral"],
+  "transfer_evidence": ["marshall_plan"]
+}
+```
+
+**Implementation:** Haiku-class LLM call with a structured output schema. For pure recall, skip the LLM — pattern match against the answer key. The Grader is fast and cheap; it runs on every turn.
+
+**`transfer_evidence`** tracks when content from a different area appears correctly in the current answer. This feeds back to the Estimator as cross-skill mastery evidence.
+
+### 3. Mastery Estimator (hidden)
+
+**Runs after the Grader.** Updates the student model deterministically from structured Grader output.
+
+**Update rules (BKT-inspired, not pure BKT):**
+
+For the directly-tested skill × content cell:
+- Correct + recall: `mastery += learn_rate × (1 - mastery)` where `learn_rate = 0.3`
+- Correct + causal/essay: update each rubric dimension separately, weighted average
+- Wrong: `mastery -= slip_rate × mastery` where `slip_rate` scales with error magnitude
+- No answer: `mastery *= 0.9` (mild decay, "couldn't retrieve")
+
+For transfer evidence:
+- If content X appears correctly in an answer about content Y: `mastery[current_skill][X] += 0.15 × (1 - mastery[current_skill][X])` — smaller update but valuable signal
+
+For misconceptions:
+- Triggered: set flag to `active`, reset confidence timer
+- Not triggered on a question where it could have appeared: increment `clear_count`
+- `clear_count >= 3`: set flag to `resolved`
+
+**Forgetting curve (between sessions only):**
+- Dates/names: `mastery *= 0.85^days_elapsed`
+- Causal chains: `mastery *= 0.92^days_elapsed`
+- Essay structures: `mastery *= 0.96^days_elapsed`
+- No decay within a single session (student hasn't slept yet)
+
+**No personalization of decay rates until session 3+.** Fixed parameters first.
+
+### 4. Curriculum Planner (hidden)
+
+**Runs before every Tutor turn.** The policy engine. Optimizes for exam score per minute.
+
+**Inputs:** mastery matrix, misconception flags, exam weights, time budget remaining, session history (what's been asked, what modes have been used recently)
+
+**Output:** A single structured action:
+```json
+{
+  "mode": "DRILL",
+  "skill": "actor_event_binding",
+  "content": "marshall_plan",
+  "format": "who_proposed",
+  "reason": "highest yield cell (weight 0.8, mastery 0.2)",
+  "misconception_override": null
+}
+```
+
+**Priority logic:**
+
+1. **Active misconceptions first.** If any misconception flag is active, inject a correction task targeting that specific confusion. Misconceptions are silent mastery destroyers — they corrupt other skills downstream.
+
+2. **Highest yield cell.** `yield = exam_weight × (1 - mastery)`. Pick the cell with highest yield. This naturally deprioritizes low-frequency content and already-mastered content.
+
+3. **Format rotation.** Don't ask the same format twice in a row for the same content. If the student just answered a recall question on the Marshall Plan, the next Marshall Plan question should be causal chain or essay (tests transfer).
+
+4. **Mode pacing.** Don't stay in DRILL for more than 8 consecutive turns — switch to TEACH for a brief reset, or EXAM for a mini-diagnostic. Don't stay in TEACH for more than 2 turns — always test after teaching.
+
+5. **Time budget pressure.** When `time_remaining < 20%`:
+   - Drop all skill targets below the top 60% by yield
+   - Switch to DRILL-only mode
+   - Begin generating the Last-Minute Sheet
+
+**Implementation:** Haiku-class LLM call, or potentially rule-based if the priority logic above is sufficient. Start rule-based; add LLM only if the rules produce bad sequences.
+
+## Session protocol
+
+### Student intake (30 seconds)
+
+Four questions, asked once at session start:
+
+1. **Exam format:** Multiple choice / short answer / essay / mixed?
+2. **Time until exam:** Tomorrow / this week / next week+?
+3. **Depth goal:** Pass / solid / mastery?
+4. **Session time available now:** 15min / 30min / 60min+?
+
+These four inputs parameterize everything: exam weights, yield calculations, mode ratios, forgetting curve relevance, and whether essay/perspective skills are in scope at all.
+
+### Phase 0: Diagnostic (2-5 minutes)
+
+8-10 exam-format questions spanning all in-scope skill × content cells. Fast-paced. The student shouldn't agonize — first instinct answers are the most informative for calibration.
+
+Mix calibrated to exam format:
+- MC exam: 6 recall, 2 binding, 2 misconception traps
+- Essay exam: 3 recall, 2 causal, 2 compare-contrast prompts (short-form), 1 thesis construction
+- Mixed: proportional blend
+
+Result: initialized mastery matrix + any misconception flags triggered.
+
+### Phase 1: Targeted repair (bulk of session)
+
+Loop: `Grader → Estimator → Planner → Tutor → Student → Grader → ...`
+
+Each iteration is one exchange. The Planner selects the highest-yield action. The Tutor executes it. The student responds. The Grader scores. The Estimator updates.
+
+**Teach-then-test cadence:** When the Planner targets a cell with mastery < 0.3, it issues a TEACH action first, then immediately follows with a DRILL action on the same cell. The student gets instruction and immediate retrieval practice — not one or the other.
+
+**Answer compression drills (for essay-format exams):** When the Planner targets essay skills, it enforces strict format: "State your claim in one sentence. Give one piece of evidence. Name one consequence. Stop." This trains exam-ready answer shape under time pressure. The Grader scores `answer_shape` as a rubric dimension.
+
+### Phase 2: Consolidation (last 15-20% of session)
+
+Mini mock exam: 10-12 questions in exam format, timed, no hints. Grader scores all at once. Estimator batch-updates.
+
+Then: show the mastery heat map. Green/yellow/red per content area, with the top 3 items to review.
+
+### Last-Minute Sheet (generated continuously, delivered at end)
+
+A one-page artifact — the student's personalized cram sheet. Built incrementally by the Planner from:
+- Every misconception the student held (corrected version)
+- Every high-yield item where mastery remained below 0.6
+- The 5 most important dates/names/treaties
+- 2-3 reusable essay frames (for essay exams)
+
+Format: dense, scannable, no prose. Dates in a timeline. Names in a table. Essay frames as fill-in-the-blank templates.
+
+**For "exam tomorrow" students, this sheet may be the single highest-value output of the entire session.** The adaptive tutoring is means; the sheet is an end.
+
+## Mapping to shelley.ts extensions
+
+| Component | File | Extends |
+|---|---|---|
+| Tutor Interface | `tutor.ts` | Agent A with multi-mode system prompt; session via `claude --session-id` |
+| Grader | `grader.ts` | New module. Haiku call with structured JSON output. Rule-based fast path for recall. |
+| Mastery Estimator | `mastery.ts` | New module. Pure TypeScript, no LLM calls. BKT update rules + forgetting curve. |
+| Curriculum Planner | `planner.ts` | Extends moderator infrastructure. Structured JSON output. Rule-based first, LLM fallback. |
+| Skill graph config | `skill-graph.json` | Static config: skill nodes, content areas, prerequisite edges, exam weights. |
+| Misconception registry | `misconceptions.json` | Static config: misconception IDs, trigger patterns, correction tasks. |
+| Student model state | `session-state.json` | Serialized mastery matrix + misconception flags + session history. Enables resume across days. |
+| Last-Minute Sheet | `cram-sheet.md` | Generated artifact, updated each turn, delivered at session end. |
+| Student I/O | `student-io.ts` | Replaces Agent B's LLM call with readline stdin. Captures answer + optional confidence. |
+
+## What is now locked
+
+- **Objective:** exam score per minute, not uniform mastery
+- **Model:** skill × content matrix + misconception flags + exam-weighted yield
+- **Estimation:** LLM Grader extracts structured evidence → deterministic Estimator updates state
+- **Planning:** yield-ranked priority with misconception overrides and format rotation
+- **Interface:** one tutor, three explicit modes (TEACH/DRILL/EXAM), announced transitions
+- **Session flow:** intake → diagnostic → targeted repair → consolidation → cram sheet
+- **Artifacts:** mastery heat map + Last-Minute Sheet
+- **Decay:** fixed by evidence type, personalized only after session 3
+- **Exam format fidelity:** asked upfront, drives everything downstream
+
+Turn 3 - Assistant
+**Findings**
+
+1. The model still conflates `unknown` with `weak`. An 8-10 question diagnostic cannot cover the full skill × content grid, so many cells will be unobserved. If the Planner treats low-evidence cells as low-mastery cells, it will over-remediate blind spots it has not actually measured. Tighten the state to store `mastery` and `evidence_count` or `confidence` separately, and make the Planner treat unseen cells as uncertain, not deficient.
+
+2. `Active misconceptions first` is too absolute. That rule can let one flagged misconception hijack the whole session, especially if the flag was triggered from weak evidence in a single free-text answer. Keep the override, but bound it: one targeted correction, one immediate retest, then return to normal yield ranking unless the misconception reappears. Otherwise the policy stops being score-per-minute optimization.
+
+3. The Grader output for open responses is still too loose. Floating rubric scores like `0.8 / 0.5 / 0.6 / 0.3` look precise, but without anchored scoring criteria they will drift across turns and contaminate the deterministic Estimator. Tighten this by making the Grader extract concrete evidence first: matched facts, missing evidence, causal link present/absent, answer shape met/not met. Then map that to a small discrete scale.
+
+4. The Planner needs explicit base weights, not just the formula. `yield = exam_weight × (1 - mastery)` is correct, but `exam_weight` is still underspecified. Lock a default weight table by exam format and time horizon, or the policy will be arbitrary in the exact place where this design claims to be exam-optimized.
+
+5. The readiness criterion is still implied rather than specified. You have the heat map and mini-mock, but not the actual stop rule. Tighten it to something operational: no active high-impact misconceptions, expected score above threshold on the latest mini-mock, and transfer demonstrated on the top-weighted content areas. Otherwise “consolidation” has no clear end condition.
+
+**What’s Strong Now**
+
+This is now the right architecture. One visible tutor, hidden planner/estimator/grader, explicit modes, exam-format intake, recurring diagnostics, and a yield-driven policy is a coherent spec rather than an agent role-play.
+
+The remaining work is mostly precision work, not redesign. Add uncertainty tracking, bound misconception overrides, constrain grading, lock the weight table, and define readiness explicitly. After that, this is implementable.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+Accepted in full. Five precision fixes, no structural changes.
+
+---
+
+# Multi-Agent Tutoring System — Final Specification
+
+## Objective
+
+Maximize expected exam score per minute of study time for a high-school student preparing for a Cold War history exam.
+
+## System components
+
+- **Tutor Interface** (visible) — single LLM agent, three explicit modes (TEACH / DRILL / EXAM)
+- **Curriculum Planner** (hidden) — selects next action based on yield-ranked priority
+- **Mastery Estimator** (hidden) — deterministic state updater from structured Grader evidence
+- **Grader** (hidden) — extracts concrete evidence from student responses, maps to discrete scores
+
+## Student intake (asked once, session start)
+
+- Exam format: multiple choice / short answer / essay / mixed
+- Time until exam: tomorrow / this week / next week+
+- Depth goal: pass / solid / mastery
+- Session time available: 15min / 30min / 60min+
+
+These four inputs parameterize exam weights, mode ratios, skill scope, and pacing.
+
+---
+
+## Student model
+
+### Layer 1: Skill x content matrix
+
+Each cell stores three values:
+
+- **mastery**: float [0, 1], initialized to 0.5 (neutral prior, not "weak")
+- **evidence_count**: integer, initialized to 0
+- **last_observed**: timestamp or null
+
+**The Planner treats cells differently by evidence:**
+- `evidence_count = 0` → **uncertain**, not deficient. Planner schedules a single probe question before committing remediation time. Probe questions are fast (DRILL mode, one turn) and cheap.
+- `evidence_count >= 1` → mastery estimate is actionable. Planner uses yield ranking normally.
+- `evidence_count >= 3` → high-confidence estimate. Planner deprioritizes further testing unless mastery is below threshold.
+
+6 skill rows:
+`timeline_recall`, `actor_event_binding`, `causal_chain`, `compare_contrast`, `essay_argument`, `misconception_resistance`
+
+12 content columns:
+`origins_containment`, `truman_doctrine`, `marshall_plan`, `berlin_crises`, `korean_war`, `nato_warsaw_pact`, `cuban_missile_crisis`, `vietnam`, `arms_race_mad`, `detente`, `reagan_sdi`, `ussr_collapse`
+
+### Layer 2: Misconception flags
+
+Each flag stores:
+- **status**: `inactive` / `suspected` / `confirmed` / `resolved`
+- **trigger_count**: how many times triggered (1 trigger = `suspected`, 2+ = `confirmed`)
+- **clear_count**: consecutive opportunities where it could have appeared but didn't (3 clears after confirmed → `resolved`)
+
+Six named misconceptions:
+
+| ID | Confusion | Trigger pattern |
+|---|---|---|
+| `nato_marshall_conflation` | NATO (military) vs Marshall Plan (economic) | Student uses one in the other's context |
+| `proxy_war_interchangeable` | Korea and Vietnam treated as equivalent | Student swaps details or fails to distinguish |
+| `detente_as_peace` | Détente as resolution, not temporary stabilization | Student describes détente as ending the Cold War |
+| `cold_war_bilateral` | Ignores non-superpower actors | Frames every event as purely US vs USSR |
+| `arms_race_one_sided` | Only one side escalated | Omits Soviet program or US debates |
+| `inevitability_bias` | Cold War / USSR collapse was inevitable | Cannot articulate contingency |
+
+### Layer 3: Exam-weighted yield
+
+`yield(cell) = exam_weight(skill, content) × (1 - mastery) × evidence_discount`
+
+Where `evidence_discount`:
+- `evidence_count = 0` → 0.5 (halved priority — probe first, don't remediate blind)
+- `evidence_count >= 1` → 1.0
+
+#### Default exam weight table
+
+Weights are [0, 1]. Rows = skills, columns = exam format.
+
+| Skill | MC | Short answer | Essay | Mixed |
+|---|---|---|---|---|
+| timeline_recall | 0.9 | 0.6 | 0.3 | 0.6 |
+| actor_event_binding | 0.8 | 0.7 | 0.4 | 0.6 |
+| causal_chain | 0.3 | 0.8 | 0.9 | 0.7 |
+| compare_contrast | 0.2 | 0.5 | 0.9 | 0.5 |
+| essay_argument | 0.0 | 0.3 | 1.0 | 0.5 |
+| misconception_resistance | 0.7 | 0.4 | 0.3 | 0.5 |
+
+Content-area weights (uniform by default: 1/12 each). Adjustable if the student reports specific topics emphasized in class.
+
+**Time horizon modifier:** When exam is tomorrow, multiply all weights for skills with `exam_weight < 0.5` by 0.0 (drop them entirely). Focus budget on high-yield skills only.
+
+---
+
+## Grader specification
+
+### Recall / binding questions (rule-based, no LLM)
+
+```
+{
+  "correct": bool,
+  "error_type": "exact" | "close" | "far" | "blank",
+  "misconceptions_checked": [list of IDs that could have appeared],
+  "misconceptions_triggered": [list of IDs that did appear]
+}
+```
+
+`error_type` definitions:
+- `exact`: correct answer
+- `close`: within 2 years or minor detail wrong (e.g., "1949" for 1950)
+- `far`: fundamentally wrong (e.g., "1960" for 1950)
+- `blank`: no answer or "I don't know"
+
+### Open responses (LLM-scored, Haiku-class)
+
+The Grader extracts **concrete evidence first**, then maps to a 3-point discrete scale per rubric dimension.
+
+Evidence extraction (structured output):
+```
+{
+  "facts_stated": ["Marshall Plan 1948", "economic aid to Europe"],
+  "facts_missing": ["$13 billion figure", "Truman administration"],
+  "facts_wrong": ["Marshall Plan was a military alliance"],
+  "causal_link_present": bool,
+  "causal_link_direction_correct": bool,
+  "evidence_cited": int (count of specific events/dates used as support),
+  "answer_has_claim_evidence_consequence": bool,
+  "misconceptions_checked": [...],
+  "misconceptions_triggered": [...]
+}
+```
+
+Discrete rubric mapping (from extracted evidence):
+
+| Dimension | 0 (fail) | 1 (partial) | 2 (pass) |
+|---|---|---|---|
+| factual_correctness | any facts_wrong OR ≥2 facts_missing | 1 fact missing, none wrong | all key facts present, none wrong |
+| causal_structure | no causal link | link present but direction wrong or incomplete | link present and correct |
+| evidence_use | 0 specific events cited | 1 event cited | 2+ events cited |
+| answer_shape | missing claim or consequence | has claim + evidence but no consequence | claim + evidence + consequence |
+
+These discrete scores (0/1/2) feed the Estimator. No floating-point drift.
+
+---
+
+## Mastery Estimator update rules
+
+### After recall / binding questions
+
+| Grader result | Mastery update | Evidence count |
+|---|---|---|
+| `exact` | `mastery += 0.3 × (1 - mastery)` | +1 |
+| `close` | `mastery += 0.1 × (1 - mastery)` | +1 |
+| `far` | `mastery -= 0.25 × mastery` | +1 |
+| `blank` | `mastery *= 0.9` | +1 |
+
+### After open responses
+
+For each rubric dimension, map discrete score to update:
+- Score 2: `+0.2 × (1 - mastery)` on the corresponding skill
+- Score 1: no change
+- Score 0: `-0.15 × mastery` on the corresponding skill
+
+Dimension → skill mapping:
+- `factual_correctness` → `actor_event_binding` for that content area
+- `causal_structure` → `causal_chain`
+- `evidence_use` → `misconception_resistance` (using evidence correctly shows discrimination)
+- `answer_shape` → `essay_argument`
+
+### Transfer credit
+
+When the Grader's `facts_stated` includes content from a different content area than the one being tested: `mastery[relevant_skill][other_content] += 0.1 × (1 - current)`, `evidence_count += 1`.
+
+### Misconception updates
+
+- Triggered once: `inactive → suspected`
+- Triggered twice: `suspected → confirmed`
+- Opportunity present but not triggered: `clear_count += 1`
+- `clear_count >= 3` after `confirmed`: `confirmed → resolved`
+- `clear_count >= 2` after `suspected`: `suspected → resolved`
+
+### Forgetting curve (between sessions only)
+
+- `timeline_recall`, `actor_event_binding`: `mastery *= 0.85 ^ days_elapsed`
+- `causal_chain`, `compare_contrast`: `mastery *= 0.92 ^ days_elapsed`
+- `essay_argument`, `misconception_resistance`: `mastery *= 0.96 ^ days_elapsed`
+- `evidence_count` unchanged (evidence doesn't decay, mastery does)
+- No decay within a single session
+
+---
+
+## Curriculum Planner policy
+
+### Priority stack (evaluated in order)
+
+**1. Bounded misconception override**
+
+If any misconception is `confirmed`: issue one targeted correction task (TEACH mode, directly addressing the confusion), then one immediate retest (DRILL mode, question designed to trigger the misconception if it persists). Then return to normal yield ranking. Do not re-engage the misconception unless it triggers again on a subsequent question.
+
+If any misconception is `suspected` (triggered once): do not override. Let it appear naturally in yield-ranked questions. If it triggers again, it becomes `confirmed` and gets the bounded override above.
+
+**2. Probe uncertain cells**
+
+If the highest-yield cell has `evidence_count = 0`: issue a single DRILL probe. This is a fast, one-question test — not a remediation sequence. The result populates the cell so the next Planner cycle can rank it accurately.
+
+**3. Yield-ranked action selection**
+
+Select the cell with the highest `yield = exam_weight × (1 - mastery) × evidence_discount`. Break ties by: content area not recently tested > lower evidence count > alphabetical.
+
+Action type for the selected cell:
+- `mastery < 0.3`: TEACH then DRILL (two consecutive turns on same cell)
+- `0.3 <= mastery < 0.7`: DRILL
+- `mastery >= 0.7` and skill is `causal_chain` or above: DRILL with a harder format (essay-style or compare/contrast)
+- `mastery >= 0.7` and skill is recall/binding: skip, select next-highest yield cell
+
+**4. Format rotation**
+
+Do not ask the same format twice consecutively for the same content area. If the student just answered a date recall on the Korean War, the next Korean War question must be a different skill (binding, causation, etc.).
+
+**5. Mode pacing**
+
+- Maximum 8 consecutive DRILL turns → insert 1-2 TEACH turns as reset
+- Maximum 2 consecutive TEACH turns → must follow with DRILL
+- Every 15 turns (or ~25% of session time): insert a 3-question mini-diagnostic in EXAM mode, sampling the three highest-yield cells
+
+**6. Time budget pressure**
+
+When `time_remaining < 20%` of session:
+- Drop all cells where `exam_weight < 0.5` from consideration
+- DRILL-only mode (no more TEACH unless mastery < 0.15)
+- Begin generating Last-Minute Sheet from current state
+
+---
+
+## Session protocol
+
+### Phase 0: Diagnostic (first 8-10 questions, ~3 minutes)
+
+Questions sample one cell from each content area, skill type matched to exam format. All in EXAM mode (no hints). Fast-paced.
+
+Result: initial mastery and evidence_count populated for 8-10 cells. Misconception flags from any triggered patterns. Planner has enough signal to begin yield-ranked repair.
+
+### Phase 1: Targeted repair (bulk of session, until time_remaining < 20%)
+
+Loop: `Student responds → Grader extracts evidence → Estimator updates state → Planner selects next action → Tutor executes action → Student responds → ...`
+
+Misconception overrides, probes, yield ranking, format rotation, and mode pacing all operate as specified above.
+
+### Phase 2: Consolidation (last 20% of session)
+
+Mini mock exam: 10-12 questions in exam format, timed, EXAM mode, no hints. Grader scores all. Estimator batch-updates.
+
+Display mastery heat map to student. Deliver Last-Minute Sheet.
+
+### Readiness criterion
+
+The student is assessed as ready when all three conditions hold on the latest mini-mock or consolidation exam:
+
+1. **No active high-impact misconceptions:** no `confirmed` misconception with `exam_weight > 0.5` on any related content area
+2. **Expected score above threshold:** predicted score on mini-mock (sum of `mastery × exam_weight` across tested cells) ≥ target (pass: 60%, solid: 75%, mastery: 90%)
+3. **Transfer demonstrated on top-weighted content:** for the 5 highest exam-weight content areas, at least 2 distinct skill types have `mastery >= 0.6` and `evidence_count >= 2`
+
+If conditions are not met, the heat map shows which cells are blocking readiness. The student decides whether to continue or stop.
+
+---
+
+## Last-Minute Sheet (generated artifact)
+
+Built incrementally by the Planner. Contents:
+
+- **Timeline:** 8-12 key dates in chronological order, one line each
+- **Key bindings:** actor → event/doctrine table (max 10 rows)
+- **Misconception corrections:** every misconception the student held, stated as "NOT X — actually Y" (only items from `confirmed` or `resolved` flags)
+- **Causal chains:** 2-3 most important cause → effect sequences, one line each
+- **Essay frames** (essay exams only): 2-3 fill-in-the-blank argument templates: "Claim: ___. Evidence: ___ (date, event). Counterpoint: ___. Therefore: ___."
+- **Top 3 weak spots:** highest-yield cells remaining at session end, stated as specific review instructions
+
+Format: dense, scannable, no prose. Fits on one page.
+
+---
+
+## Mapping to shelley.ts
+
+| New file | Role | Notes |
+|---|---|---|
+| `tutor.ts` | Orchestrator + Tutor Interface | Extends shelley.ts loop: replaces A↔B with Planner→Tutor→Student→Grader→Estimator. Single Claude session for Tutor. |
+| `grader.ts` | Evidence extraction | Rule-based fast path for recall. Haiku LLM call for open responses. Structured JSON output. |
+| `mastery.ts` | State management | Pure TypeScript. BKT update rules. Serializes to `session-state.json` for resume. |
+| `planner.ts` | Action selection | Rule-based priority stack (no LLM needed — the policy is fully specified above). |
+| `student-io.ts` | Human input | Readline stdin. Captures answer text + optional confidence at checkpoints. |
+| `skill-graph.json` | Static config | Skill nodes, content areas, exam weight table. |
+| `misconceptions.json` | Static config | Misconception IDs, trigger descriptions, correction task templates. |
+| `session-state.json` | Runtime state | Mastery matrix + misconception flags + session history. Enables cross-session resume. |
+| `cram-sheet.md` | Generated artifact | Updated each turn during Phase 2 and time-pressure mode. Delivered at session end. |
+
+Respond as the assistant only. Do not include tool logs.
+mcp: arxiv starting
+mcp: mail starting
+mcp: mail ready
+mcp: arxiv ready
+mcp startup: ready: mail, arxiv
+codex
+**Final Plan**
+
+- Use one visible `Tutor Interface` and three hidden components: `Curriculum Planner`, `Mastery Estimator`, and `Grader`.
+- Optimize for `expected exam score per minute`, not uniform mastery.
+- Ask four intake questions up front: `exam format`, `time until exam`, `depth goal`, `session time available`.
+- Represent student state with:
+  - `skill x content` cells storing `mastery`, `evidence_count`, and `last_observed`
+  - misconception flags with `inactive / suspected / confirmed / resolved`
+  - exam-weighted yield using `exam_weight × (1 - mastery) × evidence_discount`
+- Treat `evidence_count = 0` as `uncertain`, not weak. Probe once before spending remediation time.
+- Keep misconception overrides bounded:
+  - one targeted correction
+  - one immediate retest
+  - then return to normal yield ranking unless the misconception reappears
+- Grade recall/binding with rules, not an LLM.
+- Grade open responses by extracting concrete evidence first, then mapping to discrete rubric scores `0 / 1 / 2`.
+- Update mastery deterministically from Grader output. Do not let the Tutor or Planner mutate mastery directly.
+- Use fixed forgetting curves between sessions only. Do not personalize decay before session 3+.
+- Keep one tutor persona, but make mode shifts explicit: `TEACH`, `DRILL`, `EXAM`.
+- Do not let the Tutor choose content. The Planner always emits the next action.
+- Planner policy order is fixed:
+  - bounded misconception override
+  - probe uncertain high-yield cells
+  - yield-ranked action selection
+  - format rotation
+  - mode pacing
+  - time-pressure collapse in the last 20% of the session
+- Session flow is fixed:
+  - `Phase 0`: short diagnostic in `EXAM` mode
+  - `Phase 1`: targeted repair loop
+  - `Phase 2`: consolidation with mini-mock, heat map, and cram sheet
+- Readiness requires all three:
+  - no active high-impact confirmed misconceptions
+  - predicted score above threshold for the student’s goal
+  - transfer demonstrated on top-weighted content
+- Generate a `Last-Minute Sheet` continuously and deliver it at the end. For near-term exams, treat it as a primary output.
+
+**Implementation Boundary**
+
+- `planner.ts` should stay rule-based first. The policy is now specified tightly enough that an LLM planner is optional, not required.
+- `grader.ts` can use a small model only for open responses.
+- `mastery.ts` should remain deterministic and interpretable.
+- `tutor.ts` is the only visible conversational layer.
+- Persist state across sessions in `session-state.json`.
+
+No major architectural gaps remain. This is implementable as specified.
+tokens used
+22 527
+
