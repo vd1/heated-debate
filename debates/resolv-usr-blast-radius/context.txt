@@ -1,0 +1,8 @@
+# Risk engine — the code being discussed
+../KilDef/neigh/neigh_risk.py
+
+# Graph data model (Node, Edge, Graph, GraphView)
+../KilDef/neigh/neighborhood_common.py
+
+# Prior debate on the architecture that produced neigh_risk.py
+../KilDef/debates/dig_risk_signals/20260326_091126.md
