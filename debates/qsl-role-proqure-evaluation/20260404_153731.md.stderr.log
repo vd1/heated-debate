@@ -551,3 +551,1175 @@ Checks used: [conflicts guidance](https://www.gov.uk/government/publications/pro
 tokens used
 39 304
 
+[2026-04-04T13:52:38.225Z] codex:gpt-5.4
+OpenAI Codex v0.117.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019d58c3-7a58-7403-bdf0-74c180ff1034
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: Should QSL be permitted to engage with vendors receiving ProQure funding, and if so under what governance structure?
+
+QSL (Quantum Software Lab, University of Edinburgh) is the UK's primary quantum-software research centre and NQCC's academic R&D partner. It runs the Testbed Technical Evaluation programme and has an established cross-platform benchmarking capability. DSIT (the government decision-maker) has insisted QSL should not participate in upcoming ProQure calls. Yet QSL is the only UK institution with the breadth to provide credible technical evidence across verification, benchmarking, error correction, resource estimation, and application-level evaluation.
+
+The debate should focus on: (1) whether full separation of QSL from ProQure vendors is workable given that QATCH — QSL's own funded programme — requires collaboration with many of the same vendors; (2) whether the "methodology transfer" model (learn from close partners, apply at arm's length to others) is a credible form of neutrality or creates a two-tier system; (3) what governance structure would give DSIT confidence to permit QSL engagement while maintaining procurement defensibility; (4) whether ProQure should fund its own dedicated evaluation budget rather than relying on QSL's research funding; and (5) what concrete arguments would convince DSIT to change its position.
+
+The output should be usable as a policy brief — concrete, specific, and actionable, not abstract institutional theory.
+
+--- debates/qsl-role-proqure-evaluation/context-snapshot.md ---
+# Context: QSL's role in ProQure evaluation
+
+## The actors
+
+- **DSIT** (Department for Science, Innovation and Technology): Ultimate procurement decision-maker. Has insisted QSL should not be part of upcoming ProQure calls.
+- **NQCC** (National Quantum Computing Centre): Government-funded national lab hosting testbeds. Already runs joint TTE programme with QSL. Steered by Director Cuthbert.
+- **QSL** (Quantum Software Lab, University of Edinburgh): UK's largest quantum-software centre, 70+ researchers, 32 industry partners. Led by Prof. Kashefi (also NQCC Chief Scientist). Primary academic R&D partner of NQCC.
+- **ProQure vendors**: Up to 10 hardware companies funded at £14M each in Phase 1, scaling to £75M in Phase 2, within a £1B total programme.
+
+## QATCH programme (QSL's funded research)
+
+- £20M EPSRC grant, Apr 2026 – Mar 2030 (4 years)
+- Three research pillars: Quantum Advantage Engine (algorithms), HPC & Fault-Tolerant Architecture (systems), Performance Evaluation (benchmarking/verification)
+- Six application sectors: Healthcare, Materials, Cybersecurity, Finance, Energy, AI & Data Science
+- 32 partners including IBM, Quantinuum, Phasecraft, ORCA Computing, Rigetti, Algorithmiq, Quandela, NuQuantum, Q-CTRL, Jij, Alice & Bob, Xanadu, BT, Nomura, HSBC, Rolls-Royce, NVIDIA, Cambridge Consultants
+- Key tools being built: Testbed Technical Evaluation toolkit, Resource Estimation tool, Digital Twin, Verification-Inspired Benchmarking, Distributed Compiler
+- QATCH explicitly describes QSL as both "validator" and "catalyst" — it verifies hardware performance AND co-designs applications with vendors
+- Kashefi is both QSL Director and NQCC Chief Scientist — a dual role that embodies the collaboration but also concentrates the conflict-of-interest question
+
+## ProQure Phase 1
+
+- Contracts for Innovation (not grants) — vendors deliver R&D services
+- Up to 10 Phase 1 contracts at £14M each
+- Vendors must deliver operational testbeds "for independent evaluation and verification" — accessible 3 months before Phase 1 completion
+- Phase 2: up to £75M per vendor
+- Total future procurement: £1B+
+- Timeline: applications by May 2026, contracts awarded Sep 2026, start Oct 2026
+- Evaluation by 5 independent assessors + interview panel
+- ProQure is a DSIT programme administered by Innovate UK
+
+## Existing QSL-NQCC evaluation work (TTE)
+
+- QSL already runs Testbed Technical Evaluation across ion-trap, superconducting, neutral-atom, photonic, and annealing platforms on NQCC testbeds
+- First consolidated Validation Report and Cross-Testbed Benchmarking Toolkit v1.0 due in 2026
+- Uses Zero-Trust Verification framework and Entropy Benchmarking
+- García-Patrón's entropy-based benchmarking informs NQCC-NPL standards
+- This is the existing "active neutrality" model — QSL co-develops evaluation methodology through engagement with platform providers
+
+## The tension
+
+1. DSIT wants QSL separated from ProQure. But QSL is the only institution with the full evaluation pipeline: component benchmarking → system evaluation → application validation → resource estimation → verification → error correction assessment.
+
+2. QATCH is a research programme, not a procurement evaluation budget. It has no funded mandate for ProQure evaluation. If the UK spends £1B on procurement, the evaluation infrastructure needs dedicated funding.
+
+3. Many QATCH partners (IBM, Quantinuum, Phasecraft, ORCA, Rigetti, etc.) are likely ProQure applicants. QATCH milestones depend on co-development with these vendors. Full separation would undermine QATCH deliverables.
+
+4. QSL's methodology-transfer model: learn benchmarking methodology through active collaboration with some vendors, then apply it at arm's length to all vendors (including non-collaborators). This is the "active neutrality" argument. But it may create a perception of a two-tier system.
+
+5. The dual role of Kashefi (QSL Director + NQCC Chief Scientist) concentrates both the expertise and the conflict-of-interest concern in one person.
+
+## What a convincing argument to DSIT needs to address
+
+- Legal defensibility under UK procurement law
+- Perception of fairness by vendors who are NOT QSL collaborators
+- Governance mechanisms (Chinese walls, recusal, audit trails, rotation)
+- The counterfactual: what happens if QSL is excluded? Who evaluates? At what cost in quality?
+- Precedent from comparable programmes (DARPA, ESA, CERN procurement)
+- The funding gap: QATCH doesn't cover ProQure evaluation, and NQCC alone may lack the research depth
+
+
+Here is the first proposal:
+
+The debate engine is blocked by sandbox restrictions. Since I'm the architect-in-debate here, I'll run the analysis directly — working through the five core tensions as a structured deliberation:
+
+---
+
+## Policy Brief: QSL Engagement with ProQure Vendors
+
+### Framing Decision
+
+- **Reject the binary**: DSIT's "full separation" position treats this as conflict-of-interest vs. clean separation — a false dichotomy; the real axis is *governed engagement* vs. *ungoverned exclusion*
+- **Correct the procurement instinct**: UK procurement law (PCR 2015) requires *defensible process*, not institutional purity; independence is a procedural property, not an organisational one
+- **Precedent architecture**: DARPA TAOs retain industry relationships; ESA's ESTEC evaluates vendors it co-develops standards with; CERN procurement routinely uses researchers embedded in vendor programmes — the model exists
+
+---
+
+### 1 — Full Separation Is Not Workable
+
+**Key decision: Reject the workability of full separation**
+
+- QATCH has 32 named partners, ≥6 of whom are probable ProQure Phase 1 applicants (IBM, Quantinuum, ORCA, Rigetti, Phasecraft, Algorithmiq)
+- QATCH deliverables — Testbed Technical Evaluation toolkit, Resource Estimation tool, Verification-Inspired Benchmarking — are *co-produced* with these vendors; separation severs the deliverable chain mid-stream
+- The TTE programme already produces cross-testbed benchmarking outputs that will inform ProQure evaluation whether QSL is formally involved or not; exclusion creates *informal* influence without *formal* accountability
+- **Tradeoff**: Separation *appears* cleaner but actually produces a worse conflict-of-interest outcome — QSL's methodology permeates UK quantum evaluation regardless; better to surface it under governance than suppress it into grey zones
+
+---
+
+### 2 — Methodology Transfer: Credible Neutrality or Two-Tier System?
+
+**Key decision: Methodology transfer is credible *if and only if* the methodology is published before procurement assessment begins**
+
+- The model — develop benchmarking through deep collaboration with some vendors, apply it uniformly to all — is standard in standards bodies (IEEE, ETSI) and test agencies (NPL, PTB)
+- The two-tier *perception* problem is real: IBM and Quantinuum helped design the benchmarks; a startup from outside QSL's orbit did not
+- **Resolution pattern**: Pre-publish all methodology (Zero-Trust Verification framework, Entropy Benchmarking toolkit, Resource Estimation parameters) as open specifications *before* ProQure Phase 1 assessment begins; any vendor can review, comment, and validate against their own systems
+- This converts the two-tier perception into a public consultation record — legally defensible and scientifically reproducible
+- **Architectural tradeoff**: Publishing methodology early constrains QSL's research flexibility but is the price of procurement participation
+
+---
+
+### 3 — Governance Structure for DSIT Confidence
+
+**Key decision: Three-layer governance with hard separation of roles**
+
+**Layer 1 — Structural role split**
+- QSL function in ProQure: *Technical Evidence Provider* only — no scoring, no ranking, no recommendation
+- Scoring and vendor selection: Independent Assessment Panel (5 assessors, none from QSL/NQCC orbit)
+- QSL delivers: raw benchmark data, verification reports, resource estimation outputs — all auditable artefacts
+- Kashefi recuses from any ProQure governance role in her NQCC Chief Scientist capacity; NQCC appoints a separate ProQure Technical Lead
+
+**Layer 2 — Chinese wall mechanisms**
+- QSL's ProQure evaluation function sits in a dedicated *Evaluation Unit* staffed by researchers with no active QATCH vendor-facing roles
+- Evaluation Unit personnel cannot hold co-authorship, co-PI positions, or consulting arrangements with any ProQure applicant during the evaluation window (Oct 2026 – Phase 2 award)
+- Audit trail: all vendor interactions during evaluation period logged and disclosed to Innovate UK on request
+
+**Layer 3 — Independent oversight**
+- Standing Technical Oversight Committee: DSIT nominee, Innovate UK nominee, one international academic (non-UK), one industry nominee from a *non-applicant* vendor
+- TOC reviews QSL methodology before deployment and any QSL finding that materially differentiates vendors
+- TOC has veto over QSL output inclusion in assessment pack if process violated
+
+---
+
+### 4 — ProQure Needs Its Own Evaluation Budget
+
+**Key decision: This is the strongest structural fix and the hardest sell internally**
+
+- QATCH's £20M is EPSRC research funding — it cannot legally be redirected to government procurement evaluation
+- If ProQure deploys £140M in Phase 1 alone, and the evaluation infrastructure relies on unfunded goodwill from QSL, the programme is architecturally fragile
+- **Proposed model**: ProQure allocates 1-2% of contract value (~£1.4-2.8M Phase 1, scaling to £15M over the programme) as a dedicated *Independent Technical Evaluation* budget line
+- This funds: Evaluation Unit personnel, external peer review of QSL outputs, international benchmark calibration (with e.g. Sandia National Labs, PTB Berlin), and the TOC secretariat
+- **Tradeoff**: Adds procurement overhead; Innovate UK will resist; but it transforms QSL from an *ad hoc dependency* into a *contracted evaluation function* — legally cleaner, institutionally sustainable
+- Without this, QSL participation is a favour that can be withdrawn; with it, it's a service with defined scope and liability
+
+---
+
+### 5 — Convincing DSIT: The Concrete Argument
+
+**Key decision: Frame the ask as risk mitigation, not institutional advocacy**
+
+DSIT's current position is driven by two fears: legal challenge from losing vendors, and reputational damage from perceived insider dealing. Address both directly:
+
+**The legal risk argument**
+- Exclusion of QSL does *not* reduce legal risk — it relocates it; if the evaluation methodology used by substitute assessors is demonstrably weaker, losing vendors challenge the *quality* of assessment, not just the process
+- Weak evaluation of a £1B programme is a judicial review target; QSL's exclusion creates the very vulnerability DSIT is trying to avoid
+- UK procurement law requires *proportionate and competent* evaluation; DSIT must demonstrate the alternative is at least as competent
+
+**The counterfactual stress test** (this is the killer argument)
+- Name the alternative: which institution has cross-platform benchmarking capability across superconducting, ion-trap, neutral-atom, photonic, and annealing systems?
+- The honest answer is: none in the UK; international alternatives (Sandia, NIST, Fraunhofer) are not subject to UK procurement law and add jurisdictional complexity
+- A credible substitute requires 18-24 months to build; ProQure Phase 1 starts October 2026; the counterfactual is not "use someone else" — it's "evaluate badly or delay the programme"
+
+**The positive ask**
+- DSIT approves a *governed engagement model* along the lines above
+- In exchange: QSL accepts formal constraints (Evaluation Unit ring-fence, Kashefi recusal, public methodology, TOC oversight)
+- The agreement is written as a Memorandum of Understanding between DSIT, Innovate UK, NQCC, and University of Edinburgh — making governance commitments legally binding, not advisory
+
+---
+
+### Key Unresolved Tensions
+
+- **Kashefi dual role**: No governance architecture fully resolves the concentration of expertise and conflict in one person; the recusal mechanism reduces but doesn't eliminate the optics problem; the long-term fix is succession planning for the NQCC Chief Scientist role
+- **Methodology publication timing**: Early publication is governance-positive but competitively costly — QSL's benchmarking IP is also its research differentiation; this tension needs explicit negotiation with EPSRC
+- **Evaluation budget source**: Whether ProQure or NQCC carries this cost is a political question about ownership of the evaluation function that DSIT, Innovate UK, and UKRI have not yet resolved
+
+---
+
+**Bottom line:** The case for governed engagement is stronger than the case for exclusion on every dimension — legal defensibility, evaluation quality, programme timeline, and cost. DSIT's position is a risk-avoidance reflex, not a considered procurement design. The task is to give DSIT a governance structure it can defend, not to argue that conflict of interest doesn't exist.
+
+Turn 1 - Assistant
+The proposal is directionally right on “governed engagement,” but it is built on a weak premise and overclaims what governance can cure.
+
+**Critical Flaws**
+- The legal frame is wrong. For a call opened on 27 March 2026 and closing on 29 May 2026, the live baseline is the UK [Procurement Act 2023](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), not PCR 2015. That matters because the Act formalises a conflicts assessment and can require exclusion where an unfair advantage cannot be neutralised.
+- The proposal collapses three different problems into one: bid-stage assessment in ProQure Phase 1, post-award technical verification during contract delivery, and any future procurement beyond 2030. DSIT may accept different rules at each stage. A single governance model for all three is too blunt.
+- “QSL provides evidence but does not score” is not a clean separation. Under current guidance, external experts who can influence decisions are still part of the conflict problem. If QSL chooses workloads, thresholds, failure modes, or interpretation rules, it is already shaping the outcome.
+- The methodology-transfer defense is too optimistic. Publishing methods helps, but it does not erase tacit advantage from co-development: tooling choices, calibration habits, workload selection, debug intuition, and informal knowledge of vendor architectures. The two-tier problem remains.
+- The Chinese-wall proposal is likely performative. If the real expertise sits in the same lab, same leadership chain, and same vendor network, the wall will look porous. If the wall is genuinely strict, DSIT will ask whether the remaining ring-fenced unit is still the “only credible evaluator.”
+- The oversight design is risky. A Technical Oversight Committee with a non-applicant industry nominee creates a fresh confidentiality and market-intelligence problem. Giving that committee veto power over evidence also creates a shadow decision-maker outside the formal procurement process.
+- The DARPA precedent is misused. Official DARPA practice cuts the other way: support contractors assisting evaluation are separated from technical performers, and DARPA bars concurrent advisory-support and performer roles in key cases. That weakens the “active neutrality has precedent” argument.
+- The MoU idea is too soft. DSIT will care less about a memorandum and more about what is frozen into the procurement documents, conflict assessments, notices, contracts, and audit trail.
+
+**Stronger Architecture**
+- Reframe the ask. Do not ask DSIT to bless “QSL engagement with vendors” in general. Ask DSIT to permit a tightly bounded QSL role by procurement phase.
+- Pre-call phase: QSL can help build public benchmark methods, but only through declared preliminary market engagement, with published outputs and a frozen protocol before bid evaluation starts.
+- Live competition phase: QSL should be excluded from bidder-specific advisory contact, scoring, ranking, and any mid-stream methodology changes. Full separation from vendors is not workable for QATCH; full separation from source selection is.
+- Post-award verification phase: QSL can run fixed technical tests against awarded testbeds, but only with replication or sign-off by a second independent body. That is where QSL’s capability is most defensible.
+- Future large-scale procurement: ProQure should fund a separate evaluation function, ideally competed or constituted as a consortium. If DSIT pays for evaluation, it should not default that budget straight into QSL.
+
+**Radical Alternatives**
+- Airlock model: second QSL staff into a legally separate evaluation vehicle with cooling-off restrictions before they can return to vendor-facing QATCH work. Expensive and politically awkward, but more credible than an internal wall.
+- Dual-key model: QSL runs the benchmark harness; an international lab or independent commercial evaluator replicates a subset and signs the evidence pack. This buys defensibility at the cost of speed and money.
+- Blind-evaluation model: vendors expose systems through a common interface and are anonymised during initial technical assessment. Imperfect, but it reduces prestige and relationship bias.
+- Split the problem institutionally: QSL owns public methods and benchmark science; NQCC or another body owns contract verification; an external panel owns award decisions. No single actor should own all three.
+
+**What Might Actually Move DSIT**
+- Stop arguing “trust QSL.” Argue “minimise QSL discretion.”
+- Concede the hard point: QSL cannot credibly be both catalyst and live assessor of the same vendors in the same phase.
+- Offer DSIT a narrower permission: allow QSL in pre-competitive methodology and post-award verification, not in bid award.
+- Make the counterfactual less self-defeating. “Only QSL can do this” sounds like dependence and capture. Better: “QSL is necessary for part of the pipeline, but not sufficient to govern it alone.”
+
+Source check: [GOV.UK conflicts guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), [GOV.UK preliminary market engagement guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html), [Innovate UK ProQure call](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/), [DARPA proposer terms](https://www.darpa.mil/about/offices/contracts-management/proposer-general-terms).
+
+Turn 2 - User
+[Creativity: 4/5] Suggest improvements and alternatives. Challenge assumptions. Consider non-obvious solutions.
+
+The revised brief is written above. Here's what changed structurally from v1:
+
+**Corrections integrated:**
+- Legal baseline switched to **Procurement Act 2023** (s.81–83 conflicts, s.16–17 PME, s.26 award criteria)
+- Decomposed into **three phase-specific regimes** instead of one governance model
+- Phase B (live competition): **full exclusion conceded** — "evidence without scoring" is not a clean separation
+- Dropped the DARPA "active neutrality has precedent" argument — it cuts the wrong way
+- Dropped the MoU — governance commitments must be in procurement documents, conflicts assessments, and contract terms
+- Dropped the Technical Oversight Committee with its fresh confidentiality problems
+- Replaced Chinese walls with the **dual-key model** (QSL executes, independent body replicates and co-signs)
+
+**Key structural moves:**
+- The rhetorical shift from "trust QSL" to **"minimise QSL discretion"**
+- Conceding the hard point first (QSL cannot be both catalyst and assessor in the same phase) to change the negotiating dynamic
+- Reframing the counterfactual from "only QSL can do this" to "QSL is necessary for part of the pipeline but not sufficient to govern it alone"
+- Methodology frozen before bid evaluation begins — QSL shapes the framework, not the live assessment
+
+**Radical alternatives preserved:** Airlock model, blind evaluation protocol, competed evaluation function — each with honest tradeoffs.
+
+Want me to commit this to the repo once write permission is granted?
+
+Turn 2 - Assistant
+Much stronger. The main turn is now correct: concede bid-stage exclusion, preserve QSL only where its capability is genuinely non-fungible, and sell DSIT on constrained discretion rather than institutional virtue.
+
+I would not treat it as commit-ready yet. Four changes still matter:
+
+- **Fix the statute citation.** Under the Procurement Act 2023, award criteria are **section 23**, not section 26. Section 24 is the relevant section if you discuss refinement of award criteria. Leaving `s.26 award criteria` in the brief is a credibility own-goal. Sources: [section 23/24 notes](https://www.legislation.gov.uk/ukpga/2023/54/notes/division/6/index.htm), [award-criteria guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html).
+
+- **Split “this live call” from “future phases.”** The current ProQure Phase 1 call opened on **27 March 2026** and closes on **29 May 2026**. So “freeze methodology before bid evaluation begins” is already overtaken for this competition unless DSIT formally modifies the procurement documents. The brief should say:
+  `For the live 2026 call, the realistic ask is no QSL role in award, but a bounded post-award verification role.`
+  `For future calls / Phase 2, freeze and publish methodology before the tender notice.`
+  Sources: [ProQure call page](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/), [modifying a competitive procurement guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/modifying-a-competitive-procurement-html).
+
+- **Narrow the dual-key model.** “Independent body replicates and co-signs” still sounds cleaner than it probably is. If no UK body can really replicate QSL’s full stack, DSIT will hear “ceremonial second opinion.” Make the second key procedural, not mythical:
+  protocol approval, witnessed runs, random reruns, deviation log, chain-of-custody sign-off, and authority to require rerun if process drift occurs.
+  That is more defensible than pretending there is a peer evaluator of equal depth.
+
+- **Add bright-line prohibitions, not just allowed roles.** DSIT will trust a negative list more than a principles statement. State explicitly that QSL must not:
+  advise bidders during the live competition,
+  see bidder-confidential materials beyond what is strictly needed to run fixed tests,
+  alter benchmarks or thresholds during the competition,
+  score, rank, moderate, or join interview panels.
+
+Two non-obvious upgrades would make the brief better:
+
+- **Capability escrow model.** QSL develops the benchmark harnesses, parameter sets, and test scripts, but those artefacts are deposited in a controlled repository so another evaluator can run them if a conflict trigger is hit. That reduces dependence on individual discretion.
+
+- **Red-route model.** Do not treat QSL as institutionally clean or dirty. Route specific vendors out of any QSL-run verification path when there is contemporaneous QATCH co-development on the same subsystem. That gives DSIT a practical off-ramp instead of an all-or-nothing fight.
+
+The strongest final recommendation is probably this: **for the live 2026 competition, keep QSL out of award; for post-award verification and future phases, permit QSL only through pre-published methods, strict prohibited-role rules, and external process assurance.** That is a cleaner, more saleable ask.
+
+Checks used: [conflicts guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), [PME guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html), [competitive tender assessment guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html), [procurement modification guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/modifying-a-competitive-procurement-html), [ProQure call](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/).
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+The file write keeps getting denied — the full v3 text is in the tool calls above. Here's what changed from v2:
+
+**Four corrections applied:**
+
+1. **s.26 → s.23/s.24** — award criteria are section 23, refinement is section 24
+2. **Split temporal realities** — the live 2026 call (already open, closes 29 May) cannot have methodology frozen before it; the realistic ask is post-award verification only. Full governance architecture applies to future calls/Phase 2.
+3. **Dual-key narrowed to procedural assurance** — dropped the fiction of a peer evaluator of equal depth. Second key is now: protocol approval, witnessed runs, random reruns, deviation log, chain-of-custody sign-off, rerun authority.
+4. **Bright-line prohibitions added** — six explicit things QSL must not do, framed as a negative list frozen into procurement documents.
+
+**Two upgrades added:**
+
+5. **Capability escrow** — QSL deposits benchmark harnesses, parameter sets, and test scripts into a NQCC-managed repository so another evaluator can run them if a conflict trigger fires. Insurance policy, not primary operating mode.
+6. **Red-route model** — vendor-specific conflict routing. When a ProQure vendor has active QATCH co-development on the same subsystem being verified, that vendor's verification gets routed to the process assurance body or non-QSL NQCC staff. Gives DSIT a practical off-ramp per-vendor instead of an all-or-nothing institutional decision.
+
+The recommendation tightened to: **for 2026, QSL out of award, bounded post-award verification only; for future phases, add pre-competitive methodology via formal PME with frozen protocols and escrow.** The closing argument is now about the s.81–83 conflicts assessment being incomplete without documenting the counterfactual — forcing DSIT to confront the evaluation-quality risk of blanket exclusion.
+
+Want me to try writing the file again, or should I commit just the content that's already in the directory?
+
+Respond as the assistant only. Do not include tool logs.
+codex
+I’m checking the repo state first so I can answer whether the content is already present and whether there’s anything sensible to commit despite the write restriction.
+exec
+/bin/zsh -lc pwd in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+/Users/v/Code_2026/heated-debate
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead
+git: error: couldn't create cache file '/tmp/xcrun_db-hptubshi' (errno=Operation not permitted)
+git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead
+git: error: couldn't create cache file '/tmp/xcrun_db-9OmnfqsH' (errno=Operation not permitted)
+?? debates/qsl-role-proqure-evaluation/
+
+exec
+/bin/zsh -lc 'rg --files debates/qsl-role-proqure-evaluation' in /Users/v/Code_2026/heated-debate
+ succeeded in 123ms:
+debates/qsl-role-proqure-evaluation/20260404_153731.md
+debates/qsl-role-proqure-evaluation/context.txt
+debates/qsl-role-proqure-evaluation/context-snapshot.md
+debates/qsl-role-proqure-evaluation/20260404_153731.md.stderr.log
+debates/qsl-role-proqure-evaluation/topic.md
+
+codex
+I found an untracked debate directory with a timestamped brief. I’m reading that file and its stderr log now to see whether the v3 content actually landed and whether the write failures only affected follow-up steps.
+exec
+/bin/zsh -lc "sed -n '1,260p' debates/qsl-role-proqure-evaluation/20260404_153731.md" in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+# Debate — 2026-04-04 15:37
+
+| | |
+|---|---|
+| **Agent A** (architect) | `claude-sonnet-4-6` · session `31fc1ab7` |
+| **Agent B** (reviewer) | `gpt-5.4` · session `c6cba1c3` |
+| **Rounds** | 5 |
+| **Timeout** | 420000ms |
+| **Debug stderr** | `debates/qsl-role-proqure-evaluation/20260404_153731.md.stderr.log` |
+
+<details><summary><strong>Topic</strong></summary>
+
+Should QSL be permitted to engage with vendors receiving ProQure funding, and if so under what governance structure?
+
+QSL (Quantum Software Lab, University of Edinburgh) is the UK's primary quantum-software research centre and NQCC's academic R&D partner. It runs the Testbed Technical Evaluation programme and has an established cross-platform benchmarking capability. DSIT (the government decision-maker) has insisted QSL should not participate in upcoming ProQure calls. Yet QSL is the only UK institution with the breadth to provide credible technical evidence across verification, benchmarking, error correction, resource estimation, and application-level evaluation.
+
+The debate should focus on: (1) whether full separation of QSL from ProQure vendors is workable given that QATCH — QSL's own funded programme — requires collaboration with many of the same vendors; (2) whether the "methodology transfer" model (learn from close partners, apply at arm's length to others) is a credible form of neutrality or creates a two-tier system; (3) what governance structure would give DSIT confidence to permit QSL engagement while maintaining procurement defensibility; (4) whether ProQure should fund its own dedicated evaluation budget rather than relying on QSL's research funding; and (5) what concrete arguments would convince DSIT to change its position.
+
+The output should be usable as a policy brief — concrete, specific, and actionable, not abstract institutional theory.
+
+</details>
+
+**Context:** debates/qsl-role-proqure-evaluation/context-snapshot.md
+
+---
+
+## Round 1/5 — Wild (5/5)
+
+### Agent A · `claude-sonnet-4-6` · 139s
+
+The debate engine is blocked by sandbox restrictions. Since I'm the architect-in-debate here, I'll run the analysis directly — working through the five core tensions as a structured deliberation:
+
+---
+
+## Policy Brief: QSL Engagement with ProQure Vendors
+
+### Framing Decision
+
+- **Reject the binary**: DSIT's "full separation" position treats this as conflict-of-interest vs. clean separation — a false dichotomy; the real axis is *governed engagement* vs. *ungoverned exclusion*
+- **Correct the procurement instinct**: UK procurement law (PCR 2015) requires *defensible process*, not institutional purity; independence is a procedural property, not an organisational one
+- **Precedent architecture**: DARPA TAOs retain industry relationships; ESA's ESTEC evaluates vendors it co-develops standards with; CERN procurement routinely uses researchers embedded in vendor programmes — the model exists
+
+---
+
+### 1 — Full Separation Is Not Workable
+
+**Key decision: Reject the workability of full separation**
+
+- QATCH has 32 named partners, ≥6 of whom are probable ProQure Phase 1 applicants (IBM, Quantinuum, ORCA, Rigetti, Phasecraft, Algorithmiq)
+- QATCH deliverables — Testbed Technical Evaluation toolkit, Resource Estimation tool, Verification-Inspired Benchmarking — are *co-produced* with these vendors; separation severs the deliverable chain mid-stream
+- The TTE programme already produces cross-testbed benchmarking outputs that will inform ProQure evaluation whether QSL is formally involved or not; exclusion creates *informal* influence without *formal* accountability
+- **Tradeoff**: Separation *appears* cleaner but actually produces a worse conflict-of-interest outcome — QSL's methodology permeates UK quantum evaluation regardless; better to surface it under governance than suppress it into grey zones
+
+---
+
+### 2 — Methodology Transfer: Credible Neutrality or Two-Tier System?
+
+**Key decision: Methodology transfer is credible *if and only if* the methodology is published before procurement assessment begins**
+
+- The model — develop benchmarking through deep collaboration with some vendors, apply it uniformly to all — is standard in standards bodies (IEEE, ETSI) and test agencies (NPL, PTB)
+- The two-tier *perception* problem is real: IBM and Quantinuum helped design the benchmarks; a startup from outside QSL's orbit did not
+- **Resolution pattern**: Pre-publish all methodology (Zero-Trust Verification framework, Entropy Benchmarking toolkit, Resource Estimation parameters) as open specifications *before* ProQure Phase 1 assessment begins; any vendor can review, comment, and validate against their own systems
+- This converts the two-tier perception into a public consultation record — legally defensible and scientifically reproducible
+- **Architectural tradeoff**: Publishing methodology early constrains QSL's research flexibility but is the price of procurement participation
+
+---
+
+### 3 — Governance Structure for DSIT Confidence
+
+**Key decision: Three-layer governance with hard separation of roles**
+
+**Layer 1 — Structural role split**
+- QSL function in ProQure: *Technical Evidence Provider* only — no scoring, no ranking, no recommendation
+- Scoring and vendor selection: Independent Assessment Panel (5 assessors, none from QSL/NQCC orbit)
+- QSL delivers: raw benchmark data, verification reports, resource estimation outputs — all auditable artefacts
+- Kashefi recuses from any ProQure governance role in her NQCC Chief Scientist capacity; NQCC appoints a separate ProQure Technical Lead
+
+**Layer 2 — Chinese wall mechanisms**
+- QSL's ProQure evaluation function sits in a dedicated *Evaluation Unit* staffed by researchers with no active QATCH vendor-facing roles
+- Evaluation Unit personnel cannot hold co-authorship, co-PI positions, or consulting arrangements with any ProQure applicant during the evaluation window (Oct 2026 – Phase 2 award)
+- Audit trail: all vendor interactions during evaluation period logged and disclosed to Innovate UK on request
+
+**Layer 3 — Independent oversight**
+- Standing Technical Oversight Committee: DSIT nominee, Innovate UK nominee, one international academic (non-UK), one industry nominee from a *non-applicant* vendor
+- TOC reviews QSL methodology before deployment and any QSL finding that materially differentiates vendors
+- TOC has veto over QSL output inclusion in assessment pack if process violated
+
+---
+
+### 4 — ProQure Needs Its Own Evaluation Budget
+
+**Key decision: This is the strongest structural fix and the hardest sell internally**
+
+- QATCH's £20M is EPSRC research funding — it cannot legally be redirected to government procurement evaluation
+- If ProQure deploys £140M in Phase 1 alone, and the evaluation infrastructure relies on unfunded goodwill from QSL, the programme is architecturally fragile
+- **Proposed model**: ProQure allocates 1-2% of contract value (~£1.4-2.8M Phase 1, scaling to £15M over the programme) as a dedicated *Independent Technical Evaluation* budget line
+- This funds: Evaluation Unit personnel, external peer review of QSL outputs, international benchmark calibration (with e.g. Sandia National Labs, PTB Berlin), and the TOC secretariat
+- **Tradeoff**: Adds procurement overhead; Innovate UK will resist; but it transforms QSL from an *ad hoc dependency* into a *contracted evaluation function* — legally cleaner, institutionally sustainable
+- Without this, QSL participation is a favour that can be withdrawn; with it, it's a service with defined scope and liability
+
+---
+
+### 5 — Convincing DSIT: The Concrete Argument
+
+**Key decision: Frame the ask as risk mitigation, not institutional advocacy**
+
+DSIT's current position is driven by two fears: legal challenge from losing vendors, and reputational damage from perceived insider dealing. Address both directly:
+
+**The legal risk argument**
+- Exclusion of QSL does *not* reduce legal risk — it relocates it; if the evaluation methodology used by substitute assessors is demonstrably weaker, losing vendors challenge the *quality* of assessment, not just the process
+- Weak evaluation of a £1B programme is a judicial review target; QSL's exclusion creates the very vulnerability DSIT is trying to avoid
+- UK procurement law requires *proportionate and competent* evaluation; DSIT must demonstrate the alternative is at least as competent
+
+**The counterfactual stress test** (this is the killer argument)
+- Name the alternative: which institution has cross-platform benchmarking capability across superconducting, ion-trap, neutral-atom, photonic, and annealing systems?
+- The honest answer is: none in the UK; international alternatives (Sandia, NIST, Fraunhofer) are not subject to UK procurement law and add jurisdictional complexity
+- A credible substitute requires 18-24 months to build; ProQure Phase 1 starts October 2026; the counterfactual is not "use someone else" — it's "evaluate badly or delay the programme"
+
+**The positive ask**
+- DSIT approves a *governed engagement model* along the lines above
+- In exchange: QSL accepts formal constraints (Evaluation Unit ring-fence, Kashefi recusal, public methodology, TOC oversight)
+- The agreement is written as a Memorandum of Understanding between DSIT, Innovate UK, NQCC, and University of Edinburgh — making governance commitments legally binding, not advisory
+
+---
+
+### Key Unresolved Tensions
+
+- **Kashefi dual role**: No governance architecture fully resolves the concentration of expertise and conflict in one person; the recusal mechanism reduces but doesn't eliminate the optics problem; the long-term fix is succession planning for the NQCC Chief Scientist role
+- **Methodology publication timing**: Early publication is governance-positive but competitively costly — QSL's benchmarking IP is also its research differentiation; this tension needs explicit negotiation with EPSRC
+- **Evaluation budget source**: Whether ProQure or NQCC carries this cost is a political question about ownership of the evaluation function that DSIT, Innovate UK, and UKRI have not yet resolved
+
+---
+
+**Bottom line:** The case for governed engagement is stronger than the case for exclusion on every dimension — legal defensibility, evaluation quality, programme timeline, and cost. DSIT's position is a risk-avoidance reflex, not a considered procurement design. The task is to give DSIT a governance structure it can defend, not to argue that conflict of interest doesn't exist.
+
+### Agent B · `gpt-5.4` · 149s
+
+The proposal is directionally right on “governed engagement,” but it is built on a weak premise and overclaims what governance can cure.
+
+**Critical Flaws**
+- The legal frame is wrong. For a call opened on 27 March 2026 and closing on 29 May 2026, the live baseline is the UK [Procurement Act 2023](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), not PCR 2015. That matters because the Act formalises a conflicts assessment and can require exclusion where an unfair advantage cannot be neutralised.
+- The proposal collapses three different problems into one: bid-stage assessment in ProQure Phase 1, post-award technical verification during contract delivery, and any future procurement beyond 2030. DSIT may accept different rules at each stage. A single governance model for all three is too blunt.
+- “QSL provides evidence but does not score” is not a clean separation. Under current guidance, external experts who can influence decisions are still part of the conflict problem. If QSL chooses workloads, thresholds, failure modes, or interpretation rules, it is already shaping the outcome.
+- The methodology-transfer defense is too optimistic. Publishing methods helps, but it does not erase tacit advantage from co-development: tooling choices, calibration habits, workload selection, debug intuition, and informal knowledge of vendor architectures. The two-tier problem remains.
+- The Chinese-wall proposal is likely performative. If the real expertise sits in the same lab, same leadership chain, and same vendor network, the wall will look porous. If the wall is genuinely strict, DSIT will ask whether the remaining ring-fenced unit is still the “only credible evaluator.”
+- The oversight design is risky. A Technical Oversight Committee with a non-applicant industry nominee creates a fresh confidentiality and market-intelligence problem. Giving that committee veto power over evidence also creates a shadow decision-maker outside the formal procurement process.
+- The DARPA precedent is misused. Official DARPA practice cuts the other way: support contractors assisting evaluation are separated from technical performers, and DARPA bars concurrent advisory-support and performer roles in key cases. That weakens the “active neutrality has precedent” argument.
+- The MoU idea is too soft. DSIT will care less about a memorandum and more about what is frozen into the procurement documents, conflict assessments, notices, contracts, and audit trail.
+
+**Stronger Architecture**
+- Reframe the ask. Do not ask DSIT to bless “QSL engagement with vendors” in general. Ask DSIT to permit a tightly bounded QSL role by procurement phase.
+- Pre-call phase: QSL can help build public benchmark methods, but only through declared preliminary market engagement, with published outputs and a frozen protocol before bid evaluation starts.
+- Live competition phase: QSL should be excluded from bidder-specific advisory contact, scoring, ranking, and any mid-stream methodology changes. Full separation from vendors is not workable for QATCH; full separation from source selection is.
+- Post-award verification phase: QSL can run fixed technical tests against awarded testbeds, but only with replication or sign-off by a second independent body. That is where QSL’s capability is most defensible.
+- Future large-scale procurement: ProQure should fund a separate evaluation function, ideally competed or constituted as a consortium. If DSIT pays for evaluation, it should not default that budget straight into QSL.
+
+**Radical Alternatives**
+- Airlock model: second QSL staff into a legally separate evaluation vehicle with cooling-off restrictions before they can return to vendor-facing QATCH work. Expensive and politically awkward, but more credible than an internal wall.
+- Dual-key model: QSL runs the benchmark harness; an international lab or independent commercial evaluator replicates a subset and signs the evidence pack. This buys defensibility at the cost of speed and money.
+- Blind-evaluation model: vendors expose systems through a common interface and are anonymised during initial technical assessment. Imperfect, but it reduces prestige and relationship bias.
+- Split the problem institutionally: QSL owns public methods and benchmark science; NQCC or another body owns contract verification; an external panel owns award decisions. No single actor should own all three.
+
+**What Might Actually Move DSIT**
+- Stop arguing “trust QSL.” Argue “minimise QSL discretion.”
+- Concede the hard point: QSL cannot credibly be both catalyst and live assessor of the same vendors in the same phase.
+- Offer DSIT a narrower permission: allow QSL in pre-competitive methodology and post-award verification, not in bid award.
+- Make the counterfactual less self-defeating. “Only QSL can do this” sounds like dependence and capture. Better: “QSL is necessary for part of the pipeline, but not sufficient to govern it alone.”
+
+Source check: [GOV.UK conflicts guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), [GOV.UK preliminary market engagement guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html), [Innovate UK ProQure call](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/), [DARPA proposer terms](https://www.darpa.mil/about/offices/contracts-management/proposer-general-terms).
+
+---
+
+## Round 2/5 — Creative (4/5)
+
+### Agent A · `claude-sonnet-4-6` · 179s
+
+The revised brief is written above. Here's what changed structurally from v1:
+
+**Corrections integrated:**
+- Legal baseline switched to **Procurement Act 2023** (s.81–83 conflicts, s.16–17 PME, s.26 award criteria)
+- Decomposed into **three phase-specific regimes** instead of one governance model
+- Phase B (live competition): **full exclusion conceded** — "evidence without scoring" is not a clean separation
+- Dropped the DARPA "active neutrality has precedent" argument — it cuts the wrong way
+- Dropped the MoU — governance commitments must be in procurement documents, conflicts assessments, and contract terms
+- Dropped the Technical Oversight Committee with its fresh confidentiality problems
+- Replaced Chinese walls with the **dual-key model** (QSL executes, independent body replicates and co-signs)
+
+**Key structural moves:**
+- The rhetorical shift from "trust QSL" to **"minimise QSL discretion"**
+- Conceding the hard point first (QSL cannot be both catalyst and assessor in the same phase) to change the negotiating dynamic
+- Reframing the counterfactual from "only QSL can do this" to "QSL is necessary for part of the pipeline but not sufficient to govern it alone"
+- Methodology frozen before bid evaluation begins — QSL shapes the framework, not the live assessment
+
+**Radical alternatives preserved:** Airlock model, blind evaluation protocol, competed evaluation function — each with honest tradeoffs.
+
+Want me to commit this to the repo once write permission is granted?
+
+### Agent B · `gpt-5.4` · 128s
+
+Much stronger. The main turn is now correct: concede bid-stage exclusion, preserve QSL only where its capability is genuinely non-fungible, and sell DSIT on constrained discretion rather than institutional virtue.
+
+I would not treat it as commit-ready yet. Four changes still matter:
+
+- **Fix the statute citation.** Under the Procurement Act 2023, award criteria are **section 23**, not section 26. Section 24 is the relevant section if you discuss refinement of award criteria. Leaving `s.26 award criteria` in the brief is a credibility own-goal. Sources: [section 23/24 notes](https://www.legislation.gov.uk/ukpga/2023/54/notes/division/6/index.htm), [award-criteria guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html).
+
+- **Split “this live call” from “future phases.”** The current ProQure Phase 1 call opened on **27 March 2026** and closes on **29 May 2026**. So “freeze methodology before bid evaluation begins” is already overtaken for this competition unless DSIT formally modifies the procurement documents. The brief should say:
+  `For the live 2026 call, the realistic ask is no QSL role in award, but a bounded post-award verification role.`
+  `For future calls / Phase 2, freeze and publish methodology before the tender notice.`
+  Sources: [ProQure call page](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/), [modifying a competitive procurement guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/modifying-a-competitive-procurement-html).
+
+- **Narrow the dual-key model.** “Independent body replicates and co-signs” still sounds cleaner than it probably is. If no UK body can really replicate QSL’s full stack, DSIT will hear “ceremonial second opinion.” Make the second key procedural, not mythical:
+  protocol approval, witnessed runs, random reruns, deviation log, chain-of-custody sign-off, and authority to require rerun if process drift occurs.
+  That is more defensible than pretending there is a peer evaluator of equal depth.
+
+- **Add bright-line prohibitions, not just allowed roles.** DSIT will trust a negative list more than a principles statement. State explicitly that QSL must not:
+  advise bidders during the live competition,
+  see bidder-confidential materials beyond what is strictly needed to run fixed tests,
+  alter benchmarks or thresholds during the competition,
+  score, rank, moderate, or join interview panels.
+
+Two non-obvious upgrades would make the brief better:
+
+- **Capability escrow model.** QSL develops the benchmark harnesses, parameter sets, and test scripts, but those artefacts are deposited in a controlled repository so another evaluator can run them if a conflict trigger is hit. That reduces dependence on individual discretion.
+
+- **Red-route model.** Do not treat QSL as institutionally clean or dirty. Route specific vendors out of any QSL-run verification path when there is contemporaneous QATCH co-development on the same subsystem. That gives DSIT a practical off-ramp instead of an all-or-nothing fight.
+
+The strongest final recommendation is probably this: **for the live 2026 competition, keep QSL out of award; for post-award verification and future phases, permit QSL only through pre-published methods, strict prohibited-role rules, and external process assurance.** That is a cleaner, more saleable ask.
+
+Checks used: [conflicts guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), [PME guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html), [competitive tender assessment guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html), [procurement modification guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/modifying-a-competitive-procurement-html), [ProQure call](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/).
+
+---
+
+## Round 3/5 — Balanced (3/5)
+
+### Agent A · `claude-sonnet-4-6` · 250s
+
+The file write keeps getting denied — the full v3 text is in the tool calls above. Here's what changed from v2:
+
+**Four corrections applied:**
+
+1. **s.26 → s.23/s.24** — award criteria are section 23, refinement is section 24
+2. **Split temporal realities** — the live 2026 call (already open, closes 29 May) cannot have methodology frozen before it; the realistic ask is post-award verification only. Full governance architecture applies to future calls/Phase 2.
+3. **Dual-key narrowed to procedural assurance** — dropped the fiction of a peer evaluator of equal depth. Second key is now: protocol approval, witnessed runs, random reruns, deviation log, chain-of-custody sign-off, rerun authority.
+4. **Bright-line prohibitions added** — six explicit things QSL must not do, framed as a negative list frozen into procurement documents.
+
+**Two upgrades added:**
+
+5. **Capability escrow** — QSL deposits benchmark harnesses, parameter sets, and test scripts into a NQCC-managed repository so another evaluator can run them if a conflict trigger fires. Insurance policy, not primary operating mode.
+6. **Red-route model** — vendor-specific conflict routing. When a ProQure vendor has active QATCH co-development on the same subsystem being verified, that vendor's verification gets routed to the process assurance body or non-QSL NQCC staff. Gives DSIT a practical off-ramp per-vendor instead of an all-or-nothing institutional decision.
+
+The recommendation tightened to: **for 2026, QSL out of award, bounded post-award verification only; for future phases, add pre-competitive methodology via formal PME with frozen protocols and escrow.** The closing argument is now about the s.81–83 conflicts assessment being incomplete without documenting the counterfactual — forcing DSIT to confront the evaluation-quality risk of blanket exclusion.
+
+Want me to try writing the file again, or should I commit just the content that's already in the directory?
+
+
+exec
+/bin/zsh -lc "sed -n '1,220p' debates/qsl-role-proqure-evaluation/topic.md" in /Users/v/Code_2026/heated-debate
+exec
+/bin/zsh -lc "sed -n '1,220p' debates/qsl-role-proqure-evaluation/20260404_153731.md.stderr.log" in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+Should QSL be permitted to engage with vendors receiving ProQure funding, and if so under what governance structure?
+
+QSL (Quantum Software Lab, University of Edinburgh) is the UK's primary quantum-software research centre and NQCC's academic R&D partner. It runs the Testbed Technical Evaluation programme and has an established cross-platform benchmarking capability. DSIT (the government decision-maker) has insisted QSL should not participate in upcoming ProQure calls. Yet QSL is the only UK institution with the breadth to provide credible technical evidence across verification, benchmarking, error correction, resource estimation, and application-level evaluation.
+
+The debate should focus on: (1) whether full separation of QSL from ProQure vendors is workable given that QATCH — QSL's own funded programme — requires collaboration with many of the same vendors; (2) whether the "methodology transfer" model (learn from close partners, apply at arm's length to others) is a credible form of neutrality or creates a two-tier system; (3) what governance structure would give DSIT confidence to permit QSL engagement while maintaining procurement defensibility; (4) whether ProQure should fund its own dedicated evaluation budget rather than relying on QSL's research funding; and (5) what concrete arguments would convince DSIT to change its position.
+
+The output should be usable as a policy brief — concrete, specific, and actionable, not abstract institutional theory.
+ succeeded in 0ms:
+# Shelley stderr log
+# transcript: debates/qsl-role-proqure-evaluation/20260404_153731.md
+# started: 2026-04-04T13:37:31.991Z
+
+[2026-04-04T13:42:20.341Z] codex:gpt-5.4
+OpenAI Codex v0.117.0 (research preview)
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019d58b8-b769-70a2-93f6-ab7bd9ca8600
+--------
+user
+System role:
+You are a critical code reviewer in a debate. Challenge proposals, find flaws, and suggest improvements. Be concise. Output feedback on the architectural approach and risks. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: Should QSL be permitted to engage with vendors receiving ProQure funding, and if so under what governance structure?
+
+QSL (Quantum Software Lab, University of Edinburgh) is the UK's primary quantum-software research centre and NQCC's academic R&D partner. It runs the Testbed Technical Evaluation programme and has an established cross-platform benchmarking capability. DSIT (the government decision-maker) has insisted QSL should not participate in upcoming ProQure calls. Yet QSL is the only UK institution with the breadth to provide credible technical evidence across verification, benchmarking, error correction, resource estimation, and application-level evaluation.
+
+The debate should focus on: (1) whether full separation of QSL from ProQure vendors is workable given that QATCH — QSL's own funded programme — requires collaboration with many of the same vendors; (2) whether the "methodology transfer" model (learn from close partners, apply at arm's length to others) is a credible form of neutrality or creates a two-tier system; (3) what governance structure would give DSIT confidence to permit QSL engagement while maintaining procurement defensibility; (4) whether ProQure should fund its own dedicated evaluation budget rather than relying on QSL's research funding; and (5) what concrete arguments would convince DSIT to change its position.
+
+The output should be usable as a policy brief — concrete, specific, and actionable, not abstract institutional theory.
+
+--- debates/qsl-role-proqure-evaluation/context-snapshot.md ---
+# Context: QSL's role in ProQure evaluation
+
+## The actors
+
+- **DSIT** (Department for Science, Innovation and Technology): Ultimate procurement decision-maker. Has insisted QSL should not be part of upcoming ProQure calls.
+- **NQCC** (National Quantum Computing Centre): Government-funded national lab hosting testbeds. Already runs joint TTE programme with QSL. Steered by Director Cuthbert.
+- **QSL** (Quantum Software Lab, University of Edinburgh): UK's largest quantum-software centre, 70+ researchers, 32 industry partners. Led by Prof. Kashefi (also NQCC Chief Scientist). Primary academic R&D partner of NQCC.
+- **ProQure vendors**: Up to 10 hardware companies funded at £14M each in Phase 1, scaling to £75M in Phase 2, within a £1B total programme.
+
+## QATCH programme (QSL's funded research)
+
+- £20M EPSRC grant, Apr 2026 – Mar 2030 (4 years)
+- Three research pillars: Quantum Advantage Engine (algorithms), HPC & Fault-Tolerant Architecture (systems), Performance Evaluation (benchmarking/verification)
+- Six application sectors: Healthcare, Materials, Cybersecurity, Finance, Energy, AI & Data Science
+- 32 partners including IBM, Quantinuum, Phasecraft, ORCA Computing, Rigetti, Algorithmiq, Quandela, NuQuantum, Q-CTRL, Jij, Alice & Bob, Xanadu, BT, Nomura, HSBC, Rolls-Royce, NVIDIA, Cambridge Consultants
+- Key tools being built: Testbed Technical Evaluation toolkit, Resource Estimation tool, Digital Twin, Verification-Inspired Benchmarking, Distributed Compiler
+- QATCH explicitly describes QSL as both "validator" and "catalyst" — it verifies hardware performance AND co-designs applications with vendors
+- Kashefi is both QSL Director and NQCC Chief Scientist — a dual role that embodies the collaboration but also concentrates the conflict-of-interest question
+
+## ProQure Phase 1
+
+- Contracts for Innovation (not grants) — vendors deliver R&D services
+- Up to 10 Phase 1 contracts at £14M each
+- Vendors must deliver operational testbeds "for independent evaluation and verification" — accessible 3 months before Phase 1 completion
+- Phase 2: up to £75M per vendor
+- Total future procurement: £1B+
+- Timeline: applications by May 2026, contracts awarded Sep 2026, start Oct 2026
+- Evaluation by 5 independent assessors + interview panel
+- ProQure is a DSIT programme administered by Innovate UK
+
+## Existing QSL-NQCC evaluation work (TTE)
+
+- QSL already runs Testbed Technical Evaluation across ion-trap, superconducting, neutral-atom, photonic, and annealing platforms on NQCC testbeds
+- First consolidated Validation Report and Cross-Testbed Benchmarking Toolkit v1.0 due in 2026
+- Uses Zero-Trust Verification framework and Entropy Benchmarking
+- García-Patrón's entropy-based benchmarking informs NQCC-NPL standards
+- This is the existing "active neutrality" model — QSL co-develops evaluation methodology through engagement with platform providers
+
+## The tension
+
+1. DSIT wants QSL separated from ProQure. But QSL is the only institution with the full evaluation pipeline: component benchmarking → system evaluation → application validation → resource estimation → verification → error correction assessment.
+
+2. QATCH is a research programme, not a procurement evaluation budget. It has no funded mandate for ProQure evaluation. If the UK spends £1B on procurement, the evaluation infrastructure needs dedicated funding.
+
+3. Many QATCH partners (IBM, Quantinuum, Phasecraft, ORCA, Rigetti, etc.) are likely ProQure applicants. QATCH milestones depend on co-development with these vendors. Full separation would undermine QATCH deliverables.
+
+4. QSL's methodology-transfer model: learn benchmarking methodology through active collaboration with some vendors, then apply it at arm's length to all vendors (including non-collaborators). This is the "active neutrality" argument. But it may create a perception of a two-tier system.
+
+5. The dual role of Kashefi (QSL Director + NQCC Chief Scientist) concentrates both the expertise and the conflict-of-interest concern in one person.
+
+## What a convincing argument to DSIT needs to address
+
+- Legal defensibility under UK procurement law
+- Perception of fairness by vendors who are NOT QSL collaborators
+- Governance mechanisms (Chinese walls, recusal, audit trails, rotation)
+- The counterfactual: what happens if QSL is excluded? Who evaluates? At what cost in quality?
+- Precedent from comparable programmes (DARPA, ESA, CERN procurement)
+- The funding gap: QATCH doesn't cover ProQure evaluation, and NQCC alone may lack the research depth
+
+
+Here is the first proposal:
+
+The debate engine is blocked by sandbox restrictions. Since I'm the architect-in-debate here, I'll run the analysis directly — working through the five core tensions as a structured deliberation:
+
+---
+
+## Policy Brief: QSL Engagement with ProQure Vendors
+
+### Framing Decision
+
+- **Reject the binary**: DSIT's "full separation" position treats this as conflict-of-interest vs. clean separation — a false dichotomy; the real axis is *governed engagement* vs. *ungoverned exclusion*
+- **Correct the procurement instinct**: UK procurement law (PCR 2015) requires *defensible process*, not institutional purity; independence is a procedural property, not an organisational one
+- **Precedent architecture**: DARPA TAOs retain industry relationships; ESA's ESTEC evaluates vendors it co-develops standards with; CERN procurement routinely uses researchers embedded in vendor programmes — the model exists
+
+---
+
+### 1 — Full Separation Is Not Workable
+
+**Key decision: Reject the workability of full separation**
+
+- QATCH has 32 named partners, ≥6 of whom are probable ProQure Phase 1 applicants (IBM, Quantinuum, ORCA, Rigetti, Phasecraft, Algorithmiq)
+- QATCH deliverables — Testbed Technical Evaluation toolkit, Resource Estimation tool, Verification-Inspired Benchmarking — are *co-produced* with these vendors; separation severs the deliverable chain mid-stream
+- The TTE programme already produces cross-testbed benchmarking outputs that will inform ProQure evaluation whether QSL is formally involved or not; exclusion creates *informal* influence without *formal* accountability
+- **Tradeoff**: Separation *appears* cleaner but actually produces a worse conflict-of-interest outcome — QSL's methodology permeates UK quantum evaluation regardless; better to surface it under governance than suppress it into grey zones
+
+---
+
+### 2 — Methodology Transfer: Credible Neutrality or Two-Tier System?
+
+**Key decision: Methodology transfer is credible *if and only if* the methodology is published before procurement assessment begins**
+
+- The model — develop benchmarking through deep collaboration with some vendors, apply it uniformly to all — is standard in standards bodies (IEEE, ETSI) and test agencies (NPL, PTB)
+- The two-tier *perception* problem is real: IBM and Quantinuum helped design the benchmarks; a startup from outside QSL's orbit did not
+- **Resolution pattern**: Pre-publish all methodology (Zero-Trust Verification framework, Entropy Benchmarking toolkit, Resource Estimation parameters) as open specifications *before* ProQure Phase 1 assessment begins; any vendor can review, comment, and validate against their own systems
+- This converts the two-tier perception into a public consultation record — legally defensible and scientifically reproducible
+- **Architectural tradeoff**: Publishing methodology early constrains QSL's research flexibility but is the price of procurement participation
+
+---
+
+### 3 — Governance Structure for DSIT Confidence
+
+**Key decision: Three-layer governance with hard separation of roles**
+
+**Layer 1 — Structural role split**
+- QSL function in ProQure: *Technical Evidence Provider* only — no scoring, no ranking, no recommendation
+- Scoring and vendor selection: Independent Assessment Panel (5 assessors, none from QSL/NQCC orbit)
+- QSL delivers: raw benchmark data, verification reports, resource estimation outputs — all auditable artefacts
+- Kashefi recuses from any ProQure governance role in her NQCC Chief Scientist capacity; NQCC appoints a separate ProQure Technical Lead
+
+**Layer 2 — Chinese wall mechanisms**
+- QSL's ProQure evaluation function sits in a dedicated *Evaluation Unit* staffed by researchers with no active QATCH vendor-facing roles
+- Evaluation Unit personnel cannot hold co-authorship, co-PI positions, or consulting arrangements with any ProQure applicant during the evaluation window (Oct 2026 – Phase 2 award)
+- Audit trail: all vendor interactions during evaluation period logged and disclosed to Innovate UK on request
+
+**Layer 3 — Independent oversight**
+- Standing Technical Oversight Committee: DSIT nominee, Innovate UK nominee, one international academic (non-UK), one industry nominee from a *non-applicant* vendor
+- TOC reviews QSL methodology before deployment and any QSL finding that materially differentiates vendors
+- TOC has veto over QSL output inclusion in assessment pack if process violated
+
+---
+
+### 4 — ProQure Needs Its Own Evaluation Budget
+
+**Key decision: This is the strongest structural fix and the hardest sell internally**
+
+- QATCH's £20M is EPSRC research funding — it cannot legally be redirected to government procurement evaluation
+- If ProQure deploys £140M in Phase 1 alone, and the evaluation infrastructure relies on unfunded goodwill from QSL, the programme is architecturally fragile
+- **Proposed model**: ProQure allocates 1-2% of contract value (~£1.4-2.8M Phase 1, scaling to £15M over the programme) as a dedicated *Independent Technical Evaluation* budget line
+- This funds: Evaluation Unit personnel, external peer review of QSL outputs, international benchmark calibration (with e.g. Sandia National Labs, PTB Berlin), and the TOC secretariat
+- **Tradeoff**: Adds procurement overhead; Innovate UK will resist; but it transforms QSL from an *ad hoc dependency* into a *contracted evaluation function* — legally cleaner, institutionally sustainable
+- Without this, QSL participation is a favour that can be withdrawn; with it, it's a service with defined scope and liability
+
+---
+
+### 5 — Convincing DSIT: The Concrete Argument
+
+**Key decision: Frame the ask as risk mitigation, not institutional advocacy**
+
+DSIT's current position is driven by two fears: legal challenge from losing vendors, and reputational damage from perceived insider dealing. Address both directly:
+
+**The legal risk argument**
+- Exclusion of QSL does *not* reduce legal risk — it relocates it; if the evaluation methodology used by substitute assessors is demonstrably weaker, losing vendors challenge the *quality* of assessment, not just the process
+- Weak evaluation of a £1B programme is a judicial review target; QSL's exclusion creates the very vulnerability DSIT is trying to avoid
+- UK procurement law requires *proportionate and competent* evaluation; DSIT must demonstrate the alternative is at least as competent
+
+**The counterfactual stress test** (this is the killer argument)
+- Name the alternative: which institution has cross-platform benchmarking capability across superconducting, ion-trap, neutral-atom, photonic, and annealing systems?
+- The honest answer is: none in the UK; international alternatives (Sandia, NIST, Fraunhofer) are not subject to UK procurement law and add jurisdictional complexity
+- A credible substitute requires 18-24 months to build; ProQure Phase 1 starts October 2026; the counterfactual is not "use someone else" — it's "evaluate badly or delay the programme"
+
+**The positive ask**
+- DSIT approves a *governed engagement model* along the lines above
+- In exchange: QSL accepts formal constraints (Evaluation Unit ring-fence, Kashefi recusal, public methodology, TOC oversight)
+- The agreement is written as a Memorandum of Understanding between DSIT, Innovate UK, NQCC, and University of Edinburgh — making governance commitments legally binding, not advisory
+
+---
+
+### Key Unresolved Tensions
+
+- **Kashefi dual role**: No governance architecture fully resolves the concentration of expertise and conflict in one person; the recusal mechanism reduces but doesn't eliminate the optics problem; the long-term fix is succession planning for the NQCC Chief Scientist role
+- **Methodology publication timing**: Early publication is governance-positive but competitively costly — QSL's benchmarking IP is also its research differentiation; this tension needs explicit negotiation with EPSRC
+- **Evaluation budget source**: Whether ProQure or NQCC carries this cost is a political question about ownership of the evaluation function that DSIT, Innovate UK, and UKRI have not yet resolved
+
+---
+
+**Bottom line:** The case for governed engagement is stronger than the case for exclusion on every dimension — legal defensibility, evaluation quality, programme timeline, and cost. DSIT's position is a risk-avoidance reflex, not a considered procurement design. The task is to give DSIT a governance structure it can defend, not to argue that conflict of interest doesn't exist.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Reviewing the proposal against the actual procurement architecture first. The main risk is that it argues from a legal and institutional premise that may already be outdated, so I’m checking that before assessing the governance model.
+web search: 
+web search: site:gov.uk Procurement Act 2023 came into force 24 February 2025 conflict of interest guidance
+web search: 
+web search: site:iuk-business-connect.org.uk "Contracts for Innovation" Innovate UK procurement not grant
+web search: 
+web search: site:gov.uk Procurement Act 2023 sections 81 82 conflicts of interest unfair advantage supplier exclusion guide
+codex
+The first proposal has a strong instinct but a weak legal and institutional spine. It treats “no scoring” and “published methodology” as if they solve influence, when DSIT’s actual concern is broader: who shapes the evidence base, who gets early access, and whether that advantage can truly be mitigated once procurement is live.
+web search: 
+web search: DARPA conflict of interest advisory board vendor evaluation policy
+web search: 
+web search: https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html
+web search: 
+web search: 'SETA' in https://www.darpa.mil/about/offices/contracts-management/proposer-general-terms
+web search: 
+web search: 'unfair advantage' in https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html
+web search: 
+web search: 'inclusive of VAT' in https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/
+
+codex
+The saved brief is still the earlier debate transcript. I’m checking whether the v3 language with escrow and red-route appears anywhere else in the repo before advising you what to do next.
+exec
+/bin/zsh -lc "sed -n '260,520p' debates/qsl-role-proqure-evaluation/20260404_153731.md" in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'rg -n "capability escrow|red-route|section 23|section 24|bounded post-award verification only|formal PME" debates/qsl-role-proqure-evaluation' in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+debates/qsl-role-proqure-evaluation/20260404_153731.md:204:- **Fix the statute citation.** Under the Procurement Act 2023, award criteria are **section 23**, not section 26. Section 24 is the relevant section if you discuss refinement of award criteria. Leaving `s.26 award criteria` in the brief is a credibility own-goal. Sources: [section 23/24 notes](https://www.legislation.gov.uk/ukpga/2023/54/notes/division/6/index.htm), [award-criteria guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html).
+debates/qsl-role-proqure-evaluation/20260404_153731.md:241:1. **s.26 → s.23/s.24** — award criteria are section 23, refinement is section 24
+debates/qsl-role-proqure-evaluation/20260404_153731.md:251:The recommendation tightened to: **for 2026, QSL out of award, bounded post-award verification only; for future phases, add pre-competitive methodology via formal PME with frozen protocols and escrow.** The closing argument is now about the s.81–83 conflicts assessment being incomplete without documenting the counterfactual — forcing DSIT to confront the evaluation-quality risk of blanket exclusion.
+debates/qsl-role-proqure-evaluation/20260404_153731.md.stderr.log:517:web search: site:gov.uk guidance award criteria Procurement Act 2023 section 23
+debates/qsl-role-proqure-evaluation/20260404_153731.md.stderr.log:525:- **Fix the statute citation.** Under the Procurement Act 2023, award criteria are **section 23**, not section 26. Section 24 is the relevant section if you discuss refinement of award criteria. Leaving `s.26 award criteria` in the brief is a credibility own-goal. Sources: [section 23/24 notes](https://www.legislation.gov.uk/ukpga/2023/54/notes/division/6/index.htm), [award-criteria guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html).
+
+codex
+I have enough context. I’m pulling line numbers from the saved transcript so I can point you to the exact problem in the current repo state rather than answer generically.
+exec
+/bin/zsh -lc "nl -ba debates/qsl-role-proqure-evaluation/context-snapshot.md | sed -n '1,220p'" in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+     1	# Context: QSL's role in ProQure evaluation
+     2	
+     3	## The actors
+     4	
+     5	- **DSIT** (Department for Science, Innovation and Technology): Ultimate procurement decision-maker. Has insisted QSL should not be part of upcoming ProQure calls.
+     6	- **NQCC** (National Quantum Computing Centre): Government-funded national lab hosting testbeds. Already runs joint TTE programme with QSL. Steered by Director Cuthbert.
+     7	- **QSL** (Quantum Software Lab, University of Edinburgh): UK's largest quantum-software centre, 70+ researchers, 32 industry partners. Led by Prof. Kashefi (also NQCC Chief Scientist). Primary academic R&D partner of NQCC.
+     8	- **ProQure vendors**: Up to 10 hardware companies funded at £14M each in Phase 1, scaling to £75M in Phase 2, within a £1B total programme.
+     9	
+    10	## QATCH programme (QSL's funded research)
+    11	
+    12	- £20M EPSRC grant, Apr 2026 – Mar 2030 (4 years)
+    13	- Three research pillars: Quantum Advantage Engine (algorithms), HPC & Fault-Tolerant Architecture (systems), Performance Evaluation (benchmarking/verification)
+    14	- Six application sectors: Healthcare, Materials, Cybersecurity, Finance, Energy, AI & Data Science
+    15	- 32 partners including IBM, Quantinuum, Phasecraft, ORCA Computing, Rigetti, Algorithmiq, Quandela, NuQuantum, Q-CTRL, Jij, Alice & Bob, Xanadu, BT, Nomura, HSBC, Rolls-Royce, NVIDIA, Cambridge Consultants
+    16	- Key tools being built: Testbed Technical Evaluation toolkit, Resource Estimation tool, Digital Twin, Verification-Inspired Benchmarking, Distributed Compiler
+    17	- QATCH explicitly describes QSL as both "validator" and "catalyst" — it verifies hardware performance AND co-designs applications with vendors
+    18	- Kashefi is both QSL Director and NQCC Chief Scientist — a dual role that embodies the collaboration but also concentrates the conflict-of-interest question
+    19	
+    20	## ProQure Phase 1
+    21	
+    22	- Contracts for Innovation (not grants) — vendors deliver R&D services
+    23	- Up to 10 Phase 1 contracts at £14M each
+    24	- Vendors must deliver operational testbeds "for independent evaluation and verification" — accessible 3 months before Phase 1 completion
+    25	- Phase 2: up to £75M per vendor
+    26	- Total future procurement: £1B+
+    27	- Timeline: applications by May 2026, contracts awarded Sep 2026, start Oct 2026
+    28	- Evaluation by 5 independent assessors + interview panel
+    29	- ProQure is a DSIT programme administered by Innovate UK
+    30	
+    31	## Existing QSL-NQCC evaluation work (TTE)
+    32	
+    33	- QSL already runs Testbed Technical Evaluation across ion-trap, superconducting, neutral-atom, photonic, and annealing platforms on NQCC testbeds
+    34	- First consolidated Validation Report and Cross-Testbed Benchmarking Toolkit v1.0 due in 2026
+    35	- Uses Zero-Trust Verification framework and Entropy Benchmarking
+    36	- García-Patrón's entropy-based benchmarking informs NQCC-NPL standards
+    37	- This is the existing "active neutrality" model — QSL co-develops evaluation methodology through engagement with platform providers
+    38	
+    39	## The tension
+    40	
+    41	1. DSIT wants QSL separated from ProQure. But QSL is the only institution with the full evaluation pipeline: component benchmarking → system evaluation → application validation → resource estimation → verification → error correction assessment.
+    42	
+    43	2. QATCH is a research programme, not a procurement evaluation budget. It has no funded mandate for ProQure evaluation. If the UK spends £1B on procurement, the evaluation infrastructure needs dedicated funding.
+    44	
+    45	3. Many QATCH partners (IBM, Quantinuum, Phasecraft, ORCA, Rigetti, etc.) are likely ProQure applicants. QATCH milestones depend on co-development with these vendors. Full separation would undermine QATCH deliverables.
+    46	
+    47	4. QSL's methodology-transfer model: learn benchmarking methodology through active collaboration with some vendors, then apply it at arm's length to all vendors (including non-collaborators). This is the "active neutrality" argument. But it may create a perception of a two-tier system.
+    48	
+    49	5. The dual role of Kashefi (QSL Director + NQCC Chief Scientist) concentrates both the expertise and the conflict-of-interest concern in one person.
+    50	
+    51	## What a convincing argument to DSIT needs to address
+    52	
+    53	- Legal defensibility under UK procurement law
+    54	- Perception of fairness by vendors who are NOT QSL collaborators
+    55	- Governance mechanisms (Chinese walls, recusal, audit trails, rotation)
+    56	- The counterfactual: what happens if QSL is excluded? Who evaluates? At what cost in quality?
+    57	- Precedent from comparable programmes (DARPA, ESA, CERN procurement)
+    58	- The funding gap: QATCH doesn't cover ProQure evaluation, and NQCC alone may lack the research depth
+
+exec
+/bin/zsh -lc "nl -ba debates/qsl-role-proqure-evaluation/20260404_153731.md | sed -n '1,280p'" in /Users/v/Code_2026/heated-debate
+ succeeded in 0ms:
+     1	# Debate — 2026-04-04 15:37
+     2	
+     3	| | |
+     4	|---|---|
+     5	| **Agent A** (architect) | `claude-sonnet-4-6` · session `31fc1ab7` |
+     6	| **Agent B** (reviewer) | `gpt-5.4` · session `c6cba1c3` |
+     7	| **Rounds** | 5 |
+     8	| **Timeout** | 420000ms |
+     9	| **Debug stderr** | `debates/qsl-role-proqure-evaluation/20260404_153731.md.stderr.log` |
+    10	
+    11	<details><summary><strong>Topic</strong></summary>
+    12	
+    13	Should QSL be permitted to engage with vendors receiving ProQure funding, and if so under what governance structure?
+    14	
+    15	QSL (Quantum Software Lab, University of Edinburgh) is the UK's primary quantum-software research centre and NQCC's academic R&D partner. It runs the Testbed Technical Evaluation programme and has an established cross-platform benchmarking capability. DSIT (the government decision-maker) has insisted QSL should not participate in upcoming ProQure calls. Yet QSL is the only UK institution with the breadth to provide credible technical evidence across verification, benchmarking, error correction, resource estimation, and application-level evaluation.
+    16	
+    17	The debate should focus on: (1) whether full separation of QSL from ProQure vendors is workable given that QATCH — QSL's own funded programme — requires collaboration with many of the same vendors; (2) whether the "methodology transfer" model (learn from close partners, apply at arm's length to others) is a credible form of neutrality or creates a two-tier system; (3) what governance structure would give DSIT confidence to permit QSL engagement while maintaining procurement defensibility; (4) whether ProQure should fund its own dedicated evaluation budget rather than relying on QSL's research funding; and (5) what concrete arguments would convince DSIT to change its position.
+    18	
+    19	The output should be usable as a policy brief — concrete, specific, and actionable, not abstract institutional theory.
+    20	
+    21	</details>
+    22	
+    23	**Context:** debates/qsl-role-proqure-evaluation/context-snapshot.md
+    24	
+    25	---
+    26	
+    27	## Round 1/5 — Wild (5/5)
+    28	
+    29	### Agent A · `claude-sonnet-4-6` · 139s
+    30	
+    31	The debate engine is blocked by sandbox restrictions. Since I'm the architect-in-debate here, I'll run the analysis directly — working through the five core tensions as a structured deliberation:
+    32	
+    33	---
+    34	
+    35	## Policy Brief: QSL Engagement with ProQure Vendors
+    36	
+    37	### Framing Decision
+    38	
+    39	- **Reject the binary**: DSIT's "full separation" position treats this as conflict-of-interest vs. clean separation — a false dichotomy; the real axis is *governed engagement* vs. *ungoverned exclusion*
+    40	- **Correct the procurement instinct**: UK procurement law (PCR 2015) requires *defensible process*, not institutional purity; independence is a procedural property, not an organisational one
+    41	- **Precedent architecture**: DARPA TAOs retain industry relationships; ESA's ESTEC evaluates vendors it co-develops standards with; CERN procurement routinely uses researchers embedded in vendor programmes — the model exists
+    42	
+    43	---
+    44	
+    45	### 1 — Full Separation Is Not Workable
+    46	
+    47	**Key decision: Reject the workability of full separation**
+    48	
+    49	- QATCH has 32 named partners, ≥6 of whom are probable ProQure Phase 1 applicants (IBM, Quantinuum, ORCA, Rigetti, Phasecraft, Algorithmiq)
+    50	- QATCH deliverables — Testbed Technical Evaluation toolkit, Resource Estimation tool, Verification-Inspired Benchmarking — are *co-produced* with these vendors; separation severs the deliverable chain mid-stream
+    51	- The TTE programme already produces cross-testbed benchmarking outputs that will inform ProQure evaluation whether QSL is formally involved or not; exclusion creates *informal* influence without *formal* accountability
+    52	- **Tradeoff**: Separation *appears* cleaner but actually produces a worse conflict-of-interest outcome — QSL's methodology permeates UK quantum evaluation regardless; better to surface it under governance than suppress it into grey zones
+    53	
+    54	---
+    55	
+    56	### 2 — Methodology Transfer: Credible Neutrality or Two-Tier System?
+    57	
+    58	**Key decision: Methodology transfer is credible *if and only if* the methodology is published before procurement assessment begins**
+    59	
+    60	- The model — develop benchmarking through deep collaboration with some vendors, apply it uniformly to all — is standard in standards bodies (IEEE, ETSI) and test agencies (NPL, PTB)
+    61	- The two-tier *perception* problem is real: IBM and Quantinuum helped design the benchmarks; a startup from outside QSL's orbit did not
+    62	- **Resolution pattern**: Pre-publish all methodology (Zero-Trust Verification framework, Entropy Benchmarking toolkit, Resource Estimation parameters) as open specifications *before* ProQure Phase 1 assessment begins; any vendor can review, comment, and validate against their own systems
+    63	- This converts the two-tier perception into a public consultation record — legally defensible and scientifically reproducible
+    64	- **Architectural tradeoff**: Publishing methodology early constrains QSL's research flexibility but is the price of procurement participation
+    65	
+    66	---
+    67	
+    68	### 3 — Governance Structure for DSIT Confidence
+    69	
+    70	**Key decision: Three-layer governance with hard separation of roles**
+    71	
+    72	**Layer 1 — Structural role split**
+    73	- QSL function in ProQure: *Technical Evidence Provider* only — no scoring, no ranking, no recommendation
+    74	- Scoring and vendor selection: Independent Assessment Panel (5 assessors, none from QSL/NQCC orbit)
+    75	- QSL delivers: raw benchmark data, verification reports, resource estimation outputs — all auditable artefacts
+    76	- Kashefi recuses from any ProQure governance role in her NQCC Chief Scientist capacity; NQCC appoints a separate ProQure Technical Lead
+    77	
+    78	**Layer 2 — Chinese wall mechanisms**
+    79	- QSL's ProQure evaluation function sits in a dedicated *Evaluation Unit* staffed by researchers with no active QATCH vendor-facing roles
+    80	- Evaluation Unit personnel cannot hold co-authorship, co-PI positions, or consulting arrangements with any ProQure applicant during the evaluation window (Oct 2026 – Phase 2 award)
+    81	- Audit trail: all vendor interactions during evaluation period logged and disclosed to Innovate UK on request
+    82	
+    83	**Layer 3 — Independent oversight**
+    84	- Standing Technical Oversight Committee: DSIT nominee, Innovate UK nominee, one international academic (non-UK), one industry nominee from a *non-applicant* vendor
+    85	- TOC reviews QSL methodology before deployment and any QSL finding that materially differentiates vendors
+    86	- TOC has veto over QSL output inclusion in assessment pack if process violated
+    87	
+    88	---
+    89	
+    90	### 4 — ProQure Needs Its Own Evaluation Budget
+    91	
+    92	**Key decision: This is the strongest structural fix and the hardest sell internally**
+    93	
+    94	- QATCH's £20M is EPSRC research funding — it cannot legally be redirected to government procurement evaluation
+    95	- If ProQure deploys £140M in Phase 1 alone, and the evaluation infrastructure relies on unfunded goodwill from QSL, the programme is architecturally fragile
+    96	- **Proposed model**: ProQure allocates 1-2% of contract value (~£1.4-2.8M Phase 1, scaling to £15M over the programme) as a dedicated *Independent Technical Evaluation* budget line
+    97	- This funds: Evaluation Unit personnel, external peer review of QSL outputs, international benchmark calibration (with e.g. Sandia National Labs, PTB Berlin), and the TOC secretariat
+    98	- **Tradeoff**: Adds procurement overhead; Innovate UK will resist; but it transforms QSL from an *ad hoc dependency* into a *contracted evaluation function* — legally cleaner, institutionally sustainable
+    99	- Without this, QSL participation is a favour that can be withdrawn; with it, it's a service with defined scope and liability
+   100	
+   101	---
+   102	
+   103	### 5 — Convincing DSIT: The Concrete Argument
+   104	
+   105	**Key decision: Frame the ask as risk mitigation, not institutional advocacy**
+   106	
+   107	DSIT's current position is driven by two fears: legal challenge from losing vendors, and reputational damage from perceived insider dealing. Address both directly:
+   108	
+   109	**The legal risk argument**
+   110	- Exclusion of QSL does *not* reduce legal risk — it relocates it; if the evaluation methodology used by substitute assessors is demonstrably weaker, losing vendors challenge the *quality* of assessment, not just the process
+   111	- Weak evaluation of a £1B programme is a judicial review target; QSL's exclusion creates the very vulnerability DSIT is trying to avoid
+   112	- UK procurement law requires *proportionate and competent* evaluation; DSIT must demonstrate the alternative is at least as competent
+   113	
+   114	**The counterfactual stress test** (this is the killer argument)
+   115	- Name the alternative: which institution has cross-platform benchmarking capability across superconducting, ion-trap, neutral-atom, photonic, and annealing systems?
+   116	- The honest answer is: none in the UK; international alternatives (Sandia, NIST, Fraunhofer) are not subject to UK procurement law and add jurisdictional complexity
+   117	- A credible substitute requires 18-24 months to build; ProQure Phase 1 starts October 2026; the counterfactual is not "use someone else" — it's "evaluate badly or delay the programme"
+   118	
+   119	**The positive ask**
+   120	- DSIT approves a *governed engagement model* along the lines above
+   121	- In exchange: QSL accepts formal constraints (Evaluation Unit ring-fence, Kashefi recusal, public methodology, TOC oversight)
+   122	- The agreement is written as a Memorandum of Understanding between DSIT, Innovate UK, NQCC, and University of Edinburgh — making governance commitments legally binding, not advisory
+   123	
+   124	---
+   125	
+   126	### Key Unresolved Tensions
+   127	
+   128	- **Kashefi dual role**: No governance architecture fully resolves the concentration of expertise and conflict in one person; the recusal mechanism reduces but doesn't eliminate the optics problem; the long-term fix is succession planning for the NQCC Chief Scientist role
+   129	- **Methodology publication timing**: Early publication is governance-positive but competitively costly — QSL's benchmarking IP is also its research differentiation; this tension needs explicit negotiation with EPSRC
+   130	- **Evaluation budget source**: Whether ProQure or NQCC carries this cost is a political question about ownership of the evaluation function that DSIT, Innovate UK, and UKRI have not yet resolved
+   131	
+   132	---
+   133	
+   134	**Bottom line:** The case for governed engagement is stronger than the case for exclusion on every dimension — legal defensibility, evaluation quality, programme timeline, and cost. DSIT's position is a risk-avoidance reflex, not a considered procurement design. The task is to give DSIT a governance structure it can defend, not to argue that conflict of interest doesn't exist.
+   135	
+   136	### Agent B · `gpt-5.4` · 149s
+   137	
+   138	The proposal is directionally right on “governed engagement,” but it is built on a weak premise and overclaims what governance can cure.
+   139	
+   140	**Critical Flaws**
+   141	- The legal frame is wrong. For a call opened on 27 March 2026 and closing on 29 May 2026, the live baseline is the UK [Procurement Act 2023](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), not PCR 2015. That matters because the Act formalises a conflicts assessment and can require exclusion where an unfair advantage cannot be neutralised.
+   142	- The proposal collapses three different problems into one: bid-stage assessment in ProQure Phase 1, post-award technical verification during contract delivery, and any future procurement beyond 2030. DSIT may accept different rules at each stage. A single governance model for all three is too blunt.
+   143	- “QSL provides evidence but does not score” is not a clean separation. Under current guidance, external experts who can influence decisions are still part of the conflict problem. If QSL chooses workloads, thresholds, failure modes, or interpretation rules, it is already shaping the outcome.
+   144	- The methodology-transfer defense is too optimistic. Publishing methods helps, but it does not erase tacit advantage from co-development: tooling choices, calibration habits, workload selection, debug intuition, and informal knowledge of vendor architectures. The two-tier problem remains.
+   145	- The Chinese-wall proposal is likely performative. If the real expertise sits in the same lab, same leadership chain, and same vendor network, the wall will look porous. If the wall is genuinely strict, DSIT will ask whether the remaining ring-fenced unit is still the “only credible evaluator.”
+   146	- The oversight design is risky. A Technical Oversight Committee with a non-applicant industry nominee creates a fresh confidentiality and market-intelligence problem. Giving that committee veto power over evidence also creates a shadow decision-maker outside the formal procurement process.
+   147	- The DARPA precedent is misused. Official DARPA practice cuts the other way: support contractors assisting evaluation are separated from technical performers, and DARPA bars concurrent advisory-support and performer roles in key cases. That weakens the “active neutrality has precedent” argument.
+   148	- The MoU idea is too soft. DSIT will care less about a memorandum and more about what is frozen into the procurement documents, conflict assessments, notices, contracts, and audit trail.
+   149	
+   150	**Stronger Architecture**
+   151	- Reframe the ask. Do not ask DSIT to bless “QSL engagement with vendors” in general. Ask DSIT to permit a tightly bounded QSL role by procurement phase.
+   152	- Pre-call phase: QSL can help build public benchmark methods, but only through declared preliminary market engagement, with published outputs and a frozen protocol before bid evaluation starts.
+   153	- Live competition phase: QSL should be excluded from bidder-specific advisory contact, scoring, ranking, and any mid-stream methodology changes. Full separation from vendors is not workable for QATCH; full separation from source selection is.
+   154	- Post-award verification phase: QSL can run fixed technical tests against awarded testbeds, but only with replication or sign-off by a second independent body. That is where QSL’s capability is most defensible.
+   155	- Future large-scale procurement: ProQure should fund a separate evaluation function, ideally competed or constituted as a consortium. If DSIT pays for evaluation, it should not default that budget straight into QSL.
+   156	
+   157	**Radical Alternatives**
+   158	- Airlock model: second QSL staff into a legally separate evaluation vehicle with cooling-off restrictions before they can return to vendor-facing QATCH work. Expensive and politically awkward, but more credible than an internal wall.
+   159	- Dual-key model: QSL runs the benchmark harness; an international lab or independent commercial evaluator replicates a subset and signs the evidence pack. This buys defensibility at the cost of speed and money.
+   160	- Blind-evaluation model: vendors expose systems through a common interface and are anonymised during initial technical assessment. Imperfect, but it reduces prestige and relationship bias.
+   161	- Split the problem institutionally: QSL owns public methods and benchmark science; NQCC or another body owns contract verification; an external panel owns award decisions. No single actor should own all three.
+   162	
+   163	**What Might Actually Move DSIT**
+   164	- Stop arguing “trust QSL.” Argue “minimise QSL discretion.”
+   165	- Concede the hard point: QSL cannot credibly be both catalyst and live assessor of the same vendors in the same phase.
+   166	- Offer DSIT a narrower permission: allow QSL in pre-competitive methodology and post-award verification, not in bid award.
+   167	- Make the counterfactual less self-defeating. “Only QSL can do this” sounds like dependence and capture. Better: “QSL is necessary for part of the pipeline, but not sufficient to govern it alone.”
+   168	
+   169	Source check: [GOV.UK conflicts guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), [GOV.UK preliminary market engagement guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html), [Innovate UK ProQure call](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/), [DARPA proposer terms](https://www.darpa.mil/about/offices/contracts-management/proposer-general-terms).
+   170	
+   171	---
+   172	
+   173	## Round 2/5 — Creative (4/5)
+   174	
+   175	### Agent A · `claude-sonnet-4-6` · 179s
+   176	
+   177	The revised brief is written above. Here's what changed structurally from v1:
+   178	
+   179	**Corrections integrated:**
+   180	- Legal baseline switched to **Procurement Act 2023** (s.81–83 conflicts, s.16–17 PME, s.26 award criteria)
+   181	- Decomposed into **three phase-specific regimes** instead of one governance model
+   182	- Phase B (live competition): **full exclusion conceded** — "evidence without scoring" is not a clean separation
+   183	- Dropped the DARPA "active neutrality has precedent" argument — it cuts the wrong way
+   184	- Dropped the MoU — governance commitments must be in procurement documents, conflicts assessments, and contract terms
+   185	- Dropped the Technical Oversight Committee with its fresh confidentiality problems
+   186	- Replaced Chinese walls with the **dual-key model** (QSL executes, independent body replicates and co-signs)
+   187	
+   188	**Key structural moves:**
+   189	- The rhetorical shift from "trust QSL" to **"minimise QSL discretion"**
+   190	- Conceding the hard point first (QSL cannot be both catalyst and assessor in the same phase) to change the negotiating dynamic
+   191	- Reframing the counterfactual from "only QSL can do this" to "QSL is necessary for part of the pipeline but not sufficient to govern it alone"
+   192	- Methodology frozen before bid evaluation begins — QSL shapes the framework, not the live assessment
+   193	
+   194	**Radical alternatives preserved:** Airlock model, blind evaluation protocol, competed evaluation function — each with honest tradeoffs.
+   195	
+   196	Want me to commit this to the repo once write permission is granted?
+   197	
+   198	### Agent B · `gpt-5.4` · 128s
+   199	
+   200	Much stronger. The main turn is now correct: concede bid-stage exclusion, preserve QSL only where its capability is genuinely non-fungible, and sell DSIT on constrained discretion rather than institutional virtue.
+   201	
+   202	I would not treat it as commit-ready yet. Four changes still matter:
+   203	
+   204	- **Fix the statute citation.** Under the Procurement Act 2023, award criteria are **section 23**, not section 26. Section 24 is the relevant section if you discuss refinement of award criteria. Leaving `s.26 award criteria` in the brief is a credibility own-goal. Sources: [section 23/24 notes](https://www.legislation.gov.uk/ukpga/2023/54/notes/division/6/index.htm), [award-criteria guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html).
+   205	
+   206	- **Split “this live call” from “future phases.”** The current ProQure Phase 1 call opened on **27 March 2026** and closes on **29 May 2026**. So “freeze methodology before bid evaluation begins” is already overtaken for this competition unless DSIT formally modifies the procurement documents. The brief should say:
+   207	  `For the live 2026 call, the realistic ask is no QSL role in award, but a bounded post-award verification role.`
+   208	  `For future calls / Phase 2, freeze and publish methodology before the tender notice.`
+   209	  Sources: [ProQure call page](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/), [modifying a competitive procurement guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/modifying-a-competitive-procurement-html).
+   210	
+   211	- **Narrow the dual-key model.** “Independent body replicates and co-signs” still sounds cleaner than it probably is. If no UK body can really replicate QSL’s full stack, DSIT will hear “ceremonial second opinion.” Make the second key procedural, not mythical:
+   212	  protocol approval, witnessed runs, random reruns, deviation log, chain-of-custody sign-off, and authority to require rerun if process drift occurs.
+   213	  That is more defensible than pretending there is a peer evaluator of equal depth.
+   214	
+   215	- **Add bright-line prohibitions, not just allowed roles.** DSIT will trust a negative list more than a principles statement. State explicitly that QSL must not:
+   216	  advise bidders during the live competition,
+   217	  see bidder-confidential materials beyond what is strictly needed to run fixed tests,
+   218	  alter benchmarks or thresholds during the competition,
+   219	  score, rank, moderate, or join interview panels.
+   220	
+   221	Two non-obvious upgrades would make the brief better:
+   222	
+   223	- **Capability escrow model.** QSL develops the benchmark harnesses, parameter sets, and test scripts, but those artefacts are deposited in a controlled repository so another evaluator can run them if a conflict trigger is hit. That reduces dependence on individual discretion.
+   224	
+   225	- **Red-route model.** Do not treat QSL as institutionally clean or dirty. Route specific vendors out of any QSL-run verification path when there is contemporaneous QATCH co-development on the same subsystem. That gives DSIT a practical off-ramp instead of an all-or-nothing fight.
+   226	
+   227	The strongest final recommendation is probably this: **for the live 2026 competition, keep QSL out of award; for post-award verification and future phases, permit QSL only through pre-published methods, strict prohibited-role rules, and external process assurance.** That is a cleaner, more saleable ask.
+   228	
+   229	Checks used: [conflicts guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-conflicts-of-interest-html), [PME guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-define-phase/guidance-preliminary-market-engagement-html), [competitive tender assessment guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/assessing-competitive-tenders-html), [procurement modification guidance](https://www.gov.uk/government/publications/procurement-act-2023-guidance-documents-procure-phase/modifying-a-competitive-procurement-html), [ProQure call](https://iuk-business-connect.org.uk/opportunities/contracts-for-innovation-proqure-scaling-uk-quantum-computing/).
+   230	
+   231	---
+   232	
+   233	## Round 3/5 — Balanced (3/5)
+   234	
+   235	### Agent A · `claude-sonnet-4-6` · 250s
+   236	
+   237	The file write keeps getting denied — the full v3 text is in the tool calls above. Here's what changed from v2:
+   238	
+   239	**Four corrections applied:**
+   240	
+   241	1. **s.26 → s.23/s.24** — award criteria are section 23, refinement is section 24
+   242	2. **Split temporal realities** — the live 2026 call (already open, closes 29 May) cannot have methodology frozen before it; the realistic ask is post-award verification only. Full governance architecture applies to future calls/Phase 2.
+   243	3. **Dual-key narrowed to procedural assurance** — dropped the fiction of a peer evaluator of equal depth. Second key is now: protocol approval, witnessed runs, random reruns, deviation log, chain-of-custody sign-off, rerun authority.
+   244	4. **Bright-line prohibitions added** — six explicit things QSL must not do, framed as a negative list frozen into procurement documents.
+   245	
+   246	**Two upgrades added:**
+   247	
+   248	5. **Capability escrow** — QSL deposits benchmark harnesses, parameter sets, and test scripts into a NQCC-managed repository so another evaluator can run them if a conflict trigger fires. Insurance policy, not primary operating mode.
+   249	6. **Red-route model** — vendor-specific conflict routing. When a ProQure vendor has active QATCH co-development on the same subsystem being verified, that vendor's verification gets routed to the process assurance body or non-QSL NQCC staff. Gives DSIT a practical off-ramp per-vendor instead of an all-or-nothing institutional decision.
+   250	
+   251	The recommendation tightened to: **for 2026, QSL out of award, bounded post-award verification only; for future phases, add pre-competitive methodology via formal PME with frozen protocols and escrow.** The closing argument is now about the s.81–83 conflicts assessment being incomplete without documenting the counterfactual — forcing DSIT to confront the evaluation-quality risk of blanket exclusion.
+   252	
+   253	Want me to try writing the file again, or should I commit just the content that's already in the directory?
+   254	
+
+codex
+Do not commit what is currently in the directory.
+
+The only saved artifact is the debate transcript at [20260404_153731.md](/Users/v/Code_2026/heated-debate/debates/qsl-role-proqure-evaluation/20260404_153731.md#L35), and it still contains superseded material from v1 and v2, including the old PCR 2015 framing and the earlier governance model at [20260404_153731.md](/Users/v/Code_2026/heated-debate/debates/qsl-role-proqure-evaluation/20260404_153731.md#L39) and [20260404_153731.md](/Users/v/Code_2026/heated-debate/debates/qsl-role-proqure-evaluation/20260404_153731.md#L177). It also stops at the Round 3 prompt rather than a clean final brief at [20260404_153731.md](/Users/v/Code_2026/heated-debate/debates/qsl-role-proqure-evaluation/20260404_153731.md#L253). Committing that would preserve the wrong artifact.
+
+The v3 structure itself is close. The remaining policy gap is not the main argument but the trigger design: define exactly when `red-route` fires, who declares it, and what minimum evidence goes into the s.81–83 conflicts record. I’d also make `capability escrow` slightly harder-edged by stating access conditions, custody, and who can invoke fallback execution.
+
+I cannot retry the write or make a commit in this session because the workspace is read-only. Once write access exists, the right move is to create a standalone brief, not commit the timestamped transcript. A better target would be something like `debates/qsl-role-proqure-evaluation/policy-brief-v3.md`.
+tokens used
+63 426
+
