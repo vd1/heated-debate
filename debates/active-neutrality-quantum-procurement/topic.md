@@ -1,0 +1,1 @@
+Improve, refine, and criticise the following paragraph on active neutrality in quantum technology hardware procurement. Challenge its assumptions, sharpen its arguments, identify gaps, and suggest concrete improvements.
