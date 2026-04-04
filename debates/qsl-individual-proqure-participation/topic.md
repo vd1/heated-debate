@@ -1,0 +1,13 @@
+Should individual QSL researchers (other than Kashefi) be permitted to act as subcontractors to ProQure vendors, given that other UK academics are allowed to do so?
+
+The previous debate established that QSL as an institution should be excluded from ProQure bids, and that Kashefi (QSL Director + NQCC Chief Scientist + verification/benchmarking expert) should remain excluded from ProQure calls. A governance architecture was proposed for QSL's evaluation role: evidence separated from decisions, funded evaluation budget, red-route conflict management.
+
+This debate adds a new layer: QSL has ~70 researchers with diverse, non-overlapping expertise across quantum algorithms (Wallden), error correction (Roffe), quantum simulation (Thomson), computational chemistry (Michel), HPC integration (Brown), quantum programming languages (Heunen), quantum machine learning (Doosti), cybersecurity (Arapinis, Cojocaru), AI for finance (Szpruch), energy systems (Dent), and others. Many of these are world-leading in their sub-fields.
+
+The problem: DSIT's blanket exclusion of QSL from ProQure treats the institution as monolithic. But other UK academics — from quantum technology hubs, other EPSRC grants, other universities — are permitted to act as subcontractors to ProQure vendors. Why should a quantum error correction expert be excluded from helping a ProQure vendor improve their decoder simply because that expert is employed by QSL rather than UCL or Oxford? QSL has dedicated QATCH funding, but so do the quantum hubs — having a government research grant should not disqualify researchers from contributing to ProQure.
+
+The tension: if some QSL researchers act as vendor subcontractors while QSL simultaneously evaluates those vendors, the conflict-of-interest becomes person-specific rather than institutional. The red-route model from the previous debate handles this — but does it survive the additional complexity of QSL people being inside vendor teams?
+
+The debate should explore: (1) whether individual QSL researchers can credibly participate in ProQure vendor bids while QSL evaluates; (2) what governance makes this work (the red-route already excludes conflicted individuals); (3) whether blanket institutional exclusion is discriminatory when other equally-funded academics are permitted; (4) how to draw the line — Kashefi excluded, others permitted, on what basis?; (5) what arguments would convince DSIT.
+
+Output should be concrete and actionable — suitable for integration into the existing policy brief.
