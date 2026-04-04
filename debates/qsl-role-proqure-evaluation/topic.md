@@ -1,0 +1,7 @@
+Should QSL be permitted to engage with vendors receiving ProQure funding, and if so under what governance structure?
+
+QSL (Quantum Software Lab, University of Edinburgh) is the UK's primary quantum-software research centre and NQCC's academic R&D partner. It runs the Testbed Technical Evaluation programme and has an established cross-platform benchmarking capability. DSIT (the government decision-maker) has insisted QSL should not participate in upcoming ProQure calls. Yet QSL is the only UK institution with the breadth to provide credible technical evidence across verification, benchmarking, error correction, resource estimation, and application-level evaluation.
+
+The debate should focus on: (1) whether full separation of QSL from ProQure vendors is workable given that QATCH — QSL's own funded programme — requires collaboration with many of the same vendors; (2) whether the "methodology transfer" model (learn from close partners, apply at arm's length to others) is a credible form of neutrality or creates a two-tier system; (3) what governance structure would give DSIT confidence to permit QSL engagement while maintaining procurement defensibility; (4) whether ProQure should fund its own dedicated evaluation budget rather than relying on QSL's research funding; and (5) what concrete arguments would convince DSIT to change its position.
+
+The output should be usable as a policy brief — concrete, specific, and actionable, not abstract institutional theory.
