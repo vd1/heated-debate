@@ -83,6 +83,8 @@ Format: `backend:model` where backend is `claude` or `codex`. A bare model name 
 | `DIAL_EXPONENT` | `1` | Dial curve shape: <1 cools early, >1 stays wild longer |
 | `PANEL` | — | Enable expert panel, e.g. `claude:claude-opus-4-6` |
 | `PANEL_OUTPUT` | `{log}_panel.json` | Override panel JSON output path |
+| `PIPELINE` | — | Enable post-debate pipeline, e.g. `claude:claude-opus-4-6` |
+| `PIPELINE_MAX_ITER` | `1` | Max debate iterations (1 = no re-run) |
 
 ## Resuming an Interrupted Debate
 
@@ -133,6 +135,60 @@ PANEL=claude:claude-opus-4-6 bun shelley.ts -f debates/my-topic/topic.md 5
 MODERATOR=claude:claude-haiku-4-5 PANEL=claude:claude-opus-4-6 bun shelley.ts -f debates/my-topic/topic.md 5
 ```
 
+## Post-Debate Pipeline
+
+When `PIPELINE` is set, three agents run after the debate to extract structured output and optionally iterate:
+
+1. **Mechanics agent** — evaluates process quality (dial effectiveness, convergence, contract adherence, circular arguments). Writes `meta-{ts}.md` + `.json`.
+2. **Substance agent** — extracts content (settled conclusions, open questions, best ideas, dependency chains). Writes `substance-{ts}.md` + `.json`. Produces a `priorConstraints` block for iteration.
+3. **Iteration agent** — reads both reports, decides whether to re-run the debate with substance as prior constraints or stop.
+
+Mechanics and substance run **in parallel** (independent extractions). The iteration agent runs after both complete — it is the only agent that sees both reports.
+
+```bash
+# Run debate + pipeline (single iteration, no re-run)
+PIPELINE=claude:claude-opus-4-6 bun shelley.ts -f debates/my-topic/topic.md 5
+
+# Allow up to 3 iterations
+PIPELINE=claude:claude-opus-4-6 PIPELINE_MAX_ITER=3 bun shelley.ts -f debates/my-topic/topic.md 5
+
+# Full setup: moderator + panel + pipeline with iteration
+MODERATOR=claude:claude-haiku-4-5 PANEL=claude:claude-opus-4-6 PIPELINE=claude:claude-opus-4-6 PIPELINE_MAX_ITER=2 bun shelley.ts -f debates/my-topic/topic.md 5
+```
+
+### Pipeline env vars
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PIPELINE` | — | Enable pipeline + set model, e.g. `claude:claude-opus-4-6` |
+| `PIPELINE_MAX_ITER` | `1` | Max debate iterations (1 = extract only, no re-run) |
+
+### Pipeline output files
+
+| File | Content |
+|---|---|
+| `meta-{ts}.md` / `.json` | Process quality assessment |
+| `substance-{ts}.md` / `.json` | Substantive extraction + priorConstraints |
+| `iteration-{ts}.json` | Iteration decision log |
+
+### How iteration works
+
+When `PIPELINE_MAX_ITER > 1`, the iteration agent decides after each debate:
+- **"stop"**: output contract fulfilled, or no novelty remaining
+- **"iterate"**: re-run the debate with settled conclusions as constraints and open questions as focus areas
+
+Prior constraints are injected into both agents' round-1 prompts as a `## Prior Constraints` section appended to the topic.
+
+### Pipeline vs Expert Panel
+
+The pipeline and expert panel serve different purposes:
+- **Expert panel** scores the debate for optimization (`optimize.py`). Output is appended to the transcript.
+- **Pipeline** extracts structured deliverables and drives iteration. Output is in separate files.
+
+Both can run together — the expert panel runs inside `runDebate`, the pipeline runs after it returns.
+
+See `doc/pipeline-diagram.html` for a visual overview of the full pipeline.
+
 ## Parameter Optimization
 
 `optimize.py` uses Optuna to search for optimal debate parameters, using panel scores as the reward signal.
@@ -174,8 +230,8 @@ Transcripts are saved to the topic's directory (or `debates/` for inline topics)
 
 These are fixed — agents are told to output architectural decisions and feedback, not code:
 
-- **Agent A:** "You are a software architect in a debate. Propose and refine implementation plans. Be concise. Output bulleted decisions, tradeoffs, and architectural patterns. Do not write code diffs, code blocks, commands, or final implementations."
-- **Agent B:** "You are a critical code reviewer in a debate. Challenge proposals, find flaws, and suggest improvements. Be concise. Output feedback on the architectural approach and risks. Do not write code diffs, code blocks, commands, or final implementations."
+- **Agent A:** "You are the proposing side in a structured debate. Argue your position with clarity and conviction. Be concise. Output bulleted arguments, tradeoffs, and concrete proposals. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly."
+- **Agent B:** "You are the opposing side in a structured debate. Challenge proposals, find flaws, and push for better alternatives. Be concise. Output counterarguments, risks, and improvements. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly."
 
 ## Backend Details
 

@@ -70,6 +70,51 @@ interface TurnRecord {
   seconds: number;
 }
 
+// === Pipeline types ===
+
+interface MechanicsReport {
+  processScore: number;
+  dialEffectiveness: string;
+  convergenceQuality: string;
+  contractAdherence: string;
+  circularArguments: string[];
+  offTopicDrifts: string[];
+  agentDynamics: string;
+  recommendations: string[];
+}
+
+interface SubstanceReport {
+  settledConclusions: string[];
+  openQuestions: string[];
+  bestIdeas: string[];
+  dependencyChains: string[];
+  concreteProposals: string[];
+  priorConstraints: string;
+}
+
+interface IterationDecision {
+  action: "iterate" | "stop";
+  rationale: string;
+  contractFulfilled: boolean;
+  noveltyRemaining: boolean;
+  constraints: string;
+}
+
+interface PipelineConfig {
+  enabled: boolean;
+  spec: BackendSpec;
+  maxIterations: number;
+}
+
+interface DebateResult {
+  transcriptBody: string;
+  logFile: string;
+  logTimestamp: string;
+  turns: TurnRecord[];
+  topic: string;
+  totalDebateSeconds: number;
+}
+
 // === Module-level log path (set in main before any I/O) ===
 
 let logFile = "";
@@ -545,6 +590,264 @@ function parsePanelConfig(): BackendSpec | null {
   return parseBackend(raw);
 }
 
+function parsePipelineConfig(): PipelineConfig {
+  const raw = process.env.PIPELINE;
+  if (!raw) return { enabled: false, spec: { backend: "claude", model: "" }, maxIterations: 1 };
+  const maxIter = Math.max(1, parseInt(process.env.PIPELINE_MAX_ITER ?? "1", 10) || 1);
+  return { enabled: true, spec: parseBackend(raw), maxIterations: maxIter };
+}
+
+// === Post-Debate Pipeline Agents ===
+
+const MECHANICS_SYSTEM = `You evaluate debate PROCESS quality, not content. You assess how well the debate engine performed mechanically: did agents follow instructions, did the creativity dial produce the right arc, did agents converge or talk past each other, were there circular arguments or off-topic drifts?
+
+You are in a text-only evaluation — you cannot execute commands, save files, or access any tools.
+
+Respond with EXACTLY this JSON (no markdown, no explanation):
+{"processScore": <1-10>, "dialEffectiveness": "...", "convergenceQuality": "...", "contractAdherence": "...", "circularArguments": ["...", "..."], "offTopicDrifts": ["...", "..."], "agentDynamics": "...", "recommendations": ["...", "..."]}
+
+Scoring: 5 is average. Most debates land 4-7. Reserve 8+ for genuinely well-run debates. 3 means the process broke down.`;
+
+async function runMechanicsAgent(
+  spec: BackendSpec,
+  topic: string,
+  transcript: string,
+  rounds: number,
+  logDir: string,
+  timestamp: string,
+): Promise<MechanicsReport> {
+  const prompt = `Evaluate the PROCESS quality of this debate (not the content).
+
+Topic (for reference — evaluate process, not substance):
+${topic.slice(0, 500)}
+
+Debate parameters: ${rounds} rounds, creativity dial cooling from Wild (5/5) to Precise (1/5).
+
+Transcript:
+${transcript}`;
+
+  const r = await call(spec.backend, {
+    agentKey: "A",
+    model: spec.model,
+    sessionId: crypto.randomUUID(),
+    systemPrompt: MECHANICS_SYSTEM,
+    prompt,
+  });
+  const parsed = JSON.parse(r.text.replace(/^```json\s*|```\s*$/g, "").trim());
+  const clamp = (n: unknown) => Math.min(10, Math.max(1, typeof n === "number" ? Math.round(n) : 5));
+  const report: MechanicsReport = {
+    processScore: clamp(parsed.processScore),
+    dialEffectiveness: String(parsed.dialEffectiveness ?? ""),
+    convergenceQuality: String(parsed.convergenceQuality ?? ""),
+    contractAdherence: String(parsed.contractAdherence ?? ""),
+    circularArguments: Array.isArray(parsed.circularArguments) ? parsed.circularArguments.map(String) : [],
+    offTopicDrifts: Array.isArray(parsed.offTopicDrifts) ? parsed.offTopicDrifts.map(String) : [],
+    agentDynamics: String(parsed.agentDynamics ?? ""),
+    recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations.map(String) : [],
+  };
+
+  const mdPath = `${logDir}/meta-${timestamp}.md`;
+  const jsonPath = `${logDir}/meta-${timestamp}.json`;
+  writeFileSync(jsonPath, JSON.stringify(report, null, 2) + "\n");
+  writeFileSync(mdPath, [
+    `## Mechanics Report`,
+    ``,
+    `**Process Score: ${report.processScore}/10**`,
+    ``,
+    `**Dial Effectiveness:** ${report.dialEffectiveness}`,
+    ``,
+    `**Convergence Quality:** ${report.convergenceQuality}`,
+    ``,
+    `**Contract Adherence:** ${report.contractAdherence}`,
+    ``,
+    `**Agent Dynamics:** ${report.agentDynamics}`,
+    ``,
+    ...(report.circularArguments.length > 0 ? [`**Circular Arguments:**`, ...report.circularArguments.map(s => `- ${s}`), ``] : []),
+    ...(report.offTopicDrifts.length > 0 ? [`**Off-Topic Drifts:**`, ...report.offTopicDrifts.map(s => `- ${s}`), ``] : []),
+    ...(report.recommendations.length > 0 ? [`**Recommendations:**`, ...report.recommendations.map(s => `- ${s}`), ``] : []),
+  ].join("\n"));
+
+  return report;
+}
+
+function logMechanicsReport(report: MechanicsReport) {
+  log("---");
+  log("");
+  log("## Mechanics Report");
+  log("");
+  log(`**Process Score: ${report.processScore}/10**`);
+  log("");
+  log(`**Dial Effectiveness:** ${report.dialEffectiveness}`);
+  log(`**Convergence:** ${report.convergenceQuality}`);
+  log(`**Contract Adherence:** ${report.contractAdherence}`);
+  log(`**Agent Dynamics:** ${report.agentDynamics}`);
+  log("");
+  if (report.recommendations.length > 0) {
+    log("**Recommendations:**");
+    for (const r of report.recommendations) log(`- ${r}`);
+    log("");
+  }
+}
+
+const SUBSTANCE_SYSTEM = `You extract actionable content from a debate transcript. Focus on WHAT was decided, WHAT remains open, and WHAT the best ideas are. Ignore process quality — another agent handles that.
+
+Produce a priorConstraints field: a block of text formatted as constraints for a follow-up debate. Settled items become "The following are established:" givens. Open questions become "Focus the debate on:" directives. This field should be directly injectable into a new debate prompt.
+
+You are in a text-only evaluation — you cannot execute commands, save files, or access any tools.
+
+Respond with EXACTLY this JSON (no markdown, no explanation):
+{"settledConclusions": ["...", "..."], "openQuestions": ["...", "..."], "bestIdeas": ["...", "..."], "dependencyChains": ["...", "..."], "concreteProposals": ["...", "..."], "priorConstraints": "..."}`;
+
+async function runSubstanceAgent(
+  spec: BackendSpec,
+  topic: string,
+  transcript: string,
+  logDir: string,
+  timestamp: string,
+): Promise<SubstanceReport> {
+  const prompt = `Extract the substantive conclusions from this debate.
+
+Topic:
+${topic.slice(0, 1000)}
+
+Transcript:
+${transcript}`;
+
+  const r = await call(spec.backend, {
+    agentKey: "A",
+    model: spec.model,
+    sessionId: crypto.randomUUID(),
+    systemPrompt: SUBSTANCE_SYSTEM,
+    prompt,
+  });
+  const parsed = JSON.parse(r.text.replace(/^```json\s*|```\s*$/g, "").trim());
+  const report: SubstanceReport = {
+    settledConclusions: Array.isArray(parsed.settledConclusions) ? parsed.settledConclusions.map(String) : [],
+    openQuestions: Array.isArray(parsed.openQuestions) ? parsed.openQuestions.map(String) : [],
+    bestIdeas: Array.isArray(parsed.bestIdeas) ? parsed.bestIdeas.map(String) : [],
+    dependencyChains: Array.isArray(parsed.dependencyChains) ? parsed.dependencyChains.map(String) : [],
+    concreteProposals: Array.isArray(parsed.concreteProposals) ? parsed.concreteProposals.map(String) : [],
+    priorConstraints: String(parsed.priorConstraints ?? ""),
+  };
+
+  const mdPath = `${logDir}/substance-${timestamp}.md`;
+  const jsonPath = `${logDir}/substance-${timestamp}.json`;
+  writeFileSync(jsonPath, JSON.stringify(report, null, 2) + "\n");
+  writeFileSync(mdPath, [
+    `## Substance Report`,
+    ``,
+    ...(report.settledConclusions.length > 0 ? [`**Settled Conclusions:**`, ...report.settledConclusions.map(s => `- ${s}`), ``] : []),
+    ...(report.openQuestions.length > 0 ? [`**Open Questions:**`, ...report.openQuestions.map(s => `- ${s}`), ``] : []),
+    ...(report.bestIdeas.length > 0 ? [`**Best Ideas:**`, ...report.bestIdeas.map(s => `- ${s}`), ``] : []),
+    ...(report.dependencyChains.length > 0 ? [`**Dependency Chains:**`, ...report.dependencyChains.map(s => `- ${s}`), ``] : []),
+    ...(report.concreteProposals.length > 0 ? [`**Concrete Proposals:**`, ...report.concreteProposals.map(s => `- ${s}`), ``] : []),
+    `**Prior Constraints (for next iteration):**`,
+    ``,
+    report.priorConstraints,
+    ``,
+  ].join("\n"));
+
+  return report;
+}
+
+function logSubstanceReport(report: SubstanceReport) {
+  log("---");
+  log("");
+  log("## Substance Report");
+  log("");
+  if (report.settledConclusions.length > 0) {
+    log("**Settled Conclusions:**");
+    for (const c of report.settledConclusions) log(`- ${c}`);
+    log("");
+  }
+  if (report.openQuestions.length > 0) {
+    log("**Open Questions:**");
+    for (const q of report.openQuestions) log(`- ${q}`);
+    log("");
+  }
+  if (report.bestIdeas.length > 0) {
+    log("**Best Ideas:**");
+    for (const i of report.bestIdeas) log(`- ${i}`);
+    log("");
+  }
+  if (report.concreteProposals.length > 0) {
+    log("**Concrete Proposals:**");
+    for (const p of report.concreteProposals) log(`- ${p}`);
+    log("");
+  }
+}
+
+const ITERATION_SYSTEM = `You decide whether a debate should be re-run with refined constraints, or whether it has produced sufficient output.
+
+You receive two reports from the same debate:
+1. A MECHANICS report (process quality — how well the debate ran)
+2. A SUBSTANCE report (content extraction — what was decided and what remains open)
+
+Decision criteria:
+- Was the output contract fulfilled? (Are there concrete proposals and settled conclusions?)
+- Is there novelty remaining? (Did the mechanics report flag circular arguments or convergence?)
+- Are there open questions worth another round?
+- Has the iteration budget been exhausted?
+
+If iterating, produce a constraints string that includes settled conclusions as givens and open questions as focus areas.
+
+You are in a text-only evaluation — you cannot execute commands, save files, or access any tools.
+
+Respond with EXACTLY this JSON (no markdown, no explanation):
+{"action": "iterate"|"stop", "rationale": "...", "contractFulfilled": <bool>, "noveltyRemaining": <bool>, "constraints": "..."}`;
+
+async function runIterationAgent(
+  spec: BackendSpec,
+  topic: string,
+  mechanics: MechanicsReport,
+  substance: SubstanceReport,
+  iteration: number,
+  maxIterations: number,
+): Promise<IterationDecision> {
+  const prompt = `Decide whether this debate should iterate or stop.
+
+Topic: ${topic.slice(0, 500)}
+
+Iteration: ${iteration} of ${maxIterations}
+
+Mechanics Report:
+${JSON.stringify(mechanics, null, 2)}
+
+Substance Report:
+${JSON.stringify(substance, null, 2)}`;
+
+  const r = await call(spec.backend, {
+    agentKey: "A",
+    model: spec.model,
+    sessionId: crypto.randomUUID(),
+    systemPrompt: ITERATION_SYSTEM,
+    prompt,
+  });
+  const parsed = JSON.parse(r.text.replace(/^```json\s*|```\s*$/g, "").trim());
+  const decision: IterationDecision = {
+    action: parsed.action === "iterate" ? "iterate" : "stop",
+    rationale: String(parsed.rationale ?? ""),
+    contractFulfilled: !!parsed.contractFulfilled,
+    noveltyRemaining: !!parsed.noveltyRemaining,
+    constraints: String(parsed.constraints ?? ""),
+  };
+
+  return decision;
+}
+
+function logIterationDecision(decision: IterationDecision, logDir: string, timestamp: string) {
+  writeFileSync(`${logDir}/iteration-${timestamp}.json`, JSON.stringify(decision, null, 2) + "\n");
+  log("---");
+  log("");
+  log("## Iteration Decision");
+  log("");
+  log(`**Action:** ${decision.action}`);
+  log(`**Rationale:** ${decision.rationale}`);
+  log(`**Contract Fulfilled:** ${decision.contractFulfilled}`);
+  log(`**Novelty Remaining:** ${decision.noveltyRemaining}`);
+  log("");
+}
+
 // === Arg parsing ===
 
 const DEFAULT_TOPIC =
@@ -689,28 +992,31 @@ function writeFooter(turns: TurnRecord[]) {
   log("</details>");
 }
 
-// === Main ===
+// === Debate runner (extracted from main for iteration support) ===
 
-async function main() {
-  const args = parseArgs();
-  const specA = parseBackend(process.env.MODEL_A ?? "claude:claude-opus-4-6");
-  const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
-  if (specA.backend === "codex") codexReasoningEffort();
-  if (specB.backend === "codex") codexReasoningEffort();
+const SYSTEM_A =
+  "You are the proposing side in a structured debate. Argue your position with clarity and conviction. Be concise. Output bulleted arguments, tradeoffs, and concrete proposals. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.";
+const SYSTEM_B =
+  "You are the opposing side in a structured debate. Challenge proposals, find flaws, and push for better alternatives. Be concise. Output counterarguments, risks, and improvements. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.";
+
+async function runDebate(
+  args: ParsedArgs,
+  specA: BackendSpec,
+  specB: BackendSpec,
+  moderatorConfig: ModeratorConfig,
+  panelSpec: BackendSpec | null,
+  priorConstraints?: string,
+): Promise<DebateResult> {
+  // Reset codex history between iterations
+  codexHistory.A = [];
+  codexHistory.B = [];
+
   const resumeLog = process.env.RESUME_FROM_LOG;
   const startRoundEnv = parsePositiveInt(process.env.START_ROUND, 1, "START_ROUND");
   const seedPromptFromFile = process.env.SEED_PROMPT_A_FILE
     ? readFileSync(process.env.SEED_PROMPT_A_FILE, "utf8").trim()
     : "";
   const seedPromptFromEnv = (process.env.SEED_PROMPT_A ?? "").trim();
-
-  const moderatorConfig = parseModeratorConfig();
-  const panelSpec = parsePanelConfig();
-
-  const SYSTEM_A =
-    "You are a software architect in a debate. Propose and refine implementation plans. Be concise. Output bulleted decisions, tradeoffs, and architectural patterns. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.";
-  const SYSTEM_B =
-    "You are a critical code reviewer in a debate. Challenge proposals, find flaws, and suggest improvements. Be concise. Output feedback on the architectural approach and risks. Do not write code diffs, code blocks, commands, or final implementations. Do not mention tools, sandbox, permissions, or execution limits.";
 
   const sessionA = crypto.randomUUID();
   const sessionB = crypto.randomUUID();
@@ -738,6 +1044,10 @@ async function main() {
       : import.meta.dir;
 
   const context = loadContext(args.topicFile, repoRoot);
+  const priorSection = priorConstraints
+    ? `\n\n## Prior Constraints (from previous iteration)\n\n${priorConstraints}`
+    : "";
+
   let startRound = startRoundEnv;
   let promptForA = "";
   if (resumeLog) {
@@ -756,14 +1066,6 @@ async function main() {
     process.exit(1);
   }
 
-  process.on("SIGINT", () => {
-    for (const proc of activeProcs) {
-      try { proc.kill("SIGTERM"); } catch { /* no-op */ }
-    }
-    process.stdout.write(`\nLog saved to ${logFile}\n`);
-    process.exit(130);
-  });
-
   // --- Header ---
   const startTime = new Date().toLocaleString("sv-SE").slice(0, 16);
   log(`# Debate — ${startTime}`);
@@ -780,6 +1082,7 @@ async function main() {
   if (DIAL_EXPONENT !== 1) log(`| **Dial exponent** | ${DIAL_EXPONENT} |`);
   if (startRound > 1) log(`| **Start round** | ${startRound} |`);
   if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
+  if (priorConstraints) log(`| **Prior constraints** | yes (from previous iteration) |`);
   log("");
   log("<details><summary><strong>Topic</strong></summary>");
   log("");
@@ -833,7 +1136,7 @@ async function main() {
         model: specA.model,
         ...(firstTurnInRun
           ? (startRound === 1
-            ? { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefixA}Plan this: ${args.topic}${context}` }
+            ? { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefixA}Plan this: ${args.topic}${context}${priorSection}` }
             : { systemPrompt: SYSTEM_A, sessionId: sessionA, prompt: `${prefixA}${promptForA}` })
           : { resume: sessionA, prompt: `${prefixA}${promptForA}` }),
       });
@@ -877,7 +1180,7 @@ async function main() {
             ? {
               systemPrompt: SYSTEM_B,
               sessionId: sessionB,
-              prompt: `${prefixB}You will review proposals for this task: ${args.topic}${context}\n\nHere is the first proposal:\n\n${rA.text}`,
+              prompt: `${prefixB}You will review proposals for this task: ${args.topic}${context}${priorSection}\n\nHere is the first proposal:\n\n${rA.text}`,
             }
             : { systemPrompt: SYSTEM_B, sessionId: sessionB, prompt: `${prefixB}${rA.text}` })
           : { resume: sessionB, prompt: `${prefixB}${rA.text}` }),
@@ -924,7 +1227,6 @@ async function main() {
       });
       logPanelReport(report);
 
-      // Write JSON output
       const panelOutputPath = process.env.PANEL_OUTPUT ?? `${logFile.replace(/\.md$/, "")}_panel.json`;
       writeFileSync(panelOutputPath, JSON.stringify(report, null, 2) + "\n");
       process.stdout.write(`Panel report saved to ${panelOutputPath}\n`);
@@ -935,6 +1237,91 @@ async function main() {
   }
 
   process.stdout.write(`\nLog saved to ${logFile}\n`);
+
+  return {
+    transcriptBody,
+    logFile,
+    logTimestamp: ts,
+    turns,
+    topic: args.topic,
+    totalDebateSeconds,
+  };
+}
+
+// === Main ===
+
+async function main() {
+  const args = parseArgs();
+  const specA = parseBackend(process.env.MODEL_A ?? "claude:claude-opus-4-6");
+  const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
+  if (specA.backend === "codex") codexReasoningEffort();
+  if (specB.backend === "codex") codexReasoningEffort();
+
+  const moderatorConfig = parseModeratorConfig();
+  const panelSpec = parsePanelConfig();
+  const pipelineConfig = parsePipelineConfig();
+
+  process.on("SIGINT", () => {
+    for (const proc of activeProcs) {
+      try { proc.kill("SIGTERM"); } catch { /* no-op */ }
+    }
+    process.stdout.write(`\nLog saved to ${logFile}\n`);
+    process.exit(130);
+  });
+
+  let priorConstraints: string | undefined;
+  const maxIter = pipelineConfig.enabled ? pipelineConfig.maxIterations : 1;
+
+  for (let iter = 1; iter <= maxIter; iter++) {
+    if (iter > 1) {
+      process.stdout.write(`\n${"=".repeat(60)}\n=== Iteration ${iter}/${maxIter}\n${"=".repeat(60)}\n\n`);
+    }
+
+    const result = await runDebate(args, specA, specB, moderatorConfig, panelSpec, priorConstraints);
+
+    if (!pipelineConfig.enabled) break;
+
+    // Run Mechanics + Substance in parallel (independent extractions)
+    process.stdout.write("\nRunning post-debate pipeline...\n");
+    let mechanics: MechanicsReport;
+    let substance: SubstanceReport;
+    try {
+      [mechanics, substance] = await Promise.all([
+        runMechanicsAgent(pipelineConfig.spec, result.topic, result.transcriptBody, args.rounds, args.logDir, result.logTimestamp),
+        runSubstanceAgent(pipelineConfig.spec, result.topic, result.transcriptBody, args.logDir, result.logTimestamp),
+      ]);
+    } catch (e) {
+      log(`> **PIPELINE ERROR:** ${e}`);
+      process.stderr.write(`Pipeline failed: ${e}\n`);
+      break;
+    }
+
+    logMechanicsReport(mechanics);
+    logSubstanceReport(substance);
+
+    // If this is the last allowed iteration, stop
+    if (iter >= maxIter) break;
+
+    // Iteration Agent (sees both reports)
+    try {
+      const decision = await runIterationAgent(
+        pipelineConfig.spec, result.topic, mechanics, substance, iter, maxIter,
+      );
+      logIterationDecision(decision, args.logDir, result.logTimestamp);
+
+      if (decision.action === "stop") {
+        process.stdout.write(`\nIteration agent decided to stop: ${decision.rationale}\n`);
+        break;
+      }
+
+      process.stdout.write(`\nIteration agent decided to iterate: ${decision.rationale}\n`);
+      priorConstraints = decision.constraints;
+    } catch (e) {
+      log(`> **ITERATION ERROR:** ${e}`);
+      process.stderr.write(`Iteration agent failed: ${e}\n`);
+      break;
+    }
+  }
 }
 
 main().catch((e) => {
