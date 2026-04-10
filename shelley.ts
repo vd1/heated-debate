@@ -113,6 +113,7 @@ interface DebateResult {
   turns: TurnRecord[];
   topic: string;
   totalDebateSeconds: number;
+  panelReport: PanelReport | null;
 }
 
 // === Module-level log path (set in main before any I/O) ===
@@ -779,17 +780,19 @@ function logSubstanceReport(report: SubstanceReport) {
 
 const ITERATION_SYSTEM = `You decide whether a debate should be re-run with refined constraints, or whether it has produced sufficient output.
 
-You receive two reports from the same debate:
+You receive up to three reports from the same debate:
 1. A MECHANICS report (process quality — how well the debate ran)
 2. A SUBSTANCE report (content extraction — what was decided and what remains open)
+3. An optional EXPERT PANEL report (independent quality scoring by 3 expert personas + synthesizer)
 
 Decision criteria:
 - Was the output contract fulfilled? (Are there concrete proposals and settled conclusions?)
 - Is there novelty remaining? (Did the mechanics report flag circular arguments or convergence?)
 - Are there open questions worth another round?
 - Has the iteration budget been exhausted?
+- If the expert panel is present: do its scores and unresolved disagreements suggest another round would be productive?
 
-If iterating, produce a constraints string that includes settled conclusions as givens and open questions as focus areas.
+If iterating, produce a constraints string that includes settled conclusions as givens and open questions as focus areas. Use the substance report's priorConstraints as a starting point, and incorporate any relevant panel insights (e.g., if the panel flagged weak feasibility, add that as a focus area).
 
 You are in a text-only evaluation — you cannot execute commands, save files, or access any tools.
 
@@ -803,7 +806,17 @@ async function runIterationAgent(
   substance: SubstanceReport,
   iteration: number,
   maxIterations: number,
+  panelReport?: PanelReport | null,
 ): Promise<IterationDecision> {
+  const panelSection = panelReport
+    ? `\n\nExpert Panel Report:
+Overall Score: ${panelReport.overallScore}/10
+Expert Scores: ${JSON.stringify(panelReport.expertScores.map(e => ({ expert: e.expert, ...e.scores, commentary: e.commentary })), null, 2)}
+Key Conclusions: ${JSON.stringify(panelReport.synthesis.keyConclusions)}
+Unresolved Disagreements: ${JSON.stringify(panelReport.synthesis.unresolvedDisagreements)}
+Recommendation: ${panelReport.synthesis.recommendation}`
+    : "";
+
   const prompt = `Decide whether this debate should iterate or stop.
 
 Topic: ${topic.slice(0, 500)}
@@ -814,7 +827,7 @@ Mechanics Report:
 ${JSON.stringify(mechanics, null, 2)}
 
 Substance Report:
-${JSON.stringify(substance, null, 2)}`;
+${JSON.stringify(substance, null, 2)}${panelSection}`;
 
   const r = await call(spec.backend, {
     agentKey: "A",
@@ -1215,20 +1228,21 @@ async function runDebate(
   log("");
 
   // --- Expert Panel ---
+  let panelReport: PanelReport | null = null;
   if (panelSpec) {
     process.stdout.write("\nRunning expert panel...\n");
     try {
-      const report = await runExpertPanel(panelSpec, args.topic, transcriptBody, {
+      panelReport = await runExpertPanel(panelSpec, args.topic, transcriptBody, {
         topic: args.topic.slice(0, 200),
         rounds: args.rounds,
         models: { A: specA.model, B: specB.model },
         moderatorEnabled: moderatorConfig.enabled,
         totalDebateSeconds,
       });
-      logPanelReport(report);
+      logPanelReport(panelReport);
 
       const panelOutputPath = process.env.PANEL_OUTPUT ?? `${logFile.replace(/\.md$/, "")}_panel.json`;
-      writeFileSync(panelOutputPath, JSON.stringify(report, null, 2) + "\n");
+      writeFileSync(panelOutputPath, JSON.stringify(panelReport, null, 2) + "\n");
       process.stdout.write(`Panel report saved to ${panelOutputPath}\n`);
     } catch (e) {
       log(`> **PANEL ERROR:** ${e}`);
@@ -1245,6 +1259,7 @@ async function runDebate(
     turns,
     topic: args.topic,
     totalDebateSeconds,
+    panelReport,
   };
 }
 
@@ -1305,7 +1320,7 @@ async function main() {
     // Iteration Agent (sees both reports)
     try {
       const decision = await runIterationAgent(
-        pipelineConfig.spec, result.topic, mechanics, substance, iter, maxIter,
+        pipelineConfig.spec, result.topic, mechanics, substance, iter, maxIter, result.panelReport,
       );
       logIterationDecision(decision, args.logDir, result.logTimestamp);
 
