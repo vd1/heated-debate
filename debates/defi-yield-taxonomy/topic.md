@@ -1,0 +1,89 @@
+Which decomposition of DeFi yield is most useful for portfolio risk analysis?
+
+## Background
+
+A practitioner taxonomy identifies four "sources" of DeFi yield: farming (incentives), chain staking, arb-fund (liquidation/arbitrage/funding-rate extraction), and RWAs. But these categories mix ontological layers — farming is a funding mechanism, staking is a protocol role, arb-fund is a strategy class, and RWA is an asset origin. They are not peer categories, which causes border disputes (where do LP fees go? lending spreads? MEV?) and hides dependency chains in blended products like sUSDe or Morpho vaults.
+
+## Competing frameworks to evaluate
+
+### Framework A: The 4-Source Folk Taxonomy
+Farming | Staking | Arb-fund | RWA
+Simple, widely used, but categories answer different questions.
+
+### Framework B: Payer x Mechanism Matrix
+- Axis 1 — Who pays: protocol treasury, network users, traders, borrowers, hedgers, offchain borrowers, other participants
+- Axis 2 — Economic mechanism: subsidy, validation, market-making, balance-sheet rental, ordering-rights extraction, risk warehousing, offchain pass-through
+- Handles blended products by decomposing them into multiple cells
+
+### Framework C: Economic Character Lens (Productive / Extractive / Subsidized / Pass-through)
+Heuristic buckets for persistence and failure mode, not mutually pure ontological classes. A single position can exhibit multiple characters (e.g., staking is productive + extractive via MEV).
+- Productive: you provide a service someone needs (LP, lending, insurance, staking)
+- Extractive: you capture value from information asymmetry / structural inefficiency (MEV, arb, liquidation)
+- Subsidized: you receive tokens from a depleting treasury (farming, liquidity mining)
+- Pass-through: you wrap offchain cash flows onchain (RWA, T-bills, private credit)
+
+### Framework D: Risk-first taxonomy
+Classify not the yield source but the risk you are SHORT to earn it.
+
+Core short-risks (the thing you are being paid to bear):
+- Inventory / adverse selection (LP, market making)
+- Credit / default (lending, undercollateralized positions)
+- Duration / rate risk (fixed-rate lending, maturity mismatch)
+- Liquidity / lock-up (staking, vesting)
+- Volatility / convexity (options selling, DOVs)
+- Governance / dilution (farming, token-incentivized positions)
+
+Universal overlays (present in all DeFi, not the thing you are specifically paid to short):
+- Smart contract risk
+- Oracle risk
+- Legal / regulatory risk
+
+### Framework E: No single taxonomy — use a matrix with multiple projections depending on the question being asked.
+
+## Classification rule
+
+Every framework must classify each test case on three layers:
+1. **Payer**: who funds the yield?
+2. **Mechanism**: what economic function produces it?
+3. **Risk absorbed**: what are you short?
+
+This prevents MEV, LP fees, and lending from collapsing into single-label arguments.
+
+## Concrete test cases the debate must address
+
+Each framework should be evaluated against these hard cases:
+
+1. **Ethena sUSDe**: blends perp funding rates + token incentives. How does each framework decompose it? Does the decomposition reveal risk?
+2. **Morpho vault lending**: lending spread where borrower demand is downstream of farming incentives elsewhere. Is the yield "productive" if its payer is subsidized?
+3. **Uniswap v3 concentrated LP**: fee income minus adverse selection / impermanent loss. Net yield can be negative. Where does this go?
+4. **MEV on Ethereum**: simultaneously validator reward, searcher profit, and user extraction depending on vantage point. Can a framework handle all three perspectives?
+5. **Nexus Mutual / DeFi options vaults (DOVs)**: selling risk. Is this productive (service), extractive (mispriced risk), or its own thing?
+6. **Term Finance fixed-rate lending**: lending spread, but fixed and maturity-matched. Does the framework capture how this differs from variable-rate lending?
+7. **Resolv USR exit shock**: curator behavior affecting borrow rates across markets. How does each framework represent contagion?
+
+## What "most useful" means
+
+The winning framework should:
+- **Isolate sustainability**: make it immediately visible whether yield depends on endogenous token emissions or exogenous cash flows
+- **Reveal dependency chains**: show when one yield source is downstream of another (lending -> borrower farming -> treasury depletion)
+- **Enable risk attribution**: let a portfolio manager answer "what am I short?" for each position
+- **Handle blended products**: decompose products that combine multiple yield sources without forcing them into one bucket
+- **Separate gross cash-flow source from net strategy return**: frameworks should distinguish where revenue comes from vs what risks and costs consume it (LP fees are gross revenue; net LP yield is after adverse selection, inventory risk, IL, gas, rebalancing; funding-rate carry is gross carry before hedge costs and basis slippage)
+- **Be practically usable**: a risk analyst should be able to classify a new vault in < 5 minutes
+
+## Required debate outputs
+
+The debate must end with:
+
+1. A verdict: which framework is most useful for portfolio risk analysis, and why
+2. A runner-up: what it captures that the winner misses
+3. A decomposition table for all 7 test cases with, at minimum:
+   - payer
+   - mechanism
+   - risk absorbed
+   - gross cash-flow source
+   - main net-return drag(s)
+4. A dependency-chain note wherever yield is downstream of another subsidized or reflexive activity
+5. A practical classification rulebook a risk analyst could apply to a new vault in under 5 minutes
+
+No framework should be treated as adequate unless it can classify blended products without forcing them into a single bucket.
