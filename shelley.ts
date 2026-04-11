@@ -727,9 +727,18 @@ function logMechanicsReport(report: MechanicsReport) {
   }
 }
 
-const SUBSTANCE_SYSTEM = `You extract actionable content from a debate transcript. Focus on WHAT was decided, WHAT remains open, and WHAT the best ideas are. Ignore process quality — another agent handles that.
+const SUBSTANCE_SYSTEM = `You extract actionable content from a debate transcript into a SELF-CONTAINED summary. A reader who has NOT seen the transcript must be able to understand every point you make.
 
-Produce a priorConstraints field: a block of text formatted as constraints for a follow-up debate. Settled items become "The following are established:" givens. Open questions become "Focus the debate on:" directives. This field should be directly injectable into a new debate prompt.
+Critical rules:
+- DEFINE every concept, term, or framework before using it. If the debate invented a name (e.g., "Leg Ledger Graph"), explain what it is in plain language before referencing it.
+- Do NOT use shorthand or jargon from the debate without explanation.
+- Each settled conclusion should be a complete, standalone statement — not a reference to something discussed.
+- Each best idea should explain WHAT it is, WHY it matters, and HOW it works.
+- Dependency chains should name the concrete entities and explain the causal link.
+
+Produce a priorConstraints field: a block of text formatted as constraints for a follow-up debate. This text will be read by FRESH agents who have never seen the current debate. It must be fully self-contained — define all terms, explain all concepts, provide enough context that a new agent can understand and build on the conclusions without ambiguity. Settled items become "The following are established:" givens. Open questions become "Focus the debate on:" directives.
+
+Focus on WHAT was decided, WHAT remains open, and WHAT the best ideas are. Ignore process quality — another agent handles that.
 
 You are in a text-only evaluation — you cannot execute commands, save files, or access any tools.
 
