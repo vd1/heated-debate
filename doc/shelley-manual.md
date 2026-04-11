@@ -85,6 +85,8 @@ Format: `backend:model` where backend is `claude` or `codex`. A bare model name 
 | `PANEL_OUTPUT` | `{log}_panel.json` | Override panel JSON output path |
 | `PIPELINE` | — | Enable post-debate pipeline, e.g. `claude:claude-opus-4-6` |
 | `PIPELINE_MAX_ITER` | `1` | Max debate iterations (1 = no re-run) |
+| `CONVERGENCE` | `disrupt` | Convergence action: `disrupt` (inject challenge), `stop` (end early), `off` |
+| `CONVERGENCE_THRESHOLD` | `0.55` | Bigram Jaccard similarity threshold (0-1) for convergence detection |
 
 ## Resuming an Interrupted Debate
 
@@ -202,6 +204,35 @@ uv run optimize.py --topic debates/stock-trades/topic.md --trials 20 --reps 2
 ```
 
 Parameters searched: dial exponent, round count, moderator level/model, agent A/B models. Study persists to `optuna_shelley.db` (SQLite) and is resumable across runs.
+
+## Convergence Detection
+
+Shelley monitors whether agents are repeating themselves using bigram Jaccard similarity. After each round (starting from round 2), it compares:
+- Agent A's output to their previous output
+- Agent B's output to their previous output
+- Agent A's output to Agent B's output (cross-similarity)
+
+If the max similarity exceeds `CONVERGENCE_THRESHOLD` (default 0.55), convergence is detected. The response depends on `CONVERGENCE`:
+
+- **`disrupt`** (default): Injects a challenge prompt forcing the next agent to argue *against* the consensus. Rotates through three disruption prompts. This is the recommended mode — it preserves the round count while breaking echo-chamber dynamics.
+- **`stop`**: Terminates the debate early after 2 consecutive convergent rounds. Saves tokens when the debate has genuinely exhausted its topic.
+- **`off`**: Disables convergence detection entirely.
+
+Convergence events and disruption injections are logged as HTML comments in the transcript.
+
+```bash
+# Default: disrupt on convergence
+bun shelley.ts -f debates/my-topic/topic.md 5
+
+# End early instead of disrupting
+CONVERGENCE=stop bun shelley.ts -f debates/my-topic/topic.md 5
+
+# Stricter threshold (more sensitive)
+CONVERGENCE_THRESHOLD=0.4 bun shelley.ts -f debates/my-topic/topic.md 5
+
+# Disable convergence detection
+CONVERGENCE=off bun shelley.ts -f debates/my-topic/topic.md 5
+```
 
 ## How the Dial Works
 

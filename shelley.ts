@@ -47,6 +47,43 @@ function dialPrefix(level: DialLevel): string {
   return `[Creativity: ${level}/5] ${DIAL_PROMPTS[level]}\n\n`;
 }
 
+// === Convergence detection ===
+
+type ConvergenceAction = "disrupt" | "stop" | "off";
+
+const CONVERGENCE_THRESHOLD = Math.max(0.1, Math.min(1, parseFloat(process.env.CONVERGENCE_THRESHOLD ?? "0.55")));
+const CONVERGENCE_ACTION: ConvergenceAction = (() => {
+  const raw = (process.env.CONVERGENCE ?? "disrupt").toLowerCase().trim();
+  if (raw === "stop" || raw === "off") return raw;
+  return "disrupt";
+})();
+
+const DISRUPTION_PROMPTS = [
+  "DISRUPTION: The debate has converged too early. You MUST now argue the strongest possible case AGAINST the current consensus. Identify the single most dangerous assumption in the agreed plan and show how it fails. Do not agree — find the fault line.",
+  "DISRUPTION: Both sides are repeating the same points. Take the opposite position from your last response. What would a skeptic say? What critical failure mode has been hand-waved? Attack the weakest link.",
+  "DISRUPTION: This debate is stalling. Introduce a concrete scenario where the agreed approach breaks down catastrophically. Be specific — name the failure, the trigger, and the consequence. Do not hedge.",
+];
+
+/**
+ * Compute similarity between two texts using bigram Jaccard coefficient.
+ * Returns 0..1 where 1 = identical.
+ */
+function textSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const bigrams = (s: string): Set<string> => {
+    const tokens = s.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(Boolean);
+    const set = new Set<string>();
+    for (let i = 0; i < tokens.length - 1; i++) set.add(`${tokens[i]} ${tokens[i + 1]}`);
+    return set;
+  };
+  const sa = bigrams(a);
+  const sb = bigrams(b);
+  if (sa.size === 0 && sb.size === 0) return 1;
+  let intersection = 0;
+  for (const bg of sa) if (sb.has(bg)) intersection++;
+  return intersection / (sa.size + sb.size - intersection);
+}
+
 // === Types ===
 
 interface TurnResult {
@@ -1096,6 +1133,7 @@ async function runDebate(
   if (startRound > 1) log(`| **Start round** | ${startRound} |`);
   if (resumeLog) log(`| **Resumed from** | \`${resumeLog}\` |`);
   if (priorConstraints) log(`| **Prior constraints** | yes (from previous iteration) |`);
+  if (CONVERGENCE_ACTION !== "off") log(`| **Convergence** | ${CONVERGENCE_ACTION} @ ${CONVERGENCE_THRESHOLD} |`);
   log("");
   log("<details><summary><strong>Topic</strong></summary>");
   log("");
@@ -1119,6 +1157,10 @@ async function runDebate(
   // --- Rounds ---
   const turns: TurnRecord[] = [];
   let transcriptBody = "";
+  let prevTextA = "";
+  let prevTextB = "";
+  let convergenceStreak = 0;
+  let disruptionCount = 0;
   for (let r = startRound; r <= args.rounds; r++) {
     const defaultDial = getDial(r - 1, args.rounds);
     const firstTurnInRun = r === startRound;
@@ -1215,6 +1257,39 @@ async function runDebate(
     transcriptBody += `## Round ${r} — Agent B\n\n${rB.text}\n\n`;
 
     promptForA = rB.text;
+
+    // --- Convergence detection ---
+    if (CONVERGENCE_ACTION !== "off" && r > startRound && r < args.rounds) {
+      const simA = textSimilarity(rA.text, prevTextA);
+      const simB = textSimilarity(rB.text, prevTextB);
+      const simCross = textSimilarity(rA.text, rB.text);
+      const maxSim = Math.max(simA, simB, simCross);
+
+      if (maxSim >= CONVERGENCE_THRESHOLD) {
+        convergenceStreak++;
+        const simLabel = `A=${simA.toFixed(2)} B=${simB.toFixed(2)} A×B=${simCross.toFixed(2)}`;
+        log(`<!-- convergence r=${r}: ${simLabel} streak=${convergenceStreak} -->`);
+
+        if (CONVERGENCE_ACTION === "stop" && convergenceStreak >= 2) {
+          log("");
+          log(`> **Early termination:** convergence detected for ${convergenceStreak} consecutive rounds (${simLabel}). Ending debate.`);
+          log("");
+          break;
+        }
+
+        if (CONVERGENCE_ACTION === "disrupt") {
+          const disruption = DISRUPTION_PROMPTS[disruptionCount % DISRUPTION_PROMPTS.length];
+          disruptionCount++;
+          // Inject disruption into the next Agent A prompt
+          promptForA = `${disruption}\n\nPrevious response from Agent B:\n\n${rB.text}`;
+          log(`<!-- disruption injected for round ${r + 1} (streak=${convergenceStreak}) -->`);
+        }
+      } else {
+        convergenceStreak = 0;
+      }
+    }
+    prevTextA = rA.text;
+    prevTextB = rB.text;
   }
 
   // --- Footer ---
@@ -1222,7 +1297,9 @@ async function runDebate(
   const totalDebateSeconds = turns.reduce((s, t) => s + t.seconds, 0);
   log("---");
   log("");
-  log(`*Debate finished ${endTime}. ${args.rounds} rounds.*`);
+  const stoppedEarly = convergenceStreak >= 2 && CONVERGENCE_ACTION === "stop";
+  const roundsCompleted = turns.filter(t => t.agent === "B").length;
+  log(`*Debate finished ${endTime}. ${roundsCompleted}${stoppedEarly ? ` of ${args.rounds}` : ""} rounds.${stoppedEarly ? " (early termination: convergence)" : ""}*`);
   log("");
   writeFooter(turns);
   log("");
