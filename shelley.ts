@@ -303,7 +303,7 @@ interface CodexHistoryTurn {
 
 const codexHistory: Record<AgentKey, CodexHistoryTurn[]> = { A: [], B: [] };
 const CODEX_HISTORY_WINDOW = Math.max(1, parseInt(process.env.CODEX_HISTORY_WINDOW ?? "6", 10) || 6);
-const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5.4";
+const DEFAULT_CODEX_MODEL = process.env.CODEX_MODEL ?? "gpt-5.5";
 
 function composeCodexPrompt(opts: CallOpts): string {
   const history = codexHistory[opts.agentKey];
@@ -1353,7 +1353,7 @@ async function runDebate(
 
 async function main() {
   const args = parseArgs();
-  const specA = parseBackend(process.env.MODEL_A ?? "claude:claude-opus-4-6");
+  const specA = parseBackend(process.env.MODEL_A ?? "claude:claude-opus-4-7");
   const specB = parseBackend(process.env.MODEL_B ?? `codex:${DEFAULT_CODEX_MODEL}`);
   if (specA.backend === "codex") codexReasoningEffort();
   if (specB.backend === "codex") codexReasoningEffort();

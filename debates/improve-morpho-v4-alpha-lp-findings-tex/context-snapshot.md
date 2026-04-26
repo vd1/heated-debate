@@ -1,0 +1,308 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\newcommand{\addr}[1]{\texttt{\scriptsize #1}}
+\newcommand{\file}[1]{\path{#1}}
+\newcommand{\morpho}{\mathrm{MORPHO}}
+\newcommand{\eth}{\mathrm{ETH}}
+\newcommand{\usdt}{\mathrm{USDT}}
+
+\title{MORPHO/ETH Uniswap v4 Microstructure and Alpha LP Model}
+\author{On-chain telemetry reconstruction}
+\date{Window ending 2026-04-25}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We reconstruct the microstructure of the most liquid  mainnetEthereum MORPHO venue over a 14-day window, with emphasis on the dominant liquidity provider (LP) that repeatedly recenters two concentrated-liquidity bands. The main result is that the LP is well described as a multi-market Uniswap v4 liquidity manager. On the MORPHO/ETH pool it maintains a wide band centered near Binance MORPHO/USDT and a narrow shoulder band about half as wide. Rebalances are triggered more coherently by drift of Binance price from the previous wide-band center than by the instantaneous pool/Binance price gap.
+\end{abstract}
+
+\section{Scope and Data}
+
+The analysis window is 2026-04-11 09:01:11 UTC to 2026-04-25 09:01:11 UTC, blocks 24855464 to 24955977. The raw on-chain input is the Uniswap v4 PoolManager log stream for the selected MORPHO/ETH pool, joined to transaction metadata, gas data, block timestamps, Binance MORPHO/USDT trades, and Binance ETH/USDT one-second bars.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Object & Value \\
+\midrule
+Pool & Uniswap v4 native ETH/MORPHO \\
+Pool id & \addr{0xd9f5...17fff} \\
+PoolManager & \addr{0x000000000004444c5dc75cB358380D2e3dE08A90} \\
+MORPHO token & \addr{0x58D97B57BB95320F9a05dC918Aef65434969c2B2} \\
+Fee & 2999, approximately 0.2999 percent \\
+Tick spacing & 60 \\
+Hooks & none \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Economically, the pool behaves like a standard Uniswap v3-style concentrated-liquidity AMM: fixed fee, tick spacing, sqrt-price math, and no hook-specific behavior. The v4-specific details are the singleton PoolManager, native ETH instead of WETH as token0, and v4 settlement/flash-accounting mechanics.
+
+\section{Venue Selection}
+
+The clear venue winner is the Uniswap v4 ETH/MORPHO pool. In the one-day DEX scan ending 2026-04-24 20:56:11 UTC it had about \(\$367.7\)k of volume, versus about \(\$5.8\)k for the next Uniswap v3 pool. In the 14-day microstructure window the selected v4 pool recorded:
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Swaps & 3855 \\
+Liquidity modifications & 140 \\
+Unique transactions & 3890 \\
+MORPHO volume & 4.534 million MORPHO \\
+ETH volume & 3658.18 ETH \\
+USD volume & \(\$8.486\) million \\
+Open/close price & \(\$1.835 \rightarrow \$1.850\) per MORPHO \\
+Low/high price & \(\$1.717 \rightarrow \$2.075\) per MORPHO \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Binance MORPHO/USDT data were collected at the most granular available level: raw individual spot trades for published archive days and aggregate-trade API fallback for the unpublished 2026-04-25 archive. This yielded 372,629 raw trade rows, 6,990 aggregate fallback rows, and 81,834 one-second MORPHO/USDT bars. ETH/USDT was collected as 1,209,600 one-second bars.
+
+\section{Raw Logs and Liquidity Reconstruction}
+
+The raw log archive contains every PoolManager log for this pool in the time window: swaps, liquidity modifications, and donations if any. It is not every log emitted by every contract in every block; it is complete for the selected pool. Incremental collection is therefore append-and-overlap: collect from the last finalized/safe block already stored, include a reorg overlap, deduplicate by transaction hash and log index, and append the new logs.
+
+Pool liquidity by tick interval is reconstructed from initialized tick liquidity nets. A position over \([i_\ell,i_u)\) with liquidity delta \(\Delta L\) updates the tick map as
+\[
+  \mathrm{liquidityNet}[i_\ell] \leftarrow \mathrm{liquidityNet}[i_\ell] + \Delta L,
+  \qquad
+  \mathrm{liquidityNet}[i_u] \leftarrow \mathrm{liquidityNet}[i_u] - \Delta L.
+\]
+The active liquidity in each interval is the cumulative sum of these nets from low ticks to high ticks. Given a complete initial tick map from StateView at the block before the window, replaying all ModifyLiquidity events in block/log order reconstructs the absolute liquidity curve over time.
+
+\section{Sandwich and JIT Evidence}
+
+The sandwich scan covered 3855 swaps across 3651 blocks. There were 168 blocks with multiple swaps and at most 10 swaps in a single block. Strict sandwich candidates required the same observed actor on the front and back legs and an opposite-direction back leg; loose candidates only matched a three-swap side pattern such as sell/sell/buy or buy/buy/sell.
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Scan item & Count \\
+\midrule
+Strict same-actor candidates & 4 \\
+Unique strict-candidate blocks & 1 \\
+Loose three-swap candidates & 8 \\
+Unique loose-candidate blocks & 6 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The strict candidates occur in one block and the marked round trips are not clearly profitable after inventory marking in the scan. The loose candidates are weak evidence because the actors do not match. Overall, the data do not show a robust sandwich pattern on this pool.
+
+For JIT liquidity, there were 45 liquidity transactions and 3847 swap transactions in the JIT scan. Only two transactions contained both swap and liquidity events, both in block 24900898 and associated with the secondary LP pattern rather than the dominant LP. There were 10 blocks containing both swaps and liquidity modifications, but block-level co-occurrence is not enough to establish a JIT attack. The dominant LP's normal rebalance is an atomic remove/remove/add/add transaction; no external trade can interpose between its intermediate states.
+
+\section{Demand-Curve Approximation}
+
+For MORPHO sells, the human-readable demand curve maps sale size \(x\) in MORPHO to execution price or total USD output. The first-order approximation was
+\[
+  d_t(x) = p_t - c x,
+  \qquad
+  \mathrm{Out}_t(x) \approx p_t x - \frac{1}{2} c x^2,
+\]
+where \(p_t\) is the time-varying intercept and \(c\) is a constant slope. This simple line captured the visual shape but was not centered: across grid sizes 20k to 900k MORPHO, the empirical ratio
+\[
+  \frac{\mathrm{actualOutputUSD}}{\mathrm{predictedOutputUSD}}
+\]
+had 5th and 95th percentiles 0.9755 and 0.9994, with median 0.9921.
+
+A better low-dimensional approximation keeps \(p_t\) as the only time-varying term but fits a common shape:
+\[
+  \mathrm{Out}_t(x)=p_t x + H(x).
+\]
+Using either an empirical mean shape or a quadratic marginal-price shape materially improves centering. For the quadratic common-shape model, the actual/predicted ratio at 100k MORPHO had min 0.9951, 5th percentile 0.9965, median 1.0001, 95th percentile 1.0014, and max 1.0039. At 900k MORPHO the fit is looser, with min 0.9717 and max 1.0140.
+
+\section{Dominant LP Identification}
+
+The dominant MORPHO/ETH LP event sender is
+\[
+  \addr{0xc088cfb65e7caa3368f21b4f227285ecc9fc385d}.
+\]
+Over the 14-day window it accounts for 32 alpha-LP transactions and 126 liquidity events. The competing visible LP sender
+\[
+  \addr{0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e}
+\]
+has 13 transactions and 14 events. The dominant LP is therefore not the only LP, but it is the structurally important one for the recurring two-band pattern.
+
+Grouping liquidity events by transaction is essential. A visually dense event sequence collapses into far fewer transaction-level rebalances because each rebalance removes old ranges and adds new ranges atomically. The intermediate states after removal and before addition exist only inside EVM execution and cannot be accessed by another transaction.
+
+\section{Alpha LP Model}
+
+\subsection{Price and Tick Convention}
+
+Let \(P_B(t)\) be Binance MORPHO/USDT in human units, i.e. USD per MORPHO. Let \(E(t)\) be ETH/USDT. In this pool token0 is ETH and token1 is MORPHO, so Uniswap tick \(i\) corresponds to approximately
+\[
+  \frac{\morpho}{\eth}=1.0001^i,
+  \qquad
+  P_{\mathrm{pool}}(i,t)=\frac{E(t)}{1.0001^i}.
+\]
+Thus higher Uniswap ticks mean lower human MORPHO price. Define the Binance-equivalent tick
+\[
+  b(t)=\frac{\log(E(t)/P_B(t))}{\log(1.0001)}.
+\]
+
+\subsection{Two-Band Structure}
+
+At each normal rebalance, the dominant LP removes the previous wide and narrow bands and adds two new bands:
+\[
+  A_k=[i^A_{\ell,k}, i^A_{u,k}),
+  \qquad
+  B_k=[i^B_{\ell,k}, i^B_{u,k}).
+\]
+Band \(A\) is the wide, high-liquidity band. Band \(B\) is a narrow shoulder band. The empirical fit is:
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Quantity & Min & Median & Mean & Max \\
+\midrule
+\(w_A=i^A_u-i^A_\ell\), ticks & 8160 & 8520 & 9038.7 & 12540 \\
+\(w_B=i^B_u-i^B_\ell\), ticks & 3960 & 4020 & 4041.3 & 4080 \\
+\(w_B/w_A\) & 0.316 & 0.472 & 0.452 & 0.496 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Band \(A\) is approximately centered on Binance: \(c_A=(i^A_\ell+i^A_u)/2\) has median offset 7.7 ticks from \(b(t)\), and the RMSE under exact centering is 42 ticks. Band \(B\) is not independently centered on Binance. It sits as a shoulder approximately 2040 ticks away from \(A\)'s center:
+\[
+  |c_B-c_A| \approx 2040 \text{ ticks},
+  \qquad
+  w_B \approx 4020 \text{ ticks}.
+\]
+In price-ratio terms, the rounded mean \(A\)-width of 9060 ticks spans a factor of about 2.47 in human price, while the \(B\)-width of 4020 ticks spans a factor of about 1.49.
+
+\subsection{Inventory Interpretation}
+
+The strongest qualitative interpretation is:
+\begin{enumerate}
+  \item The bot observes Binance MORPHO/USDT as an external fair-price signal.
+  \item It recenters a broad inventory-carrying band \(A\) around the Binance-equivalent tick.
+  \item It places a smaller shoulder band \(B\) on one side, plausibly to express or unwind inventory imbalance.
+\end{enumerate}
+
+The shoulder hypothesis is directionally supported but not deterministic. \(B\) appears above Binance in 14 cases and below Binance in 17 cases. A simple rule based on recent price direction classifies the side in about two thirds of cases: 20/30 using return since the previous rebalance, and 21/31 using the previous 1h or 4h return. \(A\)-width has only weak relation to volatility; the best tested fit was previous 1h absolute return with correlation 0.372 and \(R^2=0.139\).
+
+\subsection{Trigger Model}
+
+The literal rule
+\[
+  \left|\frac{P_B(t)-P_{\mathrm{pool}}(t)}{P_{\mathrm{pool}}(t)}\right| > H
+\]
+is weak as a repeated rebalance model because recentering liquidity does not reset the AMM marginal price. At event time the absolute Binance/pool gap has median 35.4 bps, min 16.9 bps, and max 64.6 bps, but these gaps do not form a clean reset-and-trigger process.
+
+The more coherent rule is a band-center drift rule:
+\[
+  |b(t)-c^A_{k-1}| > H_{\mathrm{tick}}.
+\]
+Observed event-time transition drift has:
+\[
+  \min=223.7,\quad
+  p50=258.2,\quad
+  \mathrm{mean}=270.7,\quad
+  \max=464.0
+\]
+ticks. Converting the minimum drift to log price gives
+\[
+  H_{\log}\approx 223.7\log(1.0001)=0.02237,
+\]
+or about 224 log-bps, equivalent to a 2.26 percent price move. A grid search for earliest 1-second threshold crossing gave a best threshold around 180 ticks, with no missed intervals but early predictions; this is a predictive lower trigger, not the final landed transaction rule.
+
+The polling frequency \(F\) is not identifiable from landed transactions alone. Conditional on the crossing model, the delay from last threshold crossing to landed rebalance had median 0.04875 hours, about 2.9 minutes, and mean 0.135 hours. The median gap between dominant LP rebalances was 4.10 hours in the liquidity-event analysis and 7.04 hours across threshold intervals, depending on grouping/filtering.
+
+\subsection{Self-Financing and Wallet Flows}
+
+The reconstructed alpha inventory is in-pool principal only; it excludes uncollected fees, wallet balances, and transient v4 settlement balances. The position starts with two inferred open ranges and remains a two-range structure at the window end.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Metric & Start & End \\
+\midrule
+ETH in pool & 626.52 & 606.33 \\
+MORPHO in pool & 794,355 & 819,693 \\
+Total value & \(\$2.802\)m & \(\$2.924\)m \\
+MORPHO value share & 50.1 percent & 51.9 percent \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The gas-paying primary EOA is
+\[
+  \addr{0x420966bcf2a0351f26048cd07076627cde4f79ac}.
+\]
+It submitted 382 transactions in the window: 31 alpha rebalances and 351 non-alpha transactions. Its ETH balance fell by 0.2209820939 ETH and its total gas paid was 0.2209820939 ETH, matching to numerical precision. Its sampled MORPHO and WETH balances were always zero. This strongly supports the interpretation that the EOA is a gas payer/control account, not the inventory account.
+
+The other primary EOA transactions are not random wallet behavior. They are the same executor managing other Uniswap v4 positions: 340 successful non-alpha v4 liquidity moves, 10 failed executor calls, and one v4 pool initialize. Across the classified wallet activity, the executor touched 50 v4 pool ids and 45 outer payload targets. The busiest other labeled pools include ETH/SYRUP, ETH/CFG, ETH/EUL, USDC/NEWT, ETH/RED, ESP/USDC, and TREE/USDC. The MORPHO alpha strategy is therefore one market inside a broader multi-market LP bot.
+
+\section{Trading Before or After Rebalance}
+
+The before/after comparison simulated MORPHO sells around each dominant LP transaction. The reported number is after-minus-before execution improvement in bps. Average effects are near zero, but the tails are material for larger orders.
+
+\begin{center}
+\begin{tabular}{rrrr}
+\toprule
+Sell size & Avg bps & Min bps & Max bps \\
+\midrule
+10k MORPHO & -1.65 & -8.98 & 3.71 \\
+50k MORPHO & -0.93 & -18.99 & 48.25 \\
+100k MORPHO & -0.42 & -37.51 & 64.58 \\
+250k MORPHO & -0.26 & -91.97 & 72.26 \\
+500k MORPHO & -0.01 & -175.13 & 134.27 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Thus the alpha is not a simple unconditional ``always trade after'' rule. The useful signal is conditional: whether the upcoming rebalance will add depth on the side relevant to the intended trade.
+
+\section{Operational Conclusions}
+
+\begin{enumerate}
+  \item The MORPHO/ETH Uniswap v4 pool is the dominant on-chain Ethereum venue for MORPHO in the observed data.
+  \item The v4 pool is ordinary concentrated-liquidity economics: no hooks, static fee, native ETH token0, and standard tick mechanics.
+  \item The raw PoolManager logs plus an initial StateView tick map are sufficient to reconstruct the pool's liquidity curve over time.
+  \item The dominant LP uses an atomic two-band rebalance: wide band \(A\) around Binance and narrow shoulder \(B\) about half as wide.
+  \item The best trigger model is drift of Binance-equivalent tick away from the previous \(A\)-band center, with event drifts centered around 250--270 ticks.
+  \item The primary EOA is a gas/control account. It does not appear to hold MORPHO inventory; its ETH decrease equals gas.
+  \item The same executor is a multi-market Uniswap v4 LP bot, not a MORPHO-only system.
+  \item Sandwich evidence is weak; same-actor candidates are sparse and not clearly profitable. JIT evidence for the dominant LP is also weak.
+\end{enumerate}
+
+\appendix
+\section{Main Artifacts}
+
+\begin{longtable}{p{0.38\linewidth}p{0.52\linewidth}}
+\toprule
+Artifact & Contents \\
+\midrule
+\file{data/morpho_v4_raw_logs.json} & PoolManager logs for the selected MORPHO/ETH pool. \\
+\file{data/morpho_v4_swaps.csv} & Swap-level microstructure: block, tx, side, amounts, execution and marginal prices. \\
+\file{data/morpho_v4_liquidity_events.csv} & Decoded ModifyLiquidity events. \\
+\file{data/morpho_v4_initial_liquidity_snapshot.json} & Initial StateView tick liquidity snapshot. \\
+\file{data/morpho_v4_liquidity_intervals_history.csv} & Replayed liquidity intervals over time. \\
+\file{data/morpho_v4_dominant_lp_binance_model_summary.json} & Fitted Binance recenter model for the dominant LP. \\
+\file{data/morpho_v4_inventory_band_model_summary.json} & Width, side, and volatility diagnostics for bands \(A\) and \(B\). \\
+\file{data/morpho_v4_alpha_lp_inventory_summary.json} & In-pool principal inventory reconstruction for the dominant LP. \\
+\file{data/morpho_v4_alpha_bot_wallet_activity_summary.json} & Gas payer, wallet balance, and non-alpha transaction classification. \\
+\file{data/morpho_v4_alpha_bot_other_pool_labels.csv} & Human-readable labels for other v4 pools touched by the same executor. \\
+\file{outputs/morpho_v4_liquidity_movie.html} & Liquidity/demand-curve movie. \\
+\bottomrule
+\end{longtable}
+
+\end{document}
