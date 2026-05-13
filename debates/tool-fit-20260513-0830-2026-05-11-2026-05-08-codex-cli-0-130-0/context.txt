@@ -1,0 +1,15 @@
+/Users/v/Code_2026/heated-debate/README.md
+/Users/v/Code_2026/heated-debate/CLAUDE.md
+/Users/v/Code_2026/heated-debate/pyproject.toml
+/Users/v/Code_2026/heated-debate/package.json
+/Users/v/Code_2026/mopsus/README.md
+/Users/v/Code_2026/mopsus/pyproject.toml
+/Users/v/Code_2026/mopsus/prompts/situation.md
+/Users/v/Code_2026/mopsus/prompts/soul.md
+/Users/v/Code_2026/agQSL/README.md
+/Users/v/Code_2026/agQSL/CLAUDE.md
+/Users/v/Code_2026/agQSL/pyproject.toml
+/Users/v/Code_2026/dataroom/doc/README.md
+/Users/v/Code_2026/dataroom/pyproject.toml
+/Users/v/Code_2026/gaa/prompts/situation.md
+/Users/v/Code_2026/gaa/prompts/soul.md
