@@ -7,3 +7,7 @@ Debate topics must be phrased as reviews, not tasks. When the topic says "port t
 **Observed in:** `debates/plan-porting-shelley/20260224_232149.md` — agents completed plan review by round 2, then spent rounds 3+ trying to write `shelley.ts` and hitting permission walls.
 
 **Fix:** Topic should say "Review this plan for porting the legacy shell runner to shelley.ts" not "Port the legacy shell runner to shelley.ts." System prompts alone aren't enough to constrain behavior when the topic is a direct instruction.
+
+## Train debate structures against gemma4 as local model
+
+Train the debate structures against gemma4 running as a local model.
