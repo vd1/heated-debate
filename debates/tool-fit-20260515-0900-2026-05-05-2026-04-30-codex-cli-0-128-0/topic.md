@@ -1,0 +1,56 @@
+# Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+## New Tool/Command Candidates
+
+- **Codex / 2026-05-05 / 2026-04-30 / Codex CLI 0.128.0**
+  Detail: Added persisted /goal workflows with app-server APIs, model tools, runtime continuation, and TUI controls for create, pause, resume, and clear. ( #18073 , #18074 , #18075 , #18076 , #18077 , #20082 )
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+- **Codex / 2026-05-05 / 2026-04-30 / Codex CLI 0.128.0**
+  Detail: Added codex update , configurable TUI keymaps, plan-mode nudges, action-required terminal titles, and active-turn /statusline and /title edits. ( #19933 , #18593 , #19901 , #18372 , #19917 )
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+- **Codex / 2026-05-05 / 2026-04-30 / Codex CLI 0.128.0**
+  Detail: Expanded permission profiles with built-in defaults, sandbox CLI profile selection, cwd controls, and active-profile metadata for clients. ( #19900 , #20117 , #20118 , #20095 )
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+- **Codex / 2026-05-05 / 2026-04-30 / Codex CLI 0.128.0**
+  Detail: Improved plugin workflows with marketplace installation, remote bundle caching, remote uninstall, plugin-bundled hooks, hook enablement state, and external-agent config import. ( #18704 , #19914 , #19456 , #19705 , #19840 , #19949 )
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+- **Codex / 2026-05-05 / 2026-04-30 / Codex CLI 0.128.0**
+  Detail: Made MultiAgentV2 configuration more explicit with thread caps, wait-time controls, root/subagent hints, and v2-specific depth handling. ( #19360 , #19792 , #19805 , #20052 , #20180 )
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+- **Codex / 2026-05-05 / 2026-04-30 / Codex CLI 0.128.0**
+  Detail: Fixed Windows sandbox and PTY edge cases, including pseudoconsole startup, elevated runner process handling, core shell environment inheritance, and named-pipe validation. ( #20042 , #19211 , #20089 , #19283 )
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+
+## Code_2026 Project Candidates
+
+- **mopsus** (/Users/v/Code_2026/mopsus) score=48
+  Context files: /Users/v/Code_2026/mopsus/README.md, /Users/v/Code_2026/mopsus/pyproject.toml, /Users/v/Code_2026/mopsus/prompts/situation.md, /Users/v/Code_2026/mopsus/prompts/soul.md
+  Summary: README.md: # Mopsus Dual-agent Telegram bot (Claude + Codex) with data room integration. Mopsus connects to your local data room, lets you query it via Telegram, and runs an autonomous daily think phase that proposes ideas based on your activity. ## Architecture ![Architecture diagram](doc/mopsus_architecture.png) Mopsus runs as a long-lived Telegram daemon with two AI backends (Claude CLI and Codex CLI). It maintains a **blackboard** — a persistent conversation log that both agents can read...
+- **heated-debate** (/Users/v/Code_2026/heated-debate) score=41
+  Context files: /Users/v/Code_2026/heated-debate/README.md, /Users/v/Code_2026/heated-debate/CLAUDE.md, /Users/v/Code_2026/heated-debate/pyproject.toml, /Users/v/Code_2026/heated-debate/package.json
+  Summary: README.md: # heated-debate Multi-agent debate engine that pits LLM agents against each other in structured, round-based design reviews. An architect proposes, a reviewer critiques, and a creativity dial cools from wild to precise across rounds. ## Quick start ```bash # TypeScript frontend (bun + CLI backends; supports claude/codex CLI subscription login) bun shelley.ts 5 # 5 rounds, default topic bun shelley.ts -f debates/stock-trades/topic.md 3 # 3 rounds, file topic MODEL_A=codex:gpt-5...
+- **trading-bot** (/Users/v/Code_2026/trading-bot) score=38
+  Context files: /Users/v/Code_2026/trading-bot/README.md, /Users/v/Code_2026/trading-bot/CLAUDE.md
+  Summary: README.md: # Trading Bot — Architecture Complète Système de trading automatisé multi-stratégies en Python. **Paper trading activé par défaut** — aucun ordre réel sans configuration explicite. --- ## Architecture ``` trading-bot/ ├── main.py # Point d'entrée, scheduler APScheduler + Watchdog ├── config/ │ └── settings.py # Config centralisée via Pydantic + .env ├── core/ │ ├── portfolio.py # PortfolioState + Position dataclasses, capital logic │ ├── db.py # SQLite WAL (source de vérité) │ ├──...
+- **gaa** (/Users/v/Code_2026/gaa) score=37
+  Context files: /Users/v/Code_2026/gaa/prompts/situation.md, /Users/v/Code_2026/gaa/prompts/soul.md
+  Summary: prompts/situation.md: You are running as a scheduled headless agent over the repositories in `~/Code_2026/`. ## Your workspace Each subdirectory under `~/Code_2026/` is a git repository (or may become one). The active projects as of April 2026 include: - **agQSL** — Quantum supply chain analysis and vendor debate system - **mopsus** — Dual-agent Telegram bot (Claude + Codex) with data room - **YieldTree** — DeFi yield resolver with recursive protocol decomposition - **mms** — Morpho Micro...
+- **agQSL** (/Users/v/Code_2026/agQSL) score=35
+  Context files: /Users/v/Code_2026/agQSL/README.md, /Users/v/Code_2026/agQSL/CLAUDE.md, /Users/v/Code_2026/agQSL/pyproject.toml
+  Summary: README.md: # agQSL `agQSL` is the working repository for the Quantum Software Lab vendor evaluation and debate project. It holds the local artefacts used to compare quantum hardware vendors, curate vendor/application evidence, run portability dossiers from recent hardware papers, and support the Ezratty-backed debate/search bots. The repository is deliberately filesystem-first: generated outputs should be rebuilt from source data, and agent handoffs should be visible in versioned Markdown...
+
+## Output Contract
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the project context. The final round must produce a go/no-go recommendation with one concrete next action.
+
+Staged by Mopsus on 2026-05-15 09:00.
