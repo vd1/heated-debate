@@ -1,0 +1,8 @@
+# Context for the indexed-chain-of-thought debate.
+# Source: https://openai.com/index/model-disproves-discrete-geometry-conjecture/
+#
+# Rewritten chain of thought of the OpenAI model's unit-distance disproof (125pp):
+debates/indexed-cot/sources/unit-distance-cot.md
+#
+# Human mathematicians' digested remarks on the same disproof (19pp):
+debates/indexed-cot/sources/unit-distance-remarks.md
