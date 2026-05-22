@@ -121,12 +121,111 @@ non-monotone code work (debugging, refactoring) can lean on a *given* index.
 Mathematics supplies no such thing; an exploratory proof has no call graph and no
 search over its own history.
 
-The internal-index hypothesis is therefore load-bearing in exactly one cell:
+The internal-index hypothesis is therefore the operative explanation in exactly
+one cell:
 **non-monotone task + no external addressing structure**, i.e. research
 mathematics. That is where, if the model copes at all, it must have built the
 index itself. Code is the right contrast not because it is monotone but because
 there the index is supplied; the experiment must vary the *addressing structure*
 while holding the task non-monotone (see Stage 3, §8).
+
+## 4.5 What the index is for
+
+The index recurs at three nested levels: within a single forward pass (the
+model's activations, the object of this protocol), within one long reasoning
+trace or agent (the chain of thought), and across the mathematical community over
+historical time (the collective search). At every level the growing branch-pool
+is the same object: open problems and partial results, coupled because any
+result is a reusable lemma, with revival as the non-local move.
+
+The collective level already has an index, and it is explicit and external:
+named theorems, the citation graph, MathSciNet and arXiv, the social convention
+of naming lemmas so they can be cited. That is the same kind of object as code's
+call graph: a call graph and a citation graph are both external addressing
+structures over a collective artifact; code ships it natively, mathematics built
+it socially over centuries. So the §4 claim that mathematics has no addressing
+structure holds for a single private proof attempt, not for the discipline. The
+collective level is also the one place the process is directly observable:
+revival shows up as a citation, an abandoned thread reopening in the literature,
+with no activation patching required.
+
+This also fixes what the index is *for*. Following Thurston (*On Proof and
+Progress in Mathematics*, 1994), mathematics is not the accumulation of theorems
+and formal proofs; what the community produces and values is understanding, the
+advancement of how mathematics is grasped and connected. In the present
+language: the theorem is a leaf, and the index, the web of which results connect
+to which and when one line revives another, is the understanding. The index is
+not scaffolding for producing theorems; the index *is* the value, and the
+theorems are nearly a byproduct.
+
+The unit-distance episode shows the split. The model produced a proof-object in
+one shot; the nine-author remarks paper produced the index, digesting the proof,
+attributing its moves to Ellenberg-Venkatesh and Golod-Shafarevich, and placing
+it in the existing web of understanding. The mathematics, on Thurston's
+criterion, is in the second step, and that step is indexing.
+
+Two consequences for this protocol. First, it raises the stakes: a model that
+self-indexes is not merely searching more efficiently, it is doing what Thurston
+identifies as the content of mathematics; a model that emits correct theorems
+with no index has produced leaves, not mathematics. Second, a caveat on scope:
+Thurstonian understanding (intuition, mental models, ways of seeing) is richer
+than a cross-reference graph. The index is the skeleton of understanding,
+necessary but not sufficient. This protocol tests for the skeleton.
+
+## 4.6 Related work and positioning
+
+In one line: Chain-of-Thought and Tree-of-Thought concern the structure of the
+trace *in the token stream*; this protocol concerns the structure of the trace
+*in the activations*.
+
+**Chain-of-Thought.** The CoT literature (Wei et al. 2022, and the expressivity
+work that followed — Merrill & Sabharwal, Feng et al.) explains CoT as
+externalized serial computation: emitting intermediate tokens lets a fixed-depth
+transformer perform serial steps it cannot do in one forward pass, since each
+token re-enters the context. It treats the trace as a flat linear tape, and
+explains why the tape helps; it says nothing about whether the model imposes
+structure *over* the tape. This protocol's question begins where CoT theory
+stops: given the flat tape, does the model build an internal index over it?
+
+**Tree- and Graph-of-Thought.** ToT (Yao et al. 2023) and GoT (Besta et al.
+2023) introduce tree/graph structure, but it is *external*: the tree lives in an
+orchestrating harness (a BFS/DFS wrapped around the LLM), and the model is a
+thought-proposer and state-evaluator. Two differences. (i) External vs internal:
+ToT puts the tree outside the model; the hypothesis here is that the index is
+inside, in the residual streams, even when the visible trace is a plain flat
+chain. ToT is prescriptive ("wrap a search around the LLM"); this protocol is
+descriptive and mechanistic ("does the unaided model already do this?"). (ii)
+Monotone vs non-monotone: ToT's search is exactly the monotone, frontier-local
+tree search §2 contrasts against — a pruned branch stays pruned, states scored
+locally, no revival. GoT permits merging but still no non-monotone reopening of a
+closed branch by a later discovery. The revival variant (§7.4) is outside the
+ToT/GoT frame entirely.
+
+**Faithfulness.** Work showing the written chain often misrepresents the
+computation (Turpin et al. 2023, and subsequent CoT-faithfulness studies)
+motivates the methodology here rather than competing with it: it is why the
+decisive test (§11) is causal, not textual. This protocol goes one step further,
+asking not whether the text is faithful but what internal structure the text
+imperfectly reflects.
+
+**Latent reasoning and probing.** Continuous/latent-reasoning work (e.g. Coconut,
+Hao et al. 2024) and world-model probing (the Othello line, Li et al. 2023,
+Nanda et al. 2023) are the nearest neighbours; §13 engages them directly. They
+ask *whether* state is internally represented; this protocol asks a structural,
+access-complexity question — whether access to the trace is flat (O(1)),
+hierarchical (O(log n)), or absent.
+
+**Overlap to acknowledge.** Retrieval-head and induction-head mechanistic work
+(e.g. Wu et al. 2024) already studies how transformers fetch earlier context;
+the routing/hop-count analysis of §7.3 overlaps with it. The distinction:
+retrieval-head work shows *that* retrieval happens; this protocol asks whether
+retrieval over a long *reasoning* trace is *hierarchically organized*.
+
+What is new here, accordingly: the access-depth measurement `ℓ*(d, n)`, which
+borrows the circuit-depth framing from transformer-expressivity theory and turns
+it into an empirical curve over a self-generated trace; self-indexing as the
+descriptive counterpart to ToT's prescriptive external tree; revival as the
+discriminator; and handle ablation.
 
 ## 5. Core constructs
 
@@ -434,7 +533,7 @@ Compare `ℓ*(d, n)`, hop counts, and revival-rate across regimes.
 - Flat/shallow access and intact revival in the indexed regime, but steep access
   and failing revival in the unindexed regime → the model leans on the
   *external* index and has not internalized one: self-indexing fails exactly
-  where it would be load-bearing. This is the key indexed-vs-unindexed gap.
+  where it would matter. This is the key indexed-vs-unindexed gap.
 - Flat/sublinear access and intact revival in *both* → the model self-indexes;
   the external index is not what carries it.
 - Steep in both → no index; an external one is merely a crutch.
@@ -493,7 +592,7 @@ against hand annotation).
 bag-of-words baseline on the prompt text; position-only baseline; length-only
 baseline; train on labelled traces / test on paraphrased traces.
 
-**Interpretive ruling (load-bearing).** Probing alone is not causal; it shows
+**Interpretive ruling (essential).** Probing alone is not causal; it shows
 only that information is *present*. Because a transformer must derive whatever
 state it uses from its tokens, *any* sufficiently expressive decoder will recover
 transcript-derivable state; decodability is therefore nearly free. In particular,
@@ -751,3 +850,23 @@ for layer in layers:
 > abandoned branches included, cheaply re-addressable and, when later progress
 > warrants, revivable. This is the same capability that an external code index
 > supplies for free.
+
+---
+
+## References
+
+- OpenAI, "An OpenAI model has disproved a central conjecture in discrete
+  geometry," 2026.
+  <https://openai.com/index/model-disproves-discrete-geometry-conjecture/>
+- "Rewritten Chain of Thought for the Solution to the Unit Distance Problem,"
+  OpenAI, 2026.
+  <https://cdn.openai.com/pdf/1625eff6-5ac1-40d8-b1db-5d5cf925de8b/unit-distance-cot.pdf>
+- N. Alon, T. F. Bloom, W. T. Gowers, D. Litt, W. Sawin, A. Shankar,
+  J. Tsimerman, V. Wang, M. M. Wood, "Remarks on the Disproof of the Unit
+  Distance Conjecture," 2026.
+  <https://cdn.openai.com/pdf/74c24085-19b0-4534-9c90-465b8e29ad73/unit-distance-remarks.pdf>
+- W. P. Thurston, "On Proof and Progress in Mathematics," *Bulletin of the
+  American Mathematical Society* 30(2), 1994.
+
+The unit-distance chain of thought and remarks are also mirrored, with digested
+markdown extractions, in `sources/` alongside this document.
