@@ -419,6 +419,24 @@ A **callback** is built in: a fact `φ` discovered while exploring an early bran
 correct move in a different branch. Vary `d` by padding intervening search with
 controlled irrelevant exploration; vary trace length `n` independently.
 
+**Alternative substrate: procedurally-generated text games.** The synthetic
+calculus can be replaced or supplemented by a procedural text-game environment
+(TextWorld is the cleanest; Jericho and ALFWorld are related). The lock-and-key /
+Metroidvania structure maps directly onto the protocol: a locked door is a
+blocked branch with an explicit reason for closure, the key found elsewhere is
+the revival trigger `ρ` (§7.4), opening the door is revival, and a door seen
+earlier supplies the callback distance `d`. The advantage is exact ground truth:
+the game engine knows which regions are reachable, which key fits which lock,
+and which branches are dead, so the frontier-state labels for probing (§11) come
+for free. One caveat governs the routine/research distinction: a game with its
+hints intact — key colour-coded to door, or the match announced — is the
+*indexed* regime of §9, where matching key to door is a lookup. To reach the
+*unindexed* (research-maths) regime, strip the hint so that recognising the
+key↔door match becomes an inference. Note also that standard keys-and-doors is
+only monotone-deferral (keys are kept, doors go locked→open once); for full
+non-monotone revival the environment must allow a later event to re-close or
+re-open a branch.
+
 ### 7.2 Clean/corrupt within the self-generated trace
 
 Build clean/corrupt pairs by intervening on the model's *own* trace:
