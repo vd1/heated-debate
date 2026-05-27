@@ -1,0 +1,56 @@
+# Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+## New Tool/Command Candidates
+
+- **Codex / codex plugin marketplace list**
+  Detail: Use --ref to pin a Git ref, and repeat --sparse PATH to use a sparse checkout for Git-backed marketplace repositories. codex plugin marketplace list prints in-scope marketplace names and roots, including implicitly discovered default marketplaces and configured marketplace snapshots. codex mcp-server Run Codex as an MCP server over stdio so that other tools can conn
+  Source: Codex CLI command reference: https://developers.openai.com/codex/cli/reference
+- **Claude Code / Aliases**
+  Detail: Aliases and shell functions defined in your shell startup file are available. At session start, Claude Code sources ~/.zshrc , ~/.bashrc , or ~/.profile depending on your shell, captures the resulting aliases, functions, and shell options, and applies them to every Bash command.
+  Source: Claude Code tools reference: https://code.claude.com/docs/en/tools-reference
+- **Codex / Codex SDK / Codex changelog / 2026-05-21**
+  Detail: include skills, app integrations, MCP servers, and lifecycle hooks.
+  Source: Codex changelog: https://developers.openai.com/codex/changelog
+- **Claude Code / May 23, 2026 / 2.1.149 / May 22, 2026**
+  Detail: /usage now shows a per-category breakdown of what’s driving your limits usage — skills, subagents, plugins, and per-MCP-server cost
+  Source: Claude Code changelog: https://code.claude.com/docs/en/changelog
+- **Claude Code / May 23, 2026 / 2.1.149 / May 22, 2026**
+  Detail: /diff detail view can now be scrolled with the keyboard (arrows, j / k , PgUp / PgDn , Space , Home / End )
+  Source: Claude Code changelog: https://code.claude.com/docs/en/changelog
+- **Claude Code / May 23, 2026 / 2.1.149 / May 22, 2026**
+  Detail: Fixed /ultraplan and remote session creation failing with “Could not capture uncommitted changes” when the working tree has no real changes
+  Source: Claude Code changelog: https://code.claude.com/docs/en/changelog
+
+## Code_2026 Project Candidates
+
+- **gaa** (/Users/v/Code_2026/gaa) score=94
+  Context files: /Users/v/Code_2026/gaa/prompts/situation.md, /Users/v/Code_2026/gaa/prompts/soul.md
+  Summary: prompts/situation.md: You are running as a scheduled headless agent over the repositories in `~/Code_2026/`. ## Your workspace Each subdirectory under `~/Code_2026/` is a git repository (or may become one). The active projects as of April 2026 include: - **agQSL** — Quantum supply chain analysis and vendor debate system - **mopsus** — Dual-agent Telegram bot (Claude + Codex) with data room - **YieldTree** — DeFi yield resolver with recursive protocol decomposition - **mms** — Morpho Micro...
+- **mopsus** (/Users/v/Code_2026/mopsus) score=85
+  Context files: /Users/v/Code_2026/mopsus/README.md, /Users/v/Code_2026/mopsus/pyproject.toml, /Users/v/Code_2026/mopsus/prompts/situation.md, /Users/v/Code_2026/mopsus/prompts/soul.md
+  Summary: README.md: # Mopsus Dual-agent Telegram bot (Claude + Codex) with data room integration. Mopsus connects to your local data room, lets you query it via Telegram, and runs an autonomous daily think phase that proposes ideas based on your activity. ## Architecture ![Architecture diagram](doc/mopsus_architecture.png) Mopsus runs as a long-lived Telegram daemon with two AI backends (Claude CLI and Codex CLI). It maintains a **blackboard** — a persistent conversation log that both agents can read...
+- **agQSL** (/Users/v/Code_2026/agQSL) score=62
+  Context files: /Users/v/Code_2026/agQSL/README.md, /Users/v/Code_2026/agQSL/CLAUDE.md, /Users/v/Code_2026/agQSL/pyproject.toml
+  Summary: README.md: # agQSL `agQSL` is the working repository for the Quantum Software Lab vendor evaluation and debate project. It holds the local artefacts used to compare quantum hardware vendors, curate vendor/application evidence, run portability dossiers from recent hardware papers, and support the Ezratty-backed debate/search bots. The repository is deliberately filesystem-first: generated outputs should be rebuilt from source data, and agent handoffs should be visible in versioned Markdown...
+- **heated-debate** (/Users/v/Code_2026/heated-debate) score=57
+  Context files: /Users/v/Code_2026/heated-debate/README.md, /Users/v/Code_2026/heated-debate/CLAUDE.md, /Users/v/Code_2026/heated-debate/pyproject.toml, /Users/v/Code_2026/heated-debate/package.json
+  Summary: README.md: # heated-debate Multi-agent debate engine that pits LLM agents against each other in structured, round-based design reviews. An architect proposes, a reviewer critiques, and a creativity dial cools from wild to precise across rounds. ## Quick start ```bash # TypeScript frontend (bun + CLI backends; supports claude/codex CLI subscription login) bun shelley.ts 5 # 5 rounds, default topic bun shelley.ts -f debates/stock-trades/topic.md 3 # 3 rounds, file topic MODEL_A=codex:gpt-5...
+- **do** (/Users/v/Code_2026/do) score=52
+  Context files: /Users/v/Code_2026/do/README.md
+  Summary: README.md: # do — kanban convention for Code_2026 repos A lightweight, file-based kanban using four root-level markdown files per repo, organised by **temporal proximity**: ``` ideas.md → tasks.md → todo.md → done.md (spark) (someday) (this week) (shipped) ``` Items drift left-to-right as they ripen. Sparks can skip straight to `todo.md` if urgent; `tasks.md` entries can be deleted without ever moving. One entry = one shippable thing. ## The four files - **`ideas.md`** — append-only capture...
+
+## Output Contract
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the project context. The final round must produce a go/no-go recommendation with one concrete next action.
+
+Staged by Mopsus on 2026-05-24 09:02.
