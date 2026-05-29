@@ -1,0 +1,72 @@
+{
+  "overallScore": 8.4,
+  "expertScores": [
+    {
+      "expert": "Pragmatist",
+      "scores": {
+        "convergence": 9,
+        "depth": 8,
+        "feasibility": 9,
+        "dynamics": 8
+      },
+      "commentary": "The debate converged to a concrete 30-minute run-of-show, a two-page leave-behind, and specific operational safeguards. The arguments moved beyond the initial concepts versus manipulations framing into sequencing, risk control, governance, and transfer. The final plan is realistic for the audience and timebox, though it still depends on careful preparation of demo materials and tight facilitation.",
+      "bestIdea": "Make the pilot brief the delegable artifact, with the live demo serving belief and the leave-behind carrying transfer.",
+      "weakness": "The plan is facilitator-sensitive: if timing slips or criteria capture is weak, the governance and transfer moments may become superficial."
+    },
+    {
+      "expert": "Devil's Advocate",
+      "scores": {
+        "convergence": 9,
+        "depth": 8,
+        "feasibility": 8,
+        "dynamics": 8
+      },
+      "commentary": "The debate converged to a specific 30-minute run-of-show, a handout structure, and concrete operational safeguards. The strongest work was turning the abstract concepts-versus-manipulations question into a diagnostic workflow with a delegable pilot brief. What it missed most was audience heterogeneity: executives may vary widely in AI familiarity, risk tolerance, and authority to pilot changes, which could affect how much governance versus demo they need.",
+      "bestIdea": "Make the pilot brief the concrete delegable artifact, with the four questions embedded inside it.",
+      "weakness": "The plan assumes a fairly cooperative, AI-curious executive room and underexplores resistance, skepticism, or uneven authority to act on Monday."
+    },
+    {
+      "expert": "Architect",
+      "scores": {
+        "convergence": 9,
+        "depth": 8,
+        "feasibility": 9,
+        "dynamics": 8
+      },
+      "commentary": "The debate converged to a concrete 30-minute run-of-show, a specific leave-behind structure, and operational safeguards. The strongest reasoning was around sequencing: diagnostic questions first, felt proof through the demo, then a delegable pilot brief. The agents challenged each other productively on failure mode, timing risk, tool variance, and whether to collapse the two canonical examples.",
+      "bestIdea": "Make the pilot brief the delegable artifact that translates the four questions into team governance.",
+      "weakness": "The final plan still depends heavily on instructor execution quality, especially keeping governance and criteria drafting within tight time boxes."
+    }
+  ],
+  "synthesis": {
+    "keyConclusions": [
+      "All three experts agree the debate converged strongly on an actionable 30-minute workshop plan with a clear run-of-show, two-page leave-behind, and concrete safeguards.",
+      "The strongest shared conclusion is that the pilot brief should be the central delegable artifact, translating the four diagnostic questions into something executives can assign, review, and govern.",
+      "The debate successfully moved beyond the false binary of concepts versus manipulations by using diagnostic questions as the conceptual spine and the live demo as proof."
+    ],
+    "unresolvedDisagreements": [
+      "Pragmatist and Architect rate feasibility slightly higher than Devil's Advocate, who flags that the plan may be less robust for rooms with uneven AI familiarity, skepticism, or limited authority to act.",
+      "The experts agree the plan is facilitator-sensitive, but Devil's Advocate emphasizes audience variability as the bigger gap, while Pragmatist and Architect emphasize timing, preparation, and execution discipline."
+    ],
+    "bestIdeas": [
+      "Make the pilot brief the concrete artifact executives can delegate on Monday, with owner, verifier, data boundary, sources, and acceptance criteria.",
+      "Sequence the workshop as diagnostic questions first, felt proof through one live example, then transfer via the leave-behind and recurring-workflow case."
+    ],
+    "weaknesses": [
+      "The plan depends heavily on tight facilitation, especially capturing acceptance criteria quickly and keeping governance capped.",
+      "The debate underexplored resistant or heterogeneous executive rooms, including varying AI maturity, risk tolerance, and actual authority to launch pilots."
+    ],
+    "recommendation": "Proceed with the locked plan, but prepare fallback facilitation paths for skeptical, novice, or governance-heavy rooms. Treat demo materials, criteria examples, and timing discipline as mandatory, not optional."
+  },
+  "metadata": {
+    "topic": "# Concepts vs concrete manipulations in the SSI cours\n\n**Context.** A 30-minute workshop for executives of French PME/ETI (50–500 employees) who want to pilot AI-agent adoption in their teams. The cou",
+    "rounds": 5,
+    "models": {
+      "A": "claude-opus-4-7",
+      "B": "gpt-5.5"
+    },
+    "moderatorEnabled": true,
+    "totalDebateSeconds": 354,
+    "totalPanelSeconds": 33
+  }
+}
