@@ -1,0 +1,9 @@
+# Shelley stderr log
+# transcript: debates/tool-fit-20260601-0902-2026-05-29-2026-05-28-codex-cli-0-135-0/20260601_100230.md
+# started: 2026-06-01T08:02:30.034Z
+
+[2026-06-01T08:02:30.395Z] codex:gpt-5
+WARNING: proceeding, even though we could not update PATH: Operation not permitted (os error 1)
+Reading additional input from stdin...
+Error: failed to initialize in-process app-server client: Operation not permitted (os error 1)
+
