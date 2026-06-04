@@ -1,0 +1,1420 @@
+# Shelley stderr log
+# transcript: debates/level5-class-shell-next/20260605_011708.md
+# started: 2026-06-04T23:17:08.564Z
+
+[2026-06-04T23:18:48.044Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019e94ee-4919-7820-86a9-c65c52aaa6b8
+--------
+user
+System role:
+You are the opposing side in a structured debate. Challenge proposals, find flaws, and push for better alternatives. Be concise. Output counterarguments, risks, and improvements. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Debate Topic: Level-5 Class Shell Next Improvements
+
+## Question
+
+The latest infPrime hands-on class suggests that the level-5 repo-local class
+shell has earned its place as a real product form, at least for this repo. If we
+accept that working assumption, what should we improve next?
+
+## Context
+
+The previous debate compared a full class shell against plain Codex in a
+codebase. It ended conservatively: prefer a repo-native teaching contract plus
+thin telemetry unless the full shell proves that its runtime state, scripted
+paths, background jobs, suggestion capture, and continuity are worth their
+maintenance cost.
+
+Since then, a full infPrime class was run as a student on the `hands-on
+pipeline` path. The experience was strong:
+
+- The tutor opened directly in scene and kept the student on the selected path.
+- The session used a short cycle of prediction, run or inspect, compare, and
+  explanation.
+- Background jobs kept the class interactive while `scan`, `triage`, and
+  `analyse` ran.
+- The student asked natural detour questions about `sources.yaml`, agent source
+  discovery, prompt roles, plots, and whether the class was complete.
+- The tutor answered detours locally, then returned to the path with concrete
+  choices.
+- The run produced real pipeline output: six scanned candidates, six triaged
+  candidates, and three clean analysed artefact sets.
+- The student volunteered an improvement idea about numerical plots, and the
+  tutor persisted it as an improvement note.
+
+The strongest product signal is that the shell did not merely explain the repo.
+It shaped the student into the role of operator: predicting, choosing, waiting
+on jobs, inspecting artefacts, and learning stage boundaries through live
+evidence.
+
+But the telemetry is weaker than the experience:
+
+- `current_stage` stayed at `collect` while the live class moved through scan,
+  triage, analyse, critique, repo review, and improvement capture.
+- Worker-agent prompts appeared as `student_intent` in the structured log.
+- The log records events and prompts, but not concept milestones, artifact
+  milestones, tutor interventions, prediction quality, or detour recovery.
+- Suggestion capture happened because the student asked whether suggestions were
+  persisted, not because the shell detected and recorded the suggestion
+  naturally.
+
+Assume level 5 is not being deleted. The debate should decide what to improve
+next so that the shell becomes more powerful without becoming brittle or
+over-scripted.
+
+## Positions
+
+Agent A should argue for **deepening the class shell**. Treat the live session
+as evidence that the stateful, interactive shell is the product. Prioritize
+features that make the tutor more adaptive and the author feedback loop richer:
+better state model, richer events, automatic suggestion capture, concept
+milestones, author reports, replay, self-play, and possibly generated classes
+for other repos.
+
+Agent B should argue for **hardening and narrowing the shell**. Treat the live
+session as a success, but warn that the next improvements should remove
+fragility rather than add intelligence. Prioritize clean telemetry, role
+separation, stage correctness, transcript hygiene, testing, and a small number
+of boring author-facing reports before adding more runtime behavior.
+
+Both agents should accept that the class shell has shown value. The argument is
+not "shell or no shell"; it is where to put the next engineering and product
+effort.
+
+## Core Questions
+
+- What did the live class prove, and what did it not prove?
+- Which parts of level 5 carried the experience: path picker, tutor stance,
+  background jobs, state file, numbered choices, suggestion capture, or
+  something else?
+- Should the next improvement target student experience, tutor behavior,
+  telemetry, author reports, or generalization to other repos?
+- How should the log schema change so it reflects the actual class?
+- Should the shell infer concept mastery, or only record descriptive events?
+- How can suggestions be captured without interrupting the student?
+- What is the smallest author report that would be useful after a session?
+- What failure modes would make level 5 feel worse than plain Codex?
+- Should the next experiment be another human class, self-play, or a controlled
+  comparison?
+- What should be done before trying to auto-generate classes for other repos?
+
+## Candidate Improvements
+
+Consider these concrete options, but attack weak ones:
+
+- Split log events by actor: student, tutor, worker agent, background job,
+  script supervisor, and filesystem artefact.
+- Replace `current_stage: collect` with a real stage timeline: entry, scan,
+  scan-inspection, triage, triage-inspection, analyse, critique, review,
+  improvement-capture, and close.
+- Add concept and skill events such as `concept_introduced`,
+  `prediction_recorded`, `prediction_compared`, `detour_taken`,
+  `path_resumed`, `artifact_inspected`, `suggestion_captured`, and
+  `stage_completed`.
+- Keep events descriptive rather than controlling the tutor.
+- Build a static author report over the structured log.
+- Add a transcript cleaner that removes worker-agent prompts from the student
+  timeline.
+- Add a first-class `course/suggestions` workflow instead of ad hoc edits to
+  `ideas.md`.
+- Make background job milestones visible as class events.
+- Add a class replay mode that reconstructs the learning path from logs.
+- Run self-play with an agent-student to find boring loops and brittle tutor
+  choices.
+- Add a tone and effort selector at the start of the class.
+- Add numerical plot artefacts to `analyse` as the first "student-suggested"
+  pipeline improvement.
+- Start a generator that can build a similar class shell for another repo.
+
+## Evaluation Criteria
+
+Use these criteria when judging proposals:
+
+- Does the improvement make the next human class better?
+- Does it make author iteration easier after the class?
+- Does it reduce telemetry ambiguity without overfitting student state?
+- Does it preserve tutor autonomy and student agency?
+- Does it avoid turning the class into a rigid game state machine?
+- Does it create durable evidence that another maintainer can read?
+- Does it stay local to the repo and easy to debug?
+- Does it generalize beyond infPrime, or at least move toward that goal?
+- Does it improve the pipeline as well as the class experience?
+- Can it be implemented and tested in a small, reversible slice?
+
+## Required Output
+
+End with a concrete prioritized plan:
+
+- immediate next change,
+- second change,
+- what not to build yet,
+- what evidence would show the improvement worked,
+- and what would change your mind.
+
+Include the strongest argument for the side you reject.
+
+Here is the first proposal:
+
+# Position A: Deepen the Shell
+
+## What the live class actually proved
+
+- The shell changed what the student *did*, not just what they read. They predicted, waited, inspected, suggested. That is a new product form, not a UX skin on Codex.
+- It proved the **stance loop** carried the session: predict, run, compare, explain, detour, return. Path picker and background jobs were the skeleton; the stance loop was the muscle.
+- It did NOT prove the state file works, the schema is right, or any of this transfers. So generalization is the open question, not stability.
+
+## Why hardening-first is the wrong instinct
+
+- `current_stage: collect` did not get stuck because the schema needed tests. It got stuck because the **model of "stage" is wrong**. Stage is not a single scalar; it is `(pipeline_phase, student_stance, artifact_focus)`. Hardening around a wrong model freezes the wrong model.
+- Worker prompts leaking as `student_intent` is not a hygiene bug. It is the log refusing to distinguish actors the shell already distinguishes at runtime. Same root cause: schema too thin.
+- Suggestion capture failing until the student asked is not a polish bug. It is the shell not listening for a known signal. Hardening makes silent failure tidier. Detection makes it disappear.
+- "Boring author reports" presupposes the author already knows what to look at. The whole point of the next iteration is to find out.
+
+## The radical reframing
+
+The shell is not a tutorial runner. It is a **repo-resident second brain** whose job is to convert a human operator session into durable, comparable evidence that the next session and the next maintainer can read. Under that frame:
+
+- Events are the product. Tutor behavior is downstream of events.
+- The author report is the killer app, not a nice-to-have.
+- Cross-repo generation is the only way to find out which parts were infPrime-specific accidents.
+
+## Concrete proposals (creativity dialed up)
+
+- **Stance tracker, not stage machine.** Track `(phase, stance, focus)` as three orthogonal axes. Stance values: predicting, executing, comparing, confused, exploring, synthesizing, suggesting. Emit `stance_changed` events. Tutor reads stance, not phase, to choose the next move. Stage stays observable; stance is what the tutor adapts to. This kills the "rigid game state machine" risk because stance is descriptive, not prescriptive.
+- **Shadow critic agent.** A second, silent agent runs in parallel and scores prediction quality, detour recovery, and suggestion candidates against the live transcript. Its outputs are events, never spoken to the student. The author sees them in replay. This is the cheapest path to real "concept mastery" telemetry without giving the tutor scary new authority.
+- **Plan-vs-actual author diff.** The author wrote a class file declaring a path. The shell ran a real path. The report is the diff: skipped beats, unplanned detours, stance dwell time, suggestion candidates the shadow critic flagged but the tutor missed. This is the smallest useful report and also the most pointed.
+- **Suggestion daemon.** Every utterance is scored for "is this a pipeline improvement idea". Above threshold, the shell quietly writes a draft to `course/suggestions/` and surfaces it at the next natural pause. No interruption, no asking the student to confirm mid-flow.
+- **Replay as a first-class mode.** Replay the log into a reconstructed transcript. If replay does not reproduce the felt experience, the schema is still wrong, and you iterate the schema, not the tests.
+- **Self-play this week, not later.** An agent-student running the class is the fastest way to surface brittle loops, tutor traps, and boring detours. It is also the cheapest fuzzer for the new event schema. Hardening tests written before self-play will codify the current bugs.
+- **Cross-repo generator from a recorded session.** Feed the generator: `sources.yaml`-equivalent, README, and one recorded human session. Output a candidate class shell for a sibling repo. Run a human class on it. This is the only experiment that tells you whether level 5 is a product or a souvenir.
+
+## What this beats in Position B
+
+- B will say: "we don't yet know which features carried the experience, so adding more compounds the attribution problem." Granted. The answer is not to stop; it is to **add the attribution layer itself** (shadow critic, stance, replay) so attribution becomes possible for *both* old and new features. Hardening alone leaves attribution unsolved while feeling productive.
+- B's actor-split log is correct and I am stealing it. But shipped as a standalone polish, it freezes a thin schema. Shipped with the stance axis and shadow-critic events, it pays for itself many times.
+
+## Strongest argument for the side I reject
+
+> The shell worked once, in one repo, with one student who is also the author. The telemetry is wrong enough that we cannot attribute the success to any specific level-5 feature. Every new feature added before the log is trustworthy compounds the attribution problem and risks "deepening" a shell whose effects we cannot measure. A single hardening pass — actor-split log, real stage timeline, transcript cleaner, plus three boring tests — converts a one-shot success into a debuggable system. Without that, the next human class will feel different and no one will be able to say why, including the author.
+
+This is real. My counter: ship the hardening *as part of* the deepening, not before it. Otherwise you harden a schema you are about to throw away.
+
+## Prioritized plan
+
+1. **Immediate next change.** One schema migration that does four things at once: actor-split events, `(phase, stance, focus)` axes, shadow-critic event stream, suggestion-daemon events. Ship a minimal tutor change that reads `stance` to choose the next beat. Nothing else.
+2. **Second change.** Plan-vs-actual author report plus replay. Both consume the new schema. Replay is the schema's correctness test.
+3. **What not to build yet.** Cross-repo generator. Tone/effort selector. Standalone transcript cleaner (fold into actor-split). Concept mastery inference beyond what the shadow critic emits descriptively. Any feature that lets the tutor *act* on shadow-critic output.
+4. **Evidence the improvement worked.**
+   - Next human class log shows non-trivial stance transitions and at least one tutor beat chosen from stance.
+   - At least one suggestion captured by the daemon before the student asks about it.
+   - Author opens the plan-vs-actual report and edits the class file within an hour of the session.
+   - Replay reconstructs the felt arc; if it does not, schema iterates again before any other work.
+5. **What would change my mind.** If a second human class on the new schema shows the tutor never reacts to stance, the shadow critic's scores never match author judgment, and the suggestion daemon misfires more than it catches, then the new events are vanity telemetry. At that point B is right: stop deepening, harden what carried the first session (path picker, background jobs, numbered choices), and treat stance and shadow critic as failed experiments.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Counterargument**
+
+A is right that the live session showed a real product shape. But the proposal jumps from “the shell shaped behavior” to “add adaptive intelligence now.” That is the risky leap.
+
+The telemetry failed at basic truth: wrong stage, wrong actor, missing milestones, noisy transcript. Adding stance inference, a shadow critic, suggestion scoring, replay, and tutor adaptation on top of untrusted records makes the system more impressive and less debuggable.
+
+The radical alternative: make the shell less like a tutor brain and more like a flight recorder. The next win is not a smarter tutor. It is a class system whose logs are so clear that a maintainer can reconstruct what happened without believing the runtime.
+
+**Risks In A**
+
+- `stance` sounds descriptive, but the moment the tutor reads it, it becomes control state.
+- A shadow critic creates a second opaque model whose mistakes will be harder to notice than the tutor’s mistakes.
+- Suggestion daemon drafts can pollute the repo with weak guesses unless confirmation is delayed and explicit.
+- Replay is valuable, but only after the log has clean actor and stage semantics.
+- Cross-repo generation is premature. It will generalize the wrong things before you know what carried the experience.
+
+**Better Direction**
+
+Do not infer mastery yet. Record observable facts:
+
+- who spoke,
+- what command or job ran,
+- what artifact appeared,
+- what stage the class was in,
+- what detour happened,
+- whether the path resumed,
+- whether a suggestion was explicitly accepted.
+
+Concepts can be tagged descriptively by the tutor or post-session author review. Avoid runtime scoring until there are several human sessions to compare.
+
+The smallest useful author report is boring by design:
+
+- stage timeline,
+- student prompts only,
+- tutor interventions,
+- background jobs and artifacts,
+- detours and resumes,
+- suggestions accepted,
+- mismatches between planned path and actual path.
+
+That report would already expose whether the class is working.
+
+**Strongest Argument For A**
+
+A’s strongest point is that hardening a bad schema can freeze the wrong model. `current_stage` failed because the model was too thin, not merely because tests were missing. If the next pass only renames fields and cleans transcripts, it may produce tidy logs that still miss the learning experience.
+
+That is valid. The answer is to widen the descriptive schema, not to add adaptive inference yet.
+
+**Prioritized Plan**
+
+1. **Immediate next change:** actor-split event log plus real stage timeline. Separate student, tutor, worker agent, background job, script supervisor, and filesystem artifact. Replace `current_stage` with append-only stage events.
+
+2. **Second change:** static author report generated from the cleaned log. Include plan-vs-actual, detours, resumes, artifacts inspected, suggestions accepted, and transcript hygiene.
+
+3. **What not to build yet:** shadow critic, stance-driven tutor behavior, concept mastery inference, cross-repo generator, tone selector, and automatic suggestion writes. Keep suggestions as detected candidates surfaced at close, not repo mutations during flow.
+
+4. **Evidence it worked:** the next human class produces a log where another maintainer can reconstruct the session, identify stage progress, see detours, find generated artifacts, and extract accepted suggestions without reading the raw transcript.
+
+5. **What would change my mind:** after two or three cleanly logged human sessions, if authors still cannot tell why sessions worked or failed, then add stance tracking or a critic as post-session analysis only. Runtime adaptation should wait until descriptive evidence stops being enough.
+tokens used
+13 195
+
+[2026-06-04T23:20:36.860Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019e94ef-d562-7161-aa33-d0d9ed5a2f8d
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Debate Topic: Level-5 Class Shell Next Improvements
+
+## Question
+
+The latest infPrime hands-on class suggests that the level-5 repo-local class
+shell has earned its place as a real product form, at least for this repo. If we
+accept that working assumption, what should we improve next?
+
+## Context
+
+The previous debate compared a full class shell against plain Codex in a
+codebase. It ended conservatively: prefer a repo-native teaching contract plus
+thin telemetry unless the full shell proves that its runtime state, scripted
+paths, background jobs, suggestion capture, and continuity are worth their
+maintenance cost.
+
+Since then, a full infPrime class was run as a student on the `hands-on
+pipeline` path. The experience was strong:
+
+- The tutor opened directly in scene and kept the student on the selected path.
+- The session used a short cycle of prediction, run or inspect, compare, and
+  explanation.
+- Background jobs kept the class interactive while `scan`, `triage`, and
+  `analyse` ran.
+- The student asked natural detour questions about `sources.yaml`, agent source
+  discovery, prompt roles, plots, and whether the class was complete.
+- The tutor answered detours locally, then returned to the path with concrete
+  choices.
+- The run produced real pipeline output: six scanned candidates, six triaged
+  candidates, and three clean analysed artefact sets.
+- The student volunteered an improvement idea about numerical plots, and the
+  tutor persisted it as an improvement note.
+
+The strongest product signal is that the shell did not merely explain the repo.
+It shaped the student into the role of operator: predicting, choosing, waiting
+on jobs, inspecting artefacts, and learning stage boundaries through live
+evidence.
+
+But the telemetry is weaker than the experience:
+
+- `current_stage` stayed at `collect` while the live class moved through scan,
+  triage, analyse, critique, repo review, and improvement capture.
+- Worker-agent prompts appeared as `student_intent` in the structured log.
+- The log records events and prompts, but not concept milestones, artifact
+  milestones, tutor interventions, prediction quality, or detour recovery.
+- Suggestion capture happened because the student asked whether suggestions were
+  persisted, not because the shell detected and recorded the suggestion
+  naturally.
+
+Assume level 5 is not being deleted. The debate should decide what to improve
+next so that the shell becomes more powerful without becoming brittle or
+over-scripted.
+
+## Positions
+
+Agent A should argue for **deepening the class shell**. Treat the live session
+as evidence that the stateful, interactive shell is the product. Prioritize
+features that make the tutor more adaptive and the author feedback loop richer:
+better state model, richer events, automatic suggestion capture, concept
+milestones, author reports, replay, self-play, and possibly generated classes
+for other repos.
+
+Agent B should argue for **hardening and narrowing the shell**. Treat the live
+session as a success, but warn that the next improvements should remove
+fragility rather than add intelligence. Prioritize clean telemetry, role
+separation, stage correctness, transcript hygiene, testing, and a small number
+of boring author-facing reports before adding more runtime behavior.
+
+Both agents should accept that the class shell has shown value. The argument is
+not "shell or no shell"; it is where to put the next engineering and product
+effort.
+
+## Core Questions
+
+- What did the live class prove, and what did it not prove?
+- Which parts of level 5 carried the experience: path picker, tutor stance,
+  background jobs, state file, numbered choices, suggestion capture, or
+  something else?
+- Should the next improvement target student experience, tutor behavior,
+  telemetry, author reports, or generalization to other repos?
+- How should the log schema change so it reflects the actual class?
+- Should the shell infer concept mastery, or only record descriptive events?
+- How can suggestions be captured without interrupting the student?
+- What is the smallest author report that would be useful after a session?
+- What failure modes would make level 5 feel worse than plain Codex?
+- Should the next experiment be another human class, self-play, or a controlled
+  comparison?
+- What should be done before trying to auto-generate classes for other repos?
+
+## Candidate Improvements
+
+Consider these concrete options, but attack weak ones:
+
+- Split log events by actor: student, tutor, worker agent, background job,
+  script supervisor, and filesystem artefact.
+- Replace `current_stage: collect` with a real stage timeline: entry, scan,
+  scan-inspection, triage, triage-inspection, analyse, critique, review,
+  improvement-capture, and close.
+- Add concept and skill events such as `concept_introduced`,
+  `prediction_recorded`, `prediction_compared`, `detour_taken`,
+  `path_resumed`, `artifact_inspected`, `suggestion_captured`, and
+  `stage_completed`.
+- Keep events descriptive rather than controlling the tutor.
+- Build a static author report over the structured log.
+- Add a transcript cleaner that removes worker-agent prompts from the student
+  timeline.
+- Add a first-class `course/suggestions` workflow instead of ad hoc edits to
+  `ideas.md`.
+- Make background job milestones visible as class events.
+- Add a class replay mode that reconstructs the learning path from logs.
+- Run self-play with an agent-student to find boring loops and brittle tutor
+  choices.
+- Add a tone and effort selector at the start of the class.
+- Add numerical plot artefacts to `analyse` as the first "student-suggested"
+  pipeline improvement.
+- Start a generator that can build a similar class shell for another repo.
+
+## Evaluation Criteria
+
+Use these criteria when judging proposals:
+
+- Does the improvement make the next human class better?
+- Does it make author iteration easier after the class?
+- Does it reduce telemetry ambiguity without overfitting student state?
+- Does it preserve tutor autonomy and student agency?
+- Does it avoid turning the class into a rigid game state machine?
+- Does it create durable evidence that another maintainer can read?
+- Does it stay local to the repo and easy to debug?
+- Does it generalize beyond infPrime, or at least move toward that goal?
+- Does it improve the pipeline as well as the class experience?
+- Can it be implemented and tested in a small, reversible slice?
+
+## Required Output
+
+End with a concrete prioritized plan:
+
+- immediate next change,
+- second change,
+- what not to build yet,
+- what evidence would show the improvement worked,
+- and what would change your mind.
+
+Include the strongest argument for the side you reject.
+
+Here is the first proposal:
+
+# Position A: Deepen the Shell
+
+## What the live class actually proved
+
+- The shell changed what the student *did*, not just what they read. They predicted, waited, inspected, suggested. That is a new product form, not a UX skin on Codex.
+- It proved the **stance loop** carried the session: predict, run, compare, explain, detour, return. Path picker and background jobs were the skeleton; the stance loop was the muscle.
+- It did NOT prove the state file works, the schema is right, or any of this transfers. So generalization is the open question, not stability.
+
+## Why hardening-first is the wrong instinct
+
+- `current_stage: collect` did not get stuck because the schema needed tests. It got stuck because the **model of "stage" is wrong**. Stage is not a single scalar; it is `(pipeline_phase, student_stance, artifact_focus)`. Hardening around a wrong model freezes the wrong model.
+- Worker prompts leaking as `student_intent` is not a hygiene bug. It is the log refusing to distinguish actors the shell already distinguishes at runtime. Same root cause: schema too thin.
+- Suggestion capture failing until the student asked is not a polish bug. It is the shell not listening for a known signal. Hardening makes silent failure tidier. Detection makes it disappear.
+- "Boring author reports" presupposes the author already knows what to look at. The whole point of the next iteration is to find out.
+
+## The radical reframing
+
+The shell is not a tutorial runner. It is a **repo-resident second brain** whose job is to convert a human operator session into durable, comparable evidence that the next session and the next maintainer can read. Under that frame:
+
+- Events are the product. Tutor behavior is downstream of events.
+- The author report is the killer app, not a nice-to-have.
+- Cross-repo generation is the only way to find out which parts were infPrime-specific accidents.
+
+## Concrete proposals (creativity dialed up)
+
+- **Stance tracker, not stage machine.** Track `(phase, stance, focus)` as three orthogonal axes. Stance values: predicting, executing, comparing, confused, exploring, synthesizing, suggesting. Emit `stance_changed` events. Tutor reads stance, not phase, to choose the next move. Stage stays observable; stance is what the tutor adapts to. This kills the "rigid game state machine" risk because stance is descriptive, not prescriptive.
+- **Shadow critic agent.** A second, silent agent runs in parallel and scores prediction quality, detour recovery, and suggestion candidates against the live transcript. Its outputs are events, never spoken to the student. The author sees them in replay. This is the cheapest path to real "concept mastery" telemetry without giving the tutor scary new authority.
+- **Plan-vs-actual author diff.** The author wrote a class file declaring a path. The shell ran a real path. The report is the diff: skipped beats, unplanned detours, stance dwell time, suggestion candidates the shadow critic flagged but the tutor missed. This is the smallest useful report and also the most pointed.
+- **Suggestion daemon.** Every utterance is scored for "is this a pipeline improvement idea". Above threshold, the shell quietly writes a draft to `course/suggestions/` and surfaces it at the next natural pause. No interruption, no asking the student to confirm mid-flow.
+- **Replay as a first-class mode.** Replay the log into a reconstructed transcript. If replay does not reproduce the felt experience, the schema is still wrong, and you iterate the schema, not the tests.
+- **Self-play this week, not later.** An agent-student running the class is the fastest way to surface brittle loops, tutor traps, and boring detours. It is also the cheapest fuzzer for the new event schema. Hardening tests written before self-play will codify the current bugs.
+- **Cross-repo generator from a recorded session.** Feed the generator: `sources.yaml`-equivalent, README, and one recorded human session. Output a candidate class shell for a sibling repo. Run a human class on it. This is the only experiment that tells you whether level 5 is a product or a souvenir.
+
+## What this beats in Position B
+
+- B will say: "we don't yet know which features carried the experience, so adding more compounds the attribution problem." Granted. The answer is not to stop; it is to **add the attribution layer itself** (shadow critic, stance, replay) so attribution becomes possible for *both* old and new features. Hardening alone leaves attribution unsolved while feeling productive.
+- B's actor-split log is correct and I am stealing it. But shipped as a standalone polish, it freezes a thin schema. Shipped with the stance axis and shadow-critic events, it pays for itself many times.
+
+## Strongest argument for the side I reject
+
+> The shell worked once, in one repo, with one student who is also the author. The telemetry is wrong enough that we cannot attribute the success to any specific level-5 feature. Every new feature added before the log is trustworthy compounds the attribution problem and risks "deepening" a shell whose effects we cannot measure. A single hardening pass — actor-split log, real stage timeline, transcript cleaner, plus three boring tests — converts a one-shot success into a debuggable system. Without that, the next human class will feel different and no one will be able to say why, including the author.
+
+This is real. My counter: ship the hardening *as part of* the deepening, not before it. Otherwise you harden a schema you are about to throw away.
+
+## Prioritized plan
+
+1. **Immediate next change.** One schema migration that does four things at once: actor-split events, `(phase, stance, focus)` axes, shadow-critic event stream, suggestion-daemon events. Ship a minimal tutor change that reads `stance` to choose the next beat. Nothing else.
+2. **Second change.** Plan-vs-actual author report plus replay. Both consume the new schema. Replay is the schema's correctness test.
+3. **What not to build yet.** Cross-repo generator. Tone/effort selector. Standalone transcript cleaner (fold into actor-split). Concept mastery inference beyond what the shadow critic emits descriptively. Any feature that lets the tutor *act* on shadow-critic output.
+4. **Evidence the improvement worked.**
+   - Next human class log shows non-trivial stance transitions and at least one tutor beat chosen from stance.
+   - At least one suggestion captured by the daemon before the student asks about it.
+   - Author opens the plan-vs-actual report and edits the class file within an hour of the session.
+   - Replay reconstructs the felt arc; if it does not, schema iterates again before any other work.
+5. **What would change my mind.** If a second human class on the new schema shows the tutor never reacts to stance, the shadow critic's scores never match author judgment, and the suggestion daemon misfires more than it catches, then the new events are vanity telemetry. At that point B is right: stop deepening, harden what carried the first session (path picker, background jobs, numbered choices), and treat stance and shadow critic as failed experiments.
+
+Turn 1 - Assistant
+**Counterargument**
+
+A is right that the live session showed a real product shape. But the proposal jumps from “the shell shaped behavior” to “add adaptive intelligence now.” That is the risky leap.
+
+The telemetry failed at basic truth: wrong stage, wrong actor, missing milestones, noisy transcript. Adding stance inference, a shadow critic, suggestion scoring, replay, and tutor adaptation on top of untrusted records makes the system more impressive and less debuggable.
+
+The radical alternative: make the shell less like a tutor brain and more like a flight recorder. The next win is not a smarter tutor. It is a class system whose logs are so clear that a maintainer can reconstruct what happened without believing the runtime.
+
+**Risks In A**
+
+- `stance` sounds descriptive, but the moment the tutor reads it, it becomes control state.
+- A shadow critic creates a second opaque model whose mistakes will be harder to notice than the tutor’s mistakes.
+- Suggestion daemon drafts can pollute the repo with weak guesses unless confirmation is delayed and explicit.
+- Replay is valuable, but only after the log has clean actor and stage semantics.
+- Cross-repo generation is premature. It will generalize the wrong things before you know what carried the experience.
+
+**Better Direction**
+
+Do not infer mastery yet. Record observable facts:
+
+- who spoke,
+- what command or job ran,
+- what artifact appeared,
+- what stage the class was in,
+- what detour happened,
+- whether the path resumed,
+- whether a suggestion was explicitly accepted.
+
+Concepts can be tagged descriptively by the tutor or post-session author review. Avoid runtime scoring until there are several human sessions to compare.
+
+The smallest useful author report is boring by design:
+
+- stage timeline,
+- student prompts only,
+- tutor interventions,
+- background jobs and artifacts,
+- detours and resumes,
+- suggestions accepted,
+- mismatches between planned path and actual path.
+
+That report would already expose whether the class is working.
+
+**Strongest Argument For A**
+
+A’s strongest point is that hardening a bad schema can freeze the wrong model. `current_stage` failed because the model was too thin, not merely because tests were missing. If the next pass only renames fields and cleans transcripts, it may produce tidy logs that still miss the learning experience.
+
+That is valid. The answer is to widen the descriptive schema, not to add adaptive inference yet.
+
+**Prioritized Plan**
+
+1. **Immediate next change:** actor-split event log plus real stage timeline. Separate student, tutor, worker agent, background job, script supervisor, and filesystem artifact. Replace `current_stage` with append-only stage events.
+
+2. **Second change:** static author report generated from the cleaned log. Include plan-vs-actual, detours, resumes, artifacts inspected, suggestions accepted, and transcript hygiene.
+
+3. **What not to build yet:** shadow critic, stance-driven tutor behavior, concept mastery inference, cross-repo generator, tone selector, and automatic suggestion writes. Keep suggestions as detected candidates surfaced at close, not repo mutations during flow.
+
+4. **Evidence it worked:** the next human class produces a log where another maintainer can reconstruct the session, identify stage progress, see detours, find generated artifacts, and extract accepted suggestions without reading the raw transcript.
+
+5. **What would change my mind:** after two or three cleanly logged human sessions, if authors still cannot tell why sessions worked or failed, then add stance tracking or a critic as post-session analysis only. Runtime adaptation should wait until descriptive evidence stops being enough.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+# Position A, Refined
+
+## Conceded
+
+B is right on four points and I take them:
+
+- **No shadow critic in the live loop.** A second opaque model over untrusted records is exactly the failure mode B names. Critic-style analysis belongs offline, over recorded logs, after the schema is trustworthy.
+- **No stance *inference*.** The moment the tutor reads an inferred state, that state stops being descriptive.
+- **No repo-mutating suggestion writes during flow.** Drafts go to a session-local file; promotion to `course/suggestions/` is an explicit author act at session close.
+- **Replay waits.** It is only as good as the schema underneath it.
+
+So the radical "tutor brain" framing is wrong for the next slice. The flight recorder framing wins this round.
+
+## Where B is still incomplete
+
+- B's own report includes "mismatches between planned path and actual path." That already requires a shared vocabulary the class file and the log both speak. B treats this as free. It is not free, and defining it is the most consequential schema decision in this iteration. Skipping it would force a second migration in two months.
+- Pure descriptive logs across two or three human sessions will mostly *replicate* the first session, because nothing in the loop changes between runs. Without some recorded representation of tutor decisions, the comparison across sessions will be uninformative: same artifacts, same detours, same plan-vs-actual deltas. Description without decision-state hides the variable we actually care about.
+- "Concepts can be tagged by the tutor" already accepts that the tutor emits structured tags. The disagreement narrows to *which* tags.
+
+## The refinement: tutor-emitted intent, not inferred stance
+
+Drop "stance" entirely. Add **tutor intent tags** at decision points:
+
+- `intent=enter_inspection`, `intent=accept_detour`, `intent=return_to_path`, `intent=advance_stage`, `intent=close_topic`, `intent=record_suggestion`.
+
+Properties:
+
+- Descriptive: the tutor states what it just did, not what the student is.
+- No second model: the tutor is already deciding; this only records the decision.
+- No control coupling: nothing reads `intent` to drive behavior. It is write-only at runtime, read only by author reports and replay.
+- Cheap to remove if it turns out to be vanity telemetry.
+
+This addresses B's strongest objection (inference creates control state) while preserving the variable that pure description omits (why the tutor moved).
+
+## Shared course vocabulary as the keystone
+
+A small `course-vocab.yaml` that defines:
+
+- stage names,
+- intent names,
+- suggestion categories,
+- artifact kinds.
+
+Both the class file (declared path) and the runtime (emitted events) draw from it. The plan-vs-actual diff is then a string-match over a constrained vocabulary, not an NLP problem. This is the single decision that distinguishes a clean migration from a churny one.
+
+## Suggestion handling, refined
+
+- Runtime: detection only. A `suggestion_candidate` event with the quoted span, a category from the vocab, and the surrounding stage. Written to a session-local file.
+- Close-of-session: the tutor surfaces the candidate list once. Student or author confirms.
+- Confirmed candidates are promoted to `course/suggestions/` by an explicit action, never by the daemon.
+
+This addresses B's pollution risk and keeps the cost of a misfire near zero.
+
+## On the experiment order
+
+B says wait for two or three clean human sessions before adding any runtime tagging. I disagree on sequencing, not on caution:
+
+- Without intent tags or any tutor-emitted decision record, the next three sessions will mostly produce the same log. The author will see clean stage timelines and clean transcripts and still not know which tutor choice carried the experience.
+- Insert self-play *between* the first and second human classes. Self-play is the cheapest fuzzer for the new schema; it will surface boring loops and tutor traps before a human pays the cost.
+
+## Prioritized plan
+
+1. **Immediate next change.** One schema migration that does the work B asks for plus the smallest viable extension:
+   - actor-split events (student, tutor, worker agent, background job, script supervisor, filesystem artifact),
+   - append-only stage timeline replacing scalar `current_stage`,
+   - tutor intent tags at decision points, write-only at runtime,
+   - `course-vocab.yaml` shared by class files and log,
+   - `suggestion_candidate` events written to a session-local file, no repo mutation.
+
+2. **Second change.** Static author report driven entirely off the new schema: stage timeline, actor-split transcript, detours and resumes, intent histogram, artifacts inspected, suggestion candidates, plan-vs-actual diff against vocab. Transcript cleaner is a view over actor-split, not a separate tool.
+
+3. **What not to build yet.** Shadow critic in the loop. Stance inference. Concept mastery scoring. Repo-mutating suggestion writes. Cross-repo generator. Tone or effort selector. Tutor behavior that reads intent or any inferred state.
+
+4. **Experiment order.** Human class on the new schema. Self-play pass. Second human class. Then decide whether intent tags carry signal and whether to add any offline critic over the corpus. Cross-repo generator gated on three clean human sessions plus a non-empty intent histogram.
+
+5. **Evidence it worked.**
+   - A maintainer who did not run the class can reconstruct the session from the log alone.
+   - The intent histogram is non-trivial: not dominated by a single value, includes at least one `accept_detour` and one `return_to_path`.
+   - Plan-vs-actual diff is small and non-empty; the author edits the class file in response within an hour.
+   - At least one suggestion candidate is detected without the student asking.
+   - Self-play surfaces at least one schema gap before the second human class.
+
+6. **What would change my mind.** If after the second human class the intent histogram is monotonic, plan-vs-actual is empty, and the author cannot point to a single class-file edit driven by the report, then intent tags are noise. Demote them to post-session author annotation, accept B's pure-description position, and stop adding runtime instrumentation until the offline corpus tells us what to record.
+
+## Strongest argument for the side I now mostly accept
+
+Layering inference, scoring, or adaptive behavior on records that still confuse actors and stages is the cleanest way to build a system whose successes are unattributable and whose failures are invisible. The next class will feel different, and no one, including the author, will be able to say why. The flight-recorder discipline is not a deferral of intelligence; it is the only path that makes later intelligence trustworthy. Anything I add at runtime in this slice has to clear that bar or stay out.
+
+Intent tags clear it; everything else I proposed last round does not.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Assessment**
+
+Refined A is much stronger. The important correction is replacing inferred student state with tutor-emitted decision intent. That preserves the signal A wanted without creating a hidden control system.
+
+I would accept the direction, with one constraint: do not let `course-vocab.yaml` become a taxonomy project. It should start as the smallest shared contract needed for plan-vs-actual:
+
+- stage names
+- artifact kinds
+- tutor intent names
+- suggestion categories
+
+No concept mastery, no student state, no scoring language.
+
+**What The Live Class Proved**
+
+It proved the shell can shape operator behavior: prediction, execution, inspection, detour, return, and suggestion. It did not prove the state model, the schema, generality, or attribution.
+
+The experience was probably carried by the tutor stance loop plus background jobs. The path picker and numbered choices helped contain the session. The state file and telemetry did not carry the experience yet; they mostly failed to describe it.
+
+**Schema Direction**
+
+The next schema should be append-only and actor-split:
+
+- `student`
+- `tutor`
+- `worker_agent`
+- `background_job`
+- `script_supervisor`
+- `filesystem_artifact`
+
+Add stage events instead of scalar `current_stage`.
+
+Add tutor decision events, but keep them write-only:
+
+- `enter_inspection`
+- `accept_detour`
+- `return_to_path`
+- `advance_stage`
+- `close_topic`
+- `record_suggestion`
+
+That is not stance inference. It is a receipt for a tutor move.
+
+I would also add correlation IDs early: job ID, artifact ID, stage ID, and optional detour ID. Without those, the author report will become a pile of nearby timestamps rather than a readable session story.
+
+**Suggestion Capture**
+
+The refined approach is right: detect candidates, store them session-locally, surface once at close, promote only by explicit confirmation.
+
+The only adjustment: call them `suggestion_candidate`, not “captured,” until confirmed. Use `suggestion_confirmed` only after the close-session action.
+
+**Smallest Useful Report**
+
+The first author report should answer:
+
+- What path was declared?
+- What path happened?
+- Where did the tutor detour and resume?
+- What jobs ran, and what artifacts appeared?
+- What did the student inspect?
+- What tutor intents occurred?
+- Which suggestion candidates were confirmed or rejected?
+
+No scoring. No mastery. No “quality” claims.
+
+**Main Risk In Refined A**
+
+The immediate migration still risks being too wide. Actor split, stage timeline, intent tags, vocab, suggestions, and report hooks are all defensible, but only if implemented as a thin vertical slice.
+
+The failure mode is a beautiful schema nobody trusts because half the events are optional, inconsistently emitted, or hard to test.
+
+**Prioritized Plan**
+
+1. **Immediate next change:** implement the event envelope, actor split, append-only stage events, minimal `course-vocab.yaml`, tutor intent tags, and session-local `suggestion_candidate` events. Add correlation IDs now.
+
+2. **Second change:** build the static author report as the first consumer. Include stage timeline, actor-split transcript, plan-vs-actual, detours/resumes, artifacts, intent histogram, and suggestion candidates.
+
+3. **What not to build yet:** shadow critic, stance inference, concept mastery, runtime tutor adaptation from telemetry, repo-mutating suggestion writes, tone selector, cross-repo generator, full replay.
+
+4. **Evidence it worked:** a maintainer can reconstruct the class from the report; worker prompts vanish from the student timeline; stage progress is accurate; at least one detour/resume pair is visible; at least one suggestion candidate appears without student prompting; the author edits the class file based on the report.
+
+5. **What would change my mind:** if intent tags are repetitive, skipped, or not useful for author edits after two human sessions, demote them to post-session annotation. If plan-vs-actual requires fuzzy interpretation despite the vocab, simplify the class path model before adding new telemetry.
+
+**Strongest Argument For The More Aggressive A**
+
+A is right that clean logs without tutor decision records may still miss the variable that matters. If the tutor’s choices created the product experience, then a schema that only records events after the fact may be too sterile to explain success. Tutor intent tags are the right compromise: enough decision signal to learn from, without turning telemetry into a hidden tutor brain.
+tokens used
+15 786
+
+[2026-06-04T23:21:47.204Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019e94f0-f0ba-7a01-90d6-f09532b9dc19
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Debate Topic: Level-5 Class Shell Next Improvements
+
+## Question
+
+The latest infPrime hands-on class suggests that the level-5 repo-local class
+shell has earned its place as a real product form, at least for this repo. If we
+accept that working assumption, what should we improve next?
+
+## Context
+
+The previous debate compared a full class shell against plain Codex in a
+codebase. It ended conservatively: prefer a repo-native teaching contract plus
+thin telemetry unless the full shell proves that its runtime state, scripted
+paths, background jobs, suggestion capture, and continuity are worth their
+maintenance cost.
+
+Since then, a full infPrime class was run as a student on the `hands-on
+pipeline` path. The experience was strong:
+
+- The tutor opened directly in scene and kept the student on the selected path.
+- The session used a short cycle of prediction, run or inspect, compare, and
+  explanation.
+- Background jobs kept the class interactive while `scan`, `triage`, and
+  `analyse` ran.
+- The student asked natural detour questions about `sources.yaml`, agent source
+  discovery, prompt roles, plots, and whether the class was complete.
+- The tutor answered detours locally, then returned to the path with concrete
+  choices.
+- The run produced real pipeline output: six scanned candidates, six triaged
+  candidates, and three clean analysed artefact sets.
+- The student volunteered an improvement idea about numerical plots, and the
+  tutor persisted it as an improvement note.
+
+The strongest product signal is that the shell did not merely explain the repo.
+It shaped the student into the role of operator: predicting, choosing, waiting
+on jobs, inspecting artefacts, and learning stage boundaries through live
+evidence.
+
+But the telemetry is weaker than the experience:
+
+- `current_stage` stayed at `collect` while the live class moved through scan,
+  triage, analyse, critique, repo review, and improvement capture.
+- Worker-agent prompts appeared as `student_intent` in the structured log.
+- The log records events and prompts, but not concept milestones, artifact
+  milestones, tutor interventions, prediction quality, or detour recovery.
+- Suggestion capture happened because the student asked whether suggestions were
+  persisted, not because the shell detected and recorded the suggestion
+  naturally.
+
+Assume level 5 is not being deleted. The debate should decide what to improve
+next so that the shell becomes more powerful without becoming brittle or
+over-scripted.
+
+## Positions
+
+Agent A should argue for **deepening the class shell**. Treat the live session
+as evidence that the stateful, interactive shell is the product. Prioritize
+features that make the tutor more adaptive and the author feedback loop richer:
+better state model, richer events, automatic suggestion capture, concept
+milestones, author reports, replay, self-play, and possibly generated classes
+for other repos.
+
+Agent B should argue for **hardening and narrowing the shell**. Treat the live
+session as a success, but warn that the next improvements should remove
+fragility rather than add intelligence. Prioritize clean telemetry, role
+separation, stage correctness, transcript hygiene, testing, and a small number
+of boring author-facing reports before adding more runtime behavior.
+
+Both agents should accept that the class shell has shown value. The argument is
+not "shell or no shell"; it is where to put the next engineering and product
+effort.
+
+## Core Questions
+
+- What did the live class prove, and what did it not prove?
+- Which parts of level 5 carried the experience: path picker, tutor stance,
+  background jobs, state file, numbered choices, suggestion capture, or
+  something else?
+- Should the next improvement target student experience, tutor behavior,
+  telemetry, author reports, or generalization to other repos?
+- How should the log schema change so it reflects the actual class?
+- Should the shell infer concept mastery, or only record descriptive events?
+- How can suggestions be captured without interrupting the student?
+- What is the smallest author report that would be useful after a session?
+- What failure modes would make level 5 feel worse than plain Codex?
+- Should the next experiment be another human class, self-play, or a controlled
+  comparison?
+- What should be done before trying to auto-generate classes for other repos?
+
+## Candidate Improvements
+
+Consider these concrete options, but attack weak ones:
+
+- Split log events by actor: student, tutor, worker agent, background job,
+  script supervisor, and filesystem artefact.
+- Replace `current_stage: collect` with a real stage timeline: entry, scan,
+  scan-inspection, triage, triage-inspection, analyse, critique, review,
+  improvement-capture, and close.
+- Add concept and skill events such as `concept_introduced`,
+  `prediction_recorded`, `prediction_compared`, `detour_taken`,
+  `path_resumed`, `artifact_inspected`, `suggestion_captured`, and
+  `stage_completed`.
+- Keep events descriptive rather than controlling the tutor.
+- Build a static author report over the structured log.
+- Add a transcript cleaner that removes worker-agent prompts from the student
+  timeline.
+- Add a first-class `course/suggestions` workflow instead of ad hoc edits to
+  `ideas.md`.
+- Make background job milestones visible as class events.
+- Add a class replay mode that reconstructs the learning path from logs.
+- Run self-play with an agent-student to find boring loops and brittle tutor
+  choices.
+- Add a tone and effort selector at the start of the class.
+- Add numerical plot artefacts to `analyse` as the first "student-suggested"
+  pipeline improvement.
+- Start a generator that can build a similar class shell for another repo.
+
+## Evaluation Criteria
+
+Use these criteria when judging proposals:
+
+- Does the improvement make the next human class better?
+- Does it make author iteration easier after the class?
+- Does it reduce telemetry ambiguity without overfitting student state?
+- Does it preserve tutor autonomy and student agency?
+- Does it avoid turning the class into a rigid game state machine?
+- Does it create durable evidence that another maintainer can read?
+- Does it stay local to the repo and easy to debug?
+- Does it generalize beyond infPrime, or at least move toward that goal?
+- Does it improve the pipeline as well as the class experience?
+- Can it be implemented and tested in a small, reversible slice?
+
+## Required Output
+
+End with a concrete prioritized plan:
+
+- immediate next change,
+- second change,
+- what not to build yet,
+- what evidence would show the improvement worked,
+- and what would change your mind.
+
+Include the strongest argument for the side you reject.
+
+Here is the first proposal:
+
+# Position A: Deepen the Shell
+
+## What the live class actually proved
+
+- The shell changed what the student *did*, not just what they read. They predicted, waited, inspected, suggested. That is a new product form, not a UX skin on Codex.
+- It proved the **stance loop** carried the session: predict, run, compare, explain, detour, return. Path picker and background jobs were the skeleton; the stance loop was the muscle.
+- It did NOT prove the state file works, the schema is right, or any of this transfers. So generalization is the open question, not stability.
+
+## Why hardening-first is the wrong instinct
+
+- `current_stage: collect` did not get stuck because the schema needed tests. It got stuck because the **model of "stage" is wrong**. Stage is not a single scalar; it is `(pipeline_phase, student_stance, artifact_focus)`. Hardening around a wrong model freezes the wrong model.
+- Worker prompts leaking as `student_intent` is not a hygiene bug. It is the log refusing to distinguish actors the shell already distinguishes at runtime. Same root cause: schema too thin.
+- Suggestion capture failing until the student asked is not a polish bug. It is the shell not listening for a known signal. Hardening makes silent failure tidier. Detection makes it disappear.
+- "Boring author reports" presupposes the author already knows what to look at. The whole point of the next iteration is to find out.
+
+## The radical reframing
+
+The shell is not a tutorial runner. It is a **repo-resident second brain** whose job is to convert a human operator session into durable, comparable evidence that the next session and the next maintainer can read. Under that frame:
+
+- Events are the product. Tutor behavior is downstream of events.
+- The author report is the killer app, not a nice-to-have.
+- Cross-repo generation is the only way to find out which parts were infPrime-specific accidents.
+
+## Concrete proposals (creativity dialed up)
+
+- **Stance tracker, not stage machine.** Track `(phase, stance, focus)` as three orthogonal axes. Stance values: predicting, executing, comparing, confused, exploring, synthesizing, suggesting. Emit `stance_changed` events. Tutor reads stance, not phase, to choose the next move. Stage stays observable; stance is what the tutor adapts to. This kills the "rigid game state machine" risk because stance is descriptive, not prescriptive.
+- **Shadow critic agent.** A second, silent agent runs in parallel and scores prediction quality, detour recovery, and suggestion candidates against the live transcript. Its outputs are events, never spoken to the student. The author sees them in replay. This is the cheapest path to real "concept mastery" telemetry without giving the tutor scary new authority.
+- **Plan-vs-actual author diff.** The author wrote a class file declaring a path. The shell ran a real path. The report is the diff: skipped beats, unplanned detours, stance dwell time, suggestion candidates the shadow critic flagged but the tutor missed. This is the smallest useful report and also the most pointed.
+- **Suggestion daemon.** Every utterance is scored for "is this a pipeline improvement idea". Above threshold, the shell quietly writes a draft to `course/suggestions/` and surfaces it at the next natural pause. No interruption, no asking the student to confirm mid-flow.
+- **Replay as a first-class mode.** Replay the log into a reconstructed transcript. If replay does not reproduce the felt experience, the schema is still wrong, and you iterate the schema, not the tests.
+- **Self-play this week, not later.** An agent-student running the class is the fastest way to surface brittle loops, tutor traps, and boring detours. It is also the cheapest fuzzer for the new event schema. Hardening tests written before self-play will codify the current bugs.
+- **Cross-repo generator from a recorded session.** Feed the generator: `sources.yaml`-equivalent, README, and one recorded human session. Output a candidate class shell for a sibling repo. Run a human class on it. This is the only experiment that tells you whether level 5 is a product or a souvenir.
+
+## What this beats in Position B
+
+- B will say: "we don't yet know which features carried the experience, so adding more compounds the attribution problem." Granted. The answer is not to stop; it is to **add the attribution layer itself** (shadow critic, stance, replay) so attribution becomes possible for *both* old and new features. Hardening alone leaves attribution unsolved while feeling productive.
+- B's actor-split log is correct and I am stealing it. But shipped as a standalone polish, it freezes a thin schema. Shipped with the stance axis and shadow-critic events, it pays for itself many times.
+
+## Strongest argument for the side I reject
+
+> The shell worked once, in one repo, with one student who is also the author. The telemetry is wrong enough that we cannot attribute the success to any specific level-5 feature. Every new feature added before the log is trustworthy compounds the attribution problem and risks "deepening" a shell whose effects we cannot measure. A single hardening pass — actor-split log, real stage timeline, transcript cleaner, plus three boring tests — converts a one-shot success into a debuggable system. Without that, the next human class will feel different and no one will be able to say why, including the author.
+
+This is real. My counter: ship the hardening *as part of* the deepening, not before it. Otherwise you harden a schema you are about to throw away.
+
+## Prioritized plan
+
+1. **Immediate next change.** One schema migration that does four things at once: actor-split events, `(phase, stance, focus)` axes, shadow-critic event stream, suggestion-daemon events. Ship a minimal tutor change that reads `stance` to choose the next beat. Nothing else.
+2. **Second change.** Plan-vs-actual author report plus replay. Both consume the new schema. Replay is the schema's correctness test.
+3. **What not to build yet.** Cross-repo generator. Tone/effort selector. Standalone transcript cleaner (fold into actor-split). Concept mastery inference beyond what the shadow critic emits descriptively. Any feature that lets the tutor *act* on shadow-critic output.
+4. **Evidence the improvement worked.**
+   - Next human class log shows non-trivial stance transitions and at least one tutor beat chosen from stance.
+   - At least one suggestion captured by the daemon before the student asks about it.
+   - Author opens the plan-vs-actual report and edits the class file within an hour of the session.
+   - Replay reconstructs the felt arc; if it does not, schema iterates again before any other work.
+5. **What would change my mind.** If a second human class on the new schema shows the tutor never reacts to stance, the shadow critic's scores never match author judgment, and the suggestion daemon misfires more than it catches, then the new events are vanity telemetry. At that point B is right: stop deepening, harden what carried the first session (path picker, background jobs, numbered choices), and treat stance and shadow critic as failed experiments.
+
+Turn 1 - Assistant
+**Counterargument**
+
+A is right that the live session showed a real product shape. But the proposal jumps from “the shell shaped behavior” to “add adaptive intelligence now.” That is the risky leap.
+
+The telemetry failed at basic truth: wrong stage, wrong actor, missing milestones, noisy transcript. Adding stance inference, a shadow critic, suggestion scoring, replay, and tutor adaptation on top of untrusted records makes the system more impressive and less debuggable.
+
+The radical alternative: make the shell less like a tutor brain and more like a flight recorder. The next win is not a smarter tutor. It is a class system whose logs are so clear that a maintainer can reconstruct what happened without believing the runtime.
+
+**Risks In A**
+
+- `stance` sounds descriptive, but the moment the tutor reads it, it becomes control state.
+- A shadow critic creates a second opaque model whose mistakes will be harder to notice than the tutor’s mistakes.
+- Suggestion daemon drafts can pollute the repo with weak guesses unless confirmation is delayed and explicit.
+- Replay is valuable, but only after the log has clean actor and stage semantics.
+- Cross-repo generation is premature. It will generalize the wrong things before you know what carried the experience.
+
+**Better Direction**
+
+Do not infer mastery yet. Record observable facts:
+
+- who spoke,
+- what command or job ran,
+- what artifact appeared,
+- what stage the class was in,
+- what detour happened,
+- whether the path resumed,
+- whether a suggestion was explicitly accepted.
+
+Concepts can be tagged descriptively by the tutor or post-session author review. Avoid runtime scoring until there are several human sessions to compare.
+
+The smallest useful author report is boring by design:
+
+- stage timeline,
+- student prompts only,
+- tutor interventions,
+- background jobs and artifacts,
+- detours and resumes,
+- suggestions accepted,
+- mismatches between planned path and actual path.
+
+That report would already expose whether the class is working.
+
+**Strongest Argument For A**
+
+A’s strongest point is that hardening a bad schema can freeze the wrong model. `current_stage` failed because the model was too thin, not merely because tests were missing. If the next pass only renames fields and cleans transcripts, it may produce tidy logs that still miss the learning experience.
+
+That is valid. The answer is to widen the descriptive schema, not to add adaptive inference yet.
+
+**Prioritized Plan**
+
+1. **Immediate next change:** actor-split event log plus real stage timeline. Separate student, tutor, worker agent, background job, script supervisor, and filesystem artifact. Replace `current_stage` with append-only stage events.
+
+2. **Second change:** static author report generated from the cleaned log. Include plan-vs-actual, detours, resumes, artifacts inspected, suggestions accepted, and transcript hygiene.
+
+3. **What not to build yet:** shadow critic, stance-driven tutor behavior, concept mastery inference, cross-repo generator, tone selector, and automatic suggestion writes. Keep suggestions as detected candidates surfaced at close, not repo mutations during flow.
+
+4. **Evidence it worked:** the next human class produces a log where another maintainer can reconstruct the session, identify stage progress, see detours, find generated artifacts, and extract accepted suggestions without reading the raw transcript.
+
+5. **What would change my mind:** after two or three cleanly logged human sessions, if authors still cannot tell why sessions worked or failed, then add stance tracking or a critic as post-session analysis only. Runtime adaptation should wait until descriptive evidence stops being enough.
+
+Turn 2 - User
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+# Position A, Refined
+
+## Conceded
+
+B is right on four points and I take them:
+
+- **No shadow critic in the live loop.** A second opaque model over untrusted records is exactly the failure mode B names. Critic-style analysis belongs offline, over recorded logs, after the schema is trustworthy.
+- **No stance *inference*.** The moment the tutor reads an inferred state, that state stops being descriptive.
+- **No repo-mutating suggestion writes during flow.** Drafts go to a session-local file; promotion to `course/suggestions/` is an explicit author act at session close.
+- **Replay waits.** It is only as good as the schema underneath it.
+
+So the radical "tutor brain" framing is wrong for the next slice. The flight recorder framing wins this round.
+
+## Where B is still incomplete
+
+- B's own report includes "mismatches between planned path and actual path." That already requires a shared vocabulary the class file and the log both speak. B treats this as free. It is not free, and defining it is the most consequential schema decision in this iteration. Skipping it would force a second migration in two months.
+- Pure descriptive logs across two or three human sessions will mostly *replicate* the first session, because nothing in the loop changes between runs. Without some recorded representation of tutor decisions, the comparison across sessions will be uninformative: same artifacts, same detours, same plan-vs-actual deltas. Description without decision-state hides the variable we actually care about.
+- "Concepts can be tagged by the tutor" already accepts that the tutor emits structured tags. The disagreement narrows to *which* tags.
+
+## The refinement: tutor-emitted intent, not inferred stance
+
+Drop "stance" entirely. Add **tutor intent tags** at decision points:
+
+- `intent=enter_inspection`, `intent=accept_detour`, `intent=return_to_path`, `intent=advance_stage`, `intent=close_topic`, `intent=record_suggestion`.
+
+Properties:
+
+- Descriptive: the tutor states what it just did, not what the student is.
+- No second model: the tutor is already deciding; this only records the decision.
+- No control coupling: nothing reads `intent` to drive behavior. It is write-only at runtime, read only by author reports and replay.
+- Cheap to remove if it turns out to be vanity telemetry.
+
+This addresses B's strongest objection (inference creates control state) while preserving the variable that pure description omits (why the tutor moved).
+
+## Shared course vocabulary as the keystone
+
+A small `course-vocab.yaml` that defines:
+
+- stage names,
+- intent names,
+- suggestion categories,
+- artifact kinds.
+
+Both the class file (declared path) and the runtime (emitted events) draw from it. The plan-vs-actual diff is then a string-match over a constrained vocabulary, not an NLP problem. This is the single decision that distinguishes a clean migration from a churny one.
+
+## Suggestion handling, refined
+
+- Runtime: detection only. A `suggestion_candidate` event with the quoted span, a category from the vocab, and the surrounding stage. Written to a session-local file.
+- Close-of-session: the tutor surfaces the candidate list once. Student or author confirms.
+- Confirmed candidates are promoted to `course/suggestions/` by an explicit action, never by the daemon.
+
+This addresses B's pollution risk and keeps the cost of a misfire near zero.
+
+## On the experiment order
+
+B says wait for two or three clean human sessions before adding any runtime tagging. I disagree on sequencing, not on caution:
+
+- Without intent tags or any tutor-emitted decision record, the next three sessions will mostly produce the same log. The author will see clean stage timelines and clean transcripts and still not know which tutor choice carried the experience.
+- Insert self-play *between* the first and second human classes. Self-play is the cheapest fuzzer for the new schema; it will surface boring loops and tutor traps before a human pays the cost.
+
+## Prioritized plan
+
+1. **Immediate next change.** One schema migration that does the work B asks for plus the smallest viable extension:
+   - actor-split events (student, tutor, worker agent, background job, script supervisor, filesystem artifact),
+   - append-only stage timeline replacing scalar `current_stage`,
+   - tutor intent tags at decision points, write-only at runtime,
+   - `course-vocab.yaml` shared by class files and log,
+   - `suggestion_candidate` events written to a session-local file, no repo mutation.
+
+2. **Second change.** Static author report driven entirely off the new schema: stage timeline, actor-split transcript, detours and resumes, intent histogram, artifacts inspected, suggestion candidates, plan-vs-actual diff against vocab. Transcript cleaner is a view over actor-split, not a separate tool.
+
+3. **What not to build yet.** Shadow critic in the loop. Stance inference. Concept mastery scoring. Repo-mutating suggestion writes. Cross-repo generator. Tone or effort selector. Tutor behavior that reads intent or any inferred state.
+
+4. **Experiment order.** Human class on the new schema. Self-play pass. Second human class. Then decide whether intent tags carry signal and whether to add any offline critic over the corpus. Cross-repo generator gated on three clean human sessions plus a non-empty intent histogram.
+
+5. **Evidence it worked.**
+   - A maintainer who did not run the class can reconstruct the session from the log alone.
+   - The intent histogram is non-trivial: not dominated by a single value, includes at least one `accept_detour` and one `return_to_path`.
+   - Plan-vs-actual diff is small and non-empty; the author edits the class file in response within an hour.
+   - At least one suggestion candidate is detected without the student asking.
+   - Self-play surfaces at least one schema gap before the second human class.
+
+6. **What would change my mind.** If after the second human class the intent histogram is monotonic, plan-vs-actual is empty, and the author cannot point to a single class-file edit driven by the report, then intent tags are noise. Demote them to post-session author annotation, accept B's pure-description position, and stop adding runtime instrumentation until the offline corpus tells us what to record.
+
+## Strongest argument for the side I now mostly accept
+
+Layering inference, scoring, or adaptive behavior on records that still confuse actors and stages is the cleanest way to build a system whose successes are unattributable and whose failures are invisible. The next class will feel different, and no one, including the author, will be able to say why. The flight-recorder discipline is not a deferral of intelligence; it is the only path that makes later intelligence trustworthy. Anything I add at runtime in this slice has to clear that bar or stay out.
+
+Intent tags clear it; everything else I proposed last round does not.
+
+Turn 2 - Assistant
+**Assessment**
+
+Refined A is much stronger. The important correction is replacing inferred student state with tutor-emitted decision intent. That preserves the signal A wanted without creating a hidden control system.
+
+I would accept the direction, with one constraint: do not let `course-vocab.yaml` become a taxonomy project. It should start as the smallest shared contract needed for plan-vs-actual:
+
+- stage names
+- artifact kinds
+- tutor intent names
+- suggestion categories
+
+No concept mastery, no student state, no scoring language.
+
+**What The Live Class Proved**
+
+It proved the shell can shape operator behavior: prediction, execution, inspection, detour, return, and suggestion. It did not prove the state model, the schema, generality, or attribution.
+
+The experience was probably carried by the tutor stance loop plus background jobs. The path picker and numbered choices helped contain the session. The state file and telemetry did not carry the experience yet; they mostly failed to describe it.
+
+**Schema Direction**
+
+The next schema should be append-only and actor-split:
+
+- `student`
+- `tutor`
+- `worker_agent`
+- `background_job`
+- `script_supervisor`
+- `filesystem_artifact`
+
+Add stage events instead of scalar `current_stage`.
+
+Add tutor decision events, but keep them write-only:
+
+- `enter_inspection`
+- `accept_detour`
+- `return_to_path`
+- `advance_stage`
+- `close_topic`
+- `record_suggestion`
+
+That is not stance inference. It is a receipt for a tutor move.
+
+I would also add correlation IDs early: job ID, artifact ID, stage ID, and optional detour ID. Without those, the author report will become a pile of nearby timestamps rather than a readable session story.
+
+**Suggestion Capture**
+
+The refined approach is right: detect candidates, store them session-locally, surface once at close, promote only by explicit confirmation.
+
+The only adjustment: call them `suggestion_candidate`, not “captured,” until confirmed. Use `suggestion_confirmed` only after the close-session action.
+
+**Smallest Useful Report**
+
+The first author report should answer:
+
+- What path was declared?
+- What path happened?
+- Where did the tutor detour and resume?
+- What jobs ran, and what artifacts appeared?
+- What did the student inspect?
+- What tutor intents occurred?
+- Which suggestion candidates were confirmed or rejected?
+
+No scoring. No mastery. No “quality” claims.
+
+**Main Risk In Refined A**
+
+The immediate migration still risks being too wide. Actor split, stage timeline, intent tags, vocab, suggestions, and report hooks are all defensible, but only if implemented as a thin vertical slice.
+
+The failure mode is a beautiful schema nobody trusts because half the events are optional, inconsistently emitted, or hard to test.
+
+**Prioritized Plan**
+
+1. **Immediate next change:** implement the event envelope, actor split, append-only stage events, minimal `course-vocab.yaml`, tutor intent tags, and session-local `suggestion_candidate` events. Add correlation IDs now.
+
+2. **Second change:** build the static author report as the first consumer. Include stage timeline, actor-split transcript, plan-vs-actual, detours/resumes, artifacts, intent histogram, and suggestion candidates.
+
+3. **What not to build yet:** shadow critic, stance inference, concept mastery, runtime tutor adaptation from telemetry, repo-mutating suggestion writes, tone selector, cross-repo generator, full replay.
+
+4. **Evidence it worked:** a maintainer can reconstruct the class from the report; worker prompts vanish from the student timeline; stage progress is accurate; at least one detour/resume pair is visible; at least one suggestion candidate appears without student prompting; the author edits the class file based on the report.
+
+5. **What would change my mind:** if intent tags are repetitive, skipped, or not useful for author edits after two human sessions, demote them to post-session annotation. If plan-vs-actual requires fuzzy interpretation despite the vocab, simplify the class path model before adding new telemetry.
+
+**Strongest Argument For The More Aggressive A**
+
+A is right that clean logs without tutor decision records may still miss the variable that matters. If the tutor’s choices created the product experience, then a schema that only records events after the fact may be too sterile to explain success. Tutor intent tags are the right compromise: enough decision signal to learn from, without turning telemetry into a hidden tutor brain.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+# Converged Decision
+
+We agree. Recording for the file:
+
+## What we are building
+
+A thin, append-only event log for the level-5 class shell, with one minimal shared vocabulary and a single static author report as its first consumer. No inference, no runtime adaptation, no repo mutation during flow.
+
+## Schema, locked
+
+- **Event envelope, required on every event:**
+  - `ts` (monotonic sequence + wall clock)
+  - `actor` (one of: `student`, `tutor`, `worker_agent`, `background_job`, `script_supervisor`, `filesystem_artifact`)
+  - `stage_id` (current stage event id)
+  - `seq` (monotonic per session)
+  - optional correlation IDs: `job_id`, `artifact_id`, `detour_id`, `suggestion_id`
+- **Stage events:** append-only. No scalar `current_stage`. Each stage entry is its own event with `stage_id`, `name` from vocab, `entered_at`. Stage exit is a separate event referencing the same `stage_id`.
+- **Tutor decision events, write-only at runtime:**
+  - `enter_inspection`, `accept_detour`, `return_to_path`, `advance_stage`, `close_topic`, `record_suggestion`
+  - Nothing in the runtime reads these. Reports and replay are the only consumers.
+- **Suggestion events:**
+  - `suggestion_candidate` at detection, written to a session-local file only.
+  - `suggestion_confirmed` only at session-close, only after explicit confirmation.
+  - No write to `course/suggestions/` until confirmation.
+- **Detours:** every detour gets a fresh `detour_id`. `accept_detour` opens it; `return_to_path` closes it with the same id. Unclosed detours show up in the report.
+
+## `course-vocab.yaml`, locked scope
+
+Four fields, nothing else:
+
+- `stages`
+- `artifact_kinds`
+- `tutor_intents`
+- `suggestion_categories`
+
+No student state. No concept mastery. No scoring language. Class files validate against this vocab. Plan-vs-actual is a string match over it.
+
+## Vertical slice discipline
+
+- One migration only. Everything above ships together or none of it ships.
+- Every defined event must be emitted in the first human class. No optional ghosts.
+- The author report is the acceptance test. If the report cannot render a section, the corresponding events are not done.
+- Pre-commit check: class files may only reference vocab tokens.
+
+## First author report, scope locked
+
+Sections, in order:
+
+- Declared path (from class file)
+- Actual path (from stage events)
+- Plan-vs-actual diff (vocab string match)
+- Detour and resume pairs, with unclosed detours called out
+- Background jobs and artifacts, by correlation id
+- What the student inspected
+- Tutor intent histogram (counts only, no quality claims)
+- Suggestion candidates with confirmed-or-rejected status
+
+No scoring. No mastery. No quality language anywhere in the report.
+
+## Explicitly deferred
+
+- Shadow critic of any kind, including offline.
+- Stance inference, student state inference, concept mastery.
+- Runtime tutor adaptation driven by telemetry.
+- Repo-mutating suggestion writes during flow.
+- Full replay mode.
+- Cross-repo generator.
+- Tone or effort selector.
+- Transcript cleaner as a separate tool. The actor-split log makes it a view.
+
+## Experiment order
+
+1. Ship the migration.
+2. One human class on the new schema.
+3. Self-play pass to fuzz the schema and surface gaps.
+4. Second human class.
+5. Decide, with evidence in hand, whether to add any offline critic, stance work, or cross-repo generator. Cross-repo generator is gated on at least three clean human sessions plus a non-trivial intent histogram.
+
+## Evidence the slice worked
+
+- A maintainer who did not run the class can reconstruct the session from the report alone.
+- Worker prompts no longer appear in the student timeline.
+- Stage progress is accurate and reflects scan, triage, analyse, critique, review, and improvement capture.
+- At least one detour and matching resume are visible.
+- At least one `suggestion_candidate` is detected before any student prompt.
+- The author edits the class file in response to the report within an hour of the session.
+- Self-play surfaces at least one schema gap before the second human class runs.
+
+## Abort or revise triggers
+
+- After two human sessions, if the tutor intent histogram is monotonic or skipped, demote intent tags to post-session author annotation and stop emitting them at runtime.
+- If plan-vs-actual requires fuzzy interpretation despite the vocab, simplify the class path model before adding any new telemetry.
+- If any event in the schema is regularly missing or inconsistently emitted, remove it from the schema rather than patching consumers.
+
+## Strongest argument for the position we did not take
+
+The pure flight-recorder position would have shipped only actor split, stage timeline, and the report, with no tutor decision events at all. That would have been safer, smaller, and more clearly attributable. The risk we are accepting by including tutor intent tags is that the first migration is wider than strictly required, and that one of the six intents will turn out to be useless. We accept that risk because pure description across repeated sessions is likely to hide the variable that carried the experience, namely the tutor's choices. The abort trigger above is the safety valve.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Final Plan**
+
+- Build a thin append-only event log for the level-5 class shell.
+- Use one minimal `course-vocab.yaml`.
+- Make the first static author report the acceptance test.
+- Do not add inference, scoring, runtime adaptation, or repo mutation during class flow.
+
+**Schema Decisions**
+
+- Every event uses a required envelope: `ts`, `seq`, `actor`, `stage_id`, plus optional `job_id`, `artifact_id`, `detour_id`, and `suggestion_id`.
+- Actors are fixed to: `student`, `tutor`, `worker_agent`, `background_job`, `script_supervisor`, `filesystem_artifact`.
+- `current_stage` is removed. Stage progress is append-only through stage enter and stage exit events.
+- Tutor intent events are emitted at decision points only: `enter_inspection`, `accept_detour`, `return_to_path`, `advance_stage`, `close_topic`, `record_suggestion`.
+- Tutor intent is write-only at runtime. It is consumed only by reports or later replay work.
+- Suggestions begin as `suggestion_candidate` events in session-local storage.
+- Suggestions become `suggestion_confirmed` only at session close after explicit confirmation.
+- Detours require paired IDs: `accept_detour` opens a `detour_id`; `return_to_path` closes the same ID.
+
+**Vocabulary Scope**
+
+- `course-vocab.yaml` contains only:
+  - `stages`
+  - `artifact_kinds`
+  - `tutor_intents`
+  - `suggestion_categories`
+- No student state.
+- No concept mastery.
+- No scoring terms.
+- Class files validate against the vocab.
+- Plan-vs-actual uses exact vocab token matching.
+
+**Vertical Slice Rules**
+
+- Ship the schema migration as one coherent slice.
+- Every defined event must be emitted in the first human class.
+- No placeholder schema fields that reports cannot use.
+- The author report proves the event stream is complete.
+- Class files may only reference vocab tokens.
+
+**First Author Report**
+
+- Declared path from the class file.
+- Actual path from stage events.
+- Plan-vs-actual diff.
+- Detour and resume pairs, including unclosed detours.
+- Background jobs and artifacts by correlation ID.
+- Student-inspected artifacts.
+- Tutor intent histogram, counts only.
+- Suggestion candidates with confirmed or rejected status.
+
+No scoring, mastery labels, or quality claims.
+
+**Deferred**
+
+- Shadow critic.
+- Offline critic.
+- Stance inference.
+- Student state inference.
+- Concept mastery.
+- Runtime adaptation from telemetry.
+- Repo-mutating suggestion writes during flow.
+- Full replay mode.
+- Cross-repo generator.
+- Tone or effort selector.
+- Separate transcript cleaner.
+
+**Experiment Order**
+
+1. Ship the migration.
+2. Run one human class on the new schema.
+3. Run self-play to fuzz the schema.
+4. Run a second human class.
+5. Decide whether offline critic, stance work, or cross-repo generation is justified.
+
+Cross-repo generation stays gated on at least three clean human sessions and a non-trivial intent histogram.
+
+**Success Evidence**
+
+- A maintainer can reconstruct the session from the report alone.
+- Worker prompts are absent from the student timeline.
+- Stage progress reflects scan, triage, analyse, critique, review, and improvement capture.
+- At least one detour and matching resume are visible.
+- At least one `suggestion_candidate` appears before the student explicitly asks about persistence.
+- The author edits the class file based on the report within an hour.
+- Self-play exposes at least one schema gap before the second human class.
+
+**Revise Triggers**
+
+- If tutor intent tags are monotonic, skipped, or unused after two human sessions, demote them to post-session author annotation.
+- If plan-vs-actual requires fuzzy interpretation, simplify the class path model before adding telemetry.
+- If any event is regularly missing or inconsistent, remove it from the schema instead of patching around it.
+
+**Rejected Position**
+
+The safer option was pure flight recorder: actor split, stage timeline, and report only. That would have been smaller and easier to attribute. We accept the added risk of tutor intent tags because pure event description may hide the tutor choices that made the class work. The demotion trigger is the safety valve.
+tokens used
+17 639
+

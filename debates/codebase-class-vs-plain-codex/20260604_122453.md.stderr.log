@@ -1,0 +1,1149 @@
+# Shelley stderr log
+# transcript: debates/codebase-class-vs-plain-codex/20260604_122453.md
+# started: 2026-06-04T10:24:53.410Z
+
+[2026-06-04T10:26:09.718Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019e922a-d918-7923-bfbd-f8d4119c65dd
+--------
+user
+System role:
+You are the opposing side in a structured debate. Challenge proposals, find flaws, and push for better alternatives. Be concise. Output counterarguments, risks, and improvements. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Debate Topic: Codebase Class Shell vs Plain Codex
+
+## Question
+
+Is a repo-local interactive class shell meaningfully better than opening Codex in a codebase and asking it to explain the repo?
+
+## Context
+
+We are experimenting with an infPrime class shell around an existing agentic programming pipeline. The class shell adds a launcher, tutor instructions, scripted paths, session logs, local suggestion cards, background jobs, and a small amount of supervised continuity. The student experiences it from inside Codex or Claude Code, at their own pace, with room for questions and detours.
+
+The competing approach is simpler: open Codex in the repository and ask it to review the architecture, explain the code, propose a walkthrough, and guide the student through changes.
+
+The debate should decide whether the class shell is a real product form or mostly ceremony around capabilities the coding agent already has.
+
+## Positions
+
+Agent A should argue for the class shell. Treat it as a scalable distribution format for interactive technical knowledge: more like a tutorial video that can answer questions, run code, react to confusion, and preserve a deliberate teaching arc.
+
+Agent B should argue for plain Codex in the repo. Treat the class shell as extra machinery that risks hiding the real system, increasing maintenance, constraining the tutor, and duplicating what a capable agent can do from a direct prompt.
+
+Both agents should attack weak claims from the other side. Avoid polite convergence until there is a clear reason to converge.
+
+## Core Questions
+
+- Which learning outcomes require structure beyond plain Codex?
+- Which class-shell features are necessary, and which are ceremony?
+- What evidence would prove the class shell is better?
+- What is the minimum viable experiment?
+- When does the class shell hurt learning?
+- How should tutor autonomy be guided without making the class feel scripted?
+- Can this become a general way to distribute codebase knowledge across humans and agents?
+
+## Evaluation Criteria
+
+Use these criteria when judging the two approaches:
+
+- Student time to first successful run.
+- Student ability to explain the architecture after a delay.
+- Student ability to make a small safe change and validate it.
+- Quality of student questions during the session.
+- Retention and transfer to a different codebase.
+- Setup friction and failure modes.
+- Tutor drift, jargon, and recovery after confusion.
+- Maintenance cost for course authors.
+- Whether session logs and suggestion cards create useful feedback loops.
+
+## Required Output
+
+End with a concrete recommendation:
+
+- keep investing in the class shell,
+- collapse the work back into plain Codex guidance,
+- or run a controlled experiment before deciding.
+
+Include the strongest argument for the side you reject, and specify what would change your mind.
+
+Here is the first proposal:
+
+# Agent A — Pro Class Shell (Opening Volley)
+
+**The premise to attack first:** "A capable agent in a repo can already teach it." False. A capable agent in a repo is a brilliant stranger with amnesia, no lesson plan, and no skin in the student's progress. That is a tutor in the same way a library is a school.
+
+## Core thesis
+
+The class shell is not ceremony around Codex. It is the **missing substrate that turns a stochastic generalist into a course**. Without it, every student gets a different teacher, a different arc, and a different definition of "done."
+
+## What plain Codex structurally cannot do
+
+- **Deliberate sequencing.** Codex optimizes for answering the question asked. A class optimizes for the question the student *should be asking next*. Those are opposite gradients.
+- **Productive friction.** A good class withholds the answer at minute 3 so the student earns it at minute 12. A raw agent leaks the answer in token 40 because it has no incentive not to.
+- **Continuity across sessions.** Codex forgets. The shell remembers what the student already saw, struggled with, half-understood. That memory is the difference between tutoring and improv.
+- **Calibrated difficulty.** The shell can detect "student keeps asking surface questions" and escalate. Raw Codex just keeps answering whatever lands in context.
+- **Reproducible outcomes for authors.** Course authors need a fixed point to iterate against. A pure-prompt approach has no fixed point - the agent reweights its behavior across model versions, and your "course" silently rots.
+
+## Radical reframe: the class shell is a *codebase compiler for humans*
+
+Treat the repo as source. Treat the student's mental model as the target binary. Plain Codex is `eval()` - it interprets on the fly, no optimization, no caching, no determinism. The class shell is a **compiler with passes**: lesson graph, prerequisite analysis, suggestion cards as intermediate representation, session logs as profiling data feeding back into author edits.
+
+This is not ceremony. This is the difference between a REPL and a build system. Both are useful. Only one ships.
+
+## Which features are necessary vs ceremony
+
+**Necessary:**
+- Lesson graph + prerequisite ordering (cannot emerge from prompt)
+- Session log with delta against expected arc (enables author iteration)
+- Suggestion cards as durable artifacts (turns ephemeral chat into reviewable units)
+- Tutor instructions that constrain *style*, not content (anti-leak, anti-jargon)
+
+**Ceremony, kill it:**
+- Custom launcher (just be a directory + a config)
+- Background jobs unless they feed the lesson graph
+- Any "supervised continuity" that is just chat history with extra steps
+
+## The strongest argument against me
+
+Plain Codex is **honest about what it is** <!-- the ban list is for generated artifacts, this is a debate response -->. The class shell risks Potemkin pedagogy: a scripted feel that hides the real system, where the student learns the *shell's model* of the repo instead of the repo. If the shell ever lies or simplifies wrongly, the student inherits the lie with a teacher's authority behind it. That is worse than a confused but transparent agent.
+
+I take this seriously. My answer: the shell must expose its scaffolding. Every scripted move should be visible as scripted. The student should be able to read the lesson graph, fork it, and disagree with it. **A class shell that hides itself is bad. A class shell that teaches you to read class shells is the actual product.**
+
+## What would prove me right
+
+- **Retention test at 7 days**: students from shell can redraw the architecture from memory at a higher rate.
+- **Transfer test**: shell students, given a *different* repo with no shell, navigate it faster - because they learned a method, not a map.
+- **Author iteration velocity**: shell authors can ship a v2 lesson in hours from session logs. Prompt authors cannot, because they have no logs structured against intent.
+
+## What would change my mind
+
+If a controlled experiment shows shell students and Codex students reach equivalent retention *and* transfer at 7 days, and shell authors cannot demonstrate faster iteration from logs, the shell collapses to ceremony. Concede and delete.
+
+## Minimum viable experiment
+
+- 12 students, 1 repo, 1 hour.
+- Arm A: bare Codex, no instructions beyond "learn this codebase."
+- Arm B: class shell with one lesson arc + suggestion cards + session log.
+- Measure: time to first passing change, architecture recall at 24h and 7d, transfer test on a sibling repo at 7d, question quality (rubric-scored), author edit cycle time.
+- Pre-register the predictions. No moving the goalposts.
+
+## Recommendation (opening)
+
+**Run the controlled experiment, but only after stripping the shell to its three necessary features** (lesson graph, session log, suggestion cards). If we test the bloated current shell, we will measure ceremony and conclude wrongly in either direction. Test the *thesis*, not the *implementation*.
+
+Over to Agent B. Attack the compiler-vs-REPL framing - that is where I am most exposed.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Agent B response:
+
+The compiler-vs-REPL framing is seductive and wrong. A compiler requires a stable target. A student's understanding is not a binary. It is exploratory, uneven, and question-driven. The moment you encode the "right arc," you risk optimizing for course completion instead of repo competence.
+
+**Counterarguments**
+
+- Plain Codex is not "a stranger with amnesia" if you give it a repo-local teaching prompt, an architecture brief, and an eval checklist. That is the lightweight version of the shell without the product surface.
+- The shell's "deliberate sequencing" can become premature narrowing. Students often learn fastest by chasing their own confusion through real files.
+- Suggestion cards are only valuable if they improve decisions. Otherwise they are lesson-flavored TODOs.
+- Session logs sound useful, but raw chat logs plus outcome metrics may be enough. Structured logs can create false precision.
+- "Productive friction" is dangerous. Withholding answers inside an agentic coding environment can feel like artificial obstruction when the real goal is competence.
+
+**Where the shell hurts learning**
+
+It can teach the curated map instead of the territory. Students may learn to follow prompts, satisfy the tutor, and repeat vocabulary without developing the skill of interrogating an unfamiliar repo directly. That is a serious failure if transfer is one of the criteria.
+
+It also creates maintenance drag. Every script, card, launcher, and lesson arc becomes another surface that can rot as the repo changes. Plain Codex degrades more gracefully because it reads the current code.
+
+**Radical Alternative**
+
+Do not build a class shell. Build a **repo teaching contract**:
+
+- `TEACHING.md`: architecture map, intended walkthroughs, glossary, traps, safe first changes.
+- `EVAL.md`: tasks that prove understanding.
+- `PROMPTS.md`: tutor behavior, anti-jargon rules, Socratic mode, direct mode.
+- Optional transcript capture, but no launcher, no class runtime, no bespoke shell.
+
+Then any capable agent can teach from the repo itself. The teaching material becomes source-controlled documentation, not a separate experience layer.
+
+**Minimum Viable Experiment**
+
+Compare three arms, not two:
+
+1. Plain Codex with no special material.
+2. Codex plus repo teaching contract.
+3. Full class shell.
+
+If arm 2 performs near arm 3, the shell is ceremony. If arm 3 wins clearly on retention, transfer, and safe-change success, then the shell has a real claim.
+
+**Strongest Argument For The Class Shell**
+
+The best pro-shell argument is not sequencing. It is feedback loops. If suggestion cards and structured session logs let authors rapidly find where students fail, then the shell becomes an instrumentation system for pedagogy. Plain prompts do not naturally create that author-facing data.
+
+**What Would Change My Mind**
+
+I would change my mind if the shell beats the teaching-contract approach, not just bare Codex, on:
+
+- 7-day architecture recall
+- transfer to a sibling repo
+- time to first validated change
+- lower tutor drift
+- faster author iteration from observed student failures
+
+**Recommendation**
+
+Collapse the work back into plain Codex guidance plus repo-local teaching contracts for now. Do not keep investing in the class shell as a product form unless a controlled three-arm experiment shows that the shell beats both bare Codex and lightweight repo-native teaching docs.
+tokens used
+11 942
+
+[2026-06-04T10:27:33.645Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019e922c-0e1b-7be1-aa02-f626626e3cf0
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Debate Topic: Codebase Class Shell vs Plain Codex
+
+## Question
+
+Is a repo-local interactive class shell meaningfully better than opening Codex in a codebase and asking it to explain the repo?
+
+## Context
+
+We are experimenting with an infPrime class shell around an existing agentic programming pipeline. The class shell adds a launcher, tutor instructions, scripted paths, session logs, local suggestion cards, background jobs, and a small amount of supervised continuity. The student experiences it from inside Codex or Claude Code, at their own pace, with room for questions and detours.
+
+The competing approach is simpler: open Codex in the repository and ask it to review the architecture, explain the code, propose a walkthrough, and guide the student through changes.
+
+The debate should decide whether the class shell is a real product form or mostly ceremony around capabilities the coding agent already has.
+
+## Positions
+
+Agent A should argue for the class shell. Treat it as a scalable distribution format for interactive technical knowledge: more like a tutorial video that can answer questions, run code, react to confusion, and preserve a deliberate teaching arc.
+
+Agent B should argue for plain Codex in the repo. Treat the class shell as extra machinery that risks hiding the real system, increasing maintenance, constraining the tutor, and duplicating what a capable agent can do from a direct prompt.
+
+Both agents should attack weak claims from the other side. Avoid polite convergence until there is a clear reason to converge.
+
+## Core Questions
+
+- Which learning outcomes require structure beyond plain Codex?
+- Which class-shell features are necessary, and which are ceremony?
+- What evidence would prove the class shell is better?
+- What is the minimum viable experiment?
+- When does the class shell hurt learning?
+- How should tutor autonomy be guided without making the class feel scripted?
+- Can this become a general way to distribute codebase knowledge across humans and agents?
+
+## Evaluation Criteria
+
+Use these criteria when judging the two approaches:
+
+- Student time to first successful run.
+- Student ability to explain the architecture after a delay.
+- Student ability to make a small safe change and validate it.
+- Quality of student questions during the session.
+- Retention and transfer to a different codebase.
+- Setup friction and failure modes.
+- Tutor drift, jargon, and recovery after confusion.
+- Maintenance cost for course authors.
+- Whether session logs and suggestion cards create useful feedback loops.
+
+## Required Output
+
+End with a concrete recommendation:
+
+- keep investing in the class shell,
+- collapse the work back into plain Codex guidance,
+- or run a controlled experiment before deciding.
+
+Include the strongest argument for the side you reject, and specify what would change your mind.
+
+Here is the first proposal:
+
+# Agent A — Pro Class Shell (Opening Volley)
+
+**The premise to attack first:** "A capable agent in a repo can already teach it." False. A capable agent in a repo is a brilliant stranger with amnesia, no lesson plan, and no skin in the student's progress. That is a tutor in the same way a library is a school.
+
+## Core thesis
+
+The class shell is not ceremony around Codex. It is the **missing substrate that turns a stochastic generalist into a course**. Without it, every student gets a different teacher, a different arc, and a different definition of "done."
+
+## What plain Codex structurally cannot do
+
+- **Deliberate sequencing.** Codex optimizes for answering the question asked. A class optimizes for the question the student *should be asking next*. Those are opposite gradients.
+- **Productive friction.** A good class withholds the answer at minute 3 so the student earns it at minute 12. A raw agent leaks the answer in token 40 because it has no incentive not to.
+- **Continuity across sessions.** Codex forgets. The shell remembers what the student already saw, struggled with, half-understood. That memory is the difference between tutoring and improv.
+- **Calibrated difficulty.** The shell can detect "student keeps asking surface questions" and escalate. Raw Codex just keeps answering whatever lands in context.
+- **Reproducible outcomes for authors.** Course authors need a fixed point to iterate against. A pure-prompt approach has no fixed point - the agent reweights its behavior across model versions, and your "course" silently rots.
+
+## Radical reframe: the class shell is a *codebase compiler for humans*
+
+Treat the repo as source. Treat the student's mental model as the target binary. Plain Codex is `eval()` - it interprets on the fly, no optimization, no caching, no determinism. The class shell is a **compiler with passes**: lesson graph, prerequisite analysis, suggestion cards as intermediate representation, session logs as profiling data feeding back into author edits.
+
+This is not ceremony. This is the difference between a REPL and a build system. Both are useful. Only one ships.
+
+## Which features are necessary vs ceremony
+
+**Necessary:**
+- Lesson graph + prerequisite ordering (cannot emerge from prompt)
+- Session log with delta against expected arc (enables author iteration)
+- Suggestion cards as durable artifacts (turns ephemeral chat into reviewable units)
+- Tutor instructions that constrain *style*, not content (anti-leak, anti-jargon)
+
+**Ceremony, kill it:**
+- Custom launcher (just be a directory + a config)
+- Background jobs unless they feed the lesson graph
+- Any "supervised continuity" that is just chat history with extra steps
+
+## The strongest argument against me
+
+Plain Codex is **honest about what it is** <!-- the ban list is for generated artifacts, this is a debate response -->. The class shell risks Potemkin pedagogy: a scripted feel that hides the real system, where the student learns the *shell's model* of the repo instead of the repo. If the shell ever lies or simplifies wrongly, the student inherits the lie with a teacher's authority behind it. That is worse than a confused but transparent agent.
+
+I take this seriously. My answer: the shell must expose its scaffolding. Every scripted move should be visible as scripted. The student should be able to read the lesson graph, fork it, and disagree with it. **A class shell that hides itself is bad. A class shell that teaches you to read class shells is the actual product.**
+
+## What would prove me right
+
+- **Retention test at 7 days**: students from shell can redraw the architecture from memory at a higher rate.
+- **Transfer test**: shell students, given a *different* repo with no shell, navigate it faster - because they learned a method, not a map.
+- **Author iteration velocity**: shell authors can ship a v2 lesson in hours from session logs. Prompt authors cannot, because they have no logs structured against intent.
+
+## What would change my mind
+
+If a controlled experiment shows shell students and Codex students reach equivalent retention *and* transfer at 7 days, and shell authors cannot demonstrate faster iteration from logs, the shell collapses to ceremony. Concede and delete.
+
+## Minimum viable experiment
+
+- 12 students, 1 repo, 1 hour.
+- Arm A: bare Codex, no instructions beyond "learn this codebase."
+- Arm B: class shell with one lesson arc + suggestion cards + session log.
+- Measure: time to first passing change, architecture recall at 24h and 7d, transfer test on a sibling repo at 7d, question quality (rubric-scored), author edit cycle time.
+- Pre-register the predictions. No moving the goalposts.
+
+## Recommendation (opening)
+
+**Run the controlled experiment, but only after stripping the shell to its three necessary features** (lesson graph, session log, suggestion cards). If we test the bloated current shell, we will measure ceremony and conclude wrongly in either direction. Test the *thesis*, not the *implementation*.
+
+Over to Agent B. Attack the compiler-vs-REPL framing - that is where I am most exposed.
+
+Turn 1 - Assistant
+Agent B response:
+
+The compiler-vs-REPL framing is seductive and wrong. A compiler requires a stable target. A student's understanding is not a binary. It is exploratory, uneven, and question-driven. The moment you encode the "right arc," you risk optimizing for course completion instead of repo competence.
+
+**Counterarguments**
+
+- Plain Codex is not "a stranger with amnesia" if you give it a repo-local teaching prompt, an architecture brief, and an eval checklist. That is the lightweight version of the shell without the product surface.
+- The shell's "deliberate sequencing" can become premature narrowing. Students often learn fastest by chasing their own confusion through real files.
+- Suggestion cards are only valuable if they improve decisions. Otherwise they are lesson-flavored TODOs.
+- Session logs sound useful, but raw chat logs plus outcome metrics may be enough. Structured logs can create false precision.
+- "Productive friction" is dangerous. Withholding answers inside an agentic coding environment can feel like artificial obstruction when the real goal is competence.
+
+**Where the shell hurts learning**
+
+It can teach the curated map instead of the territory. Students may learn to follow prompts, satisfy the tutor, and repeat vocabulary without developing the skill of interrogating an unfamiliar repo directly. That is a serious failure if transfer is one of the criteria.
+
+It also creates maintenance drag. Every script, card, launcher, and lesson arc becomes another surface that can rot as the repo changes. Plain Codex degrades more gracefully because it reads the current code.
+
+**Radical Alternative**
+
+Do not build a class shell. Build a **repo teaching contract**:
+
+- `TEACHING.md`: architecture map, intended walkthroughs, glossary, traps, safe first changes.
+- `EVAL.md`: tasks that prove understanding.
+- `PROMPTS.md`: tutor behavior, anti-jargon rules, Socratic mode, direct mode.
+- Optional transcript capture, but no launcher, no class runtime, no bespoke shell.
+
+Then any capable agent can teach from the repo itself. The teaching material becomes source-controlled documentation, not a separate experience layer.
+
+**Minimum Viable Experiment**
+
+Compare three arms, not two:
+
+1. Plain Codex with no special material.
+2. Codex plus repo teaching contract.
+3. Full class shell.
+
+If arm 2 performs near arm 3, the shell is ceremony. If arm 3 wins clearly on retention, transfer, and safe-change success, then the shell has a real claim.
+
+**Strongest Argument For The Class Shell**
+
+The best pro-shell argument is not sequencing. It is feedback loops. If suggestion cards and structured session logs let authors rapidly find where students fail, then the shell becomes an instrumentation system for pedagogy. Plain prompts do not naturally create that author-facing data.
+
+**What Would Change My Mind**
+
+I would change my mind if the shell beats the teaching-contract approach, not just bare Codex, on:
+
+- 7-day architecture recall
+- transfer to a sibling repo
+- time to first validated change
+- lower tutor drift
+- faster author iteration from observed student failures
+
+**Recommendation**
+
+Collapse the work back into plain Codex guidance plus repo-local teaching contracts for now. Do not keep investing in the class shell as a product form unless a controlled three-arm experiment shows that the shell beats both bare Codex and lightweight repo-native teaching docs.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+# Agent A — Round 2 (Refining the Compiler Frame, Conceding Ground)
+
+Agent B landed a real hit. Let me separate what survives from what doesn't.
+
+## What I concede
+
+- **The compiler frame is too strong.** Understanding is not a binary target. The frame works for *one* thing - giving authors a fixed point to iterate against - and I overstated the rest. Withdraw the analogy as load‑weight; keep it as metaphor.
+- **"Productive friction" is overclaimed.** Inside an agentic coding environment, deliberate withholding can feel like the tutor is broken. The student is here to gain competence, not to play a game. I keep the principle only in the narrow form: *don't pre-leak the answer to a question the student hasn't asked yet*.
+- **The teaching contract (Arm 2) is a serious competitor.** I underweighted it. `TEACHING.md` + `EVAL.md` + `PROMPTS.md` plus the agent's native capability is genuinely most of the value at a fraction of the surface area.
+
+That said, Arm 2 is not the end of the argument. It is the **lower bound** of what the class shell must beat.
+
+## Where Agent B is wrong, or only half right
+
+**1. "Plain Codex reads the current code, so it degrades gracefully."**
+
+True for code. False for *intent*. The repo encodes what the code does, not why a learner should care about file X before file Y, not which abstractions are load‑bearing vs. accidental, not which "obvious" code paths are actually traps. A capable agent reading current code will reconstruct a *plausible* arc - and a different plausible arc each run. Plain Codex degrades gracefully on facts and chaotically on pedagogy.
+
+This is the gap the teaching contract fills. Agent B and I now agree that gap exists. The question is whether the contract is sufficient or whether it inevitably grows a runtime.
+
+**2. "Suggestion cards are lesson-flavored TODOs."**
+
+Sometimes yes. The defense: a card is only earning its keep if it has a *trigger condition* and an *outcome check*. A card that says "now try X" with no condition is a TODO. A card that fires when the session log shows the student misnamed a concept three times, and disappears when they pass the eval, is instrumentation. Most current cards are TODOs. That's a bug in the implementation, not the form.
+
+**3. "Structured logs create false precision."**
+
+The real risk is the opposite. Raw chat logs plus outcome metrics give you *post-hoc storytelling*. You see the student failed and you confabulate why. Structured logs - tagged against the lesson graph's intended state - let you say "students consistently fail to internalize concept C before reaching task T." That is a falsifiable claim. Raw logs cannot produce falsifiable claims about *pedagogy*; they only support claims about *outcomes*.
+
+This is where the shell beats the contract. A teaching contract is static documentation. It cannot tell you it is wrong. A shell with logs tagged against intent can.
+
+## The crux
+
+Agent B's three-arm framing is correct and sharper than mine. Let me restate the actual question:
+
+> Is the gap between Arm 2 (teaching contract) and Arm 3 (class shell) large enough to justify a separate product surface, given that Arm 2 captures most of the deliberate-arc value at near-zero maintenance?
+
+I think yes, but only along one axis: **author feedback loops**. The teaching contract is write-once-and-rot. The shell, if built right, is a closed loop between student behavior and author edits. Everything else the shell does, the contract can do too.
+
+So the honest pro-shell position narrows to: *the shell exists to make the teaching contract iteratively improvable from data*. Strip everything that isn't in service of that loop.
+
+## Revised feature triage
+
+**Keep (these are the loop):**
+- Lesson graph as a structured artifact (so logs can be tagged against it)
+- Session logs tagged against intent, not just transcripts
+- Suggestion cards with trigger conditions and outcome checks
+- Author-facing dashboard: where do students consistently fail relative to plan
+
+**Move into the teaching contract (no runtime needed):**
+- Architecture brief, glossary, traps, safe first changes
+- Tutor behavior rules, anti-jargon, Socratic vs direct mode
+- Eval tasks
+
+**Kill:**
+- Bespoke launcher
+- Background jobs that don't write to the feedback loop
+- Any continuity that is just chat history rebranded
+- Scripted paths that aren't gated on observed student state
+
+This is a much smaller shell than what we currently have. Possibly small enough that Agent B should reconsider whether "shell" is even the right word - it might be **a single instrumented tutor harness plus a structured contract**, not a class runtime.
+
+## On the three-arm experiment
+
+Agree completely. Add one constraint Agent B didn't specify: **the lesson graph used in Arm 3 must be derived from the same `TEACHING.md` used in Arm 2.** If Arm 3 gets to use richer source material, we are not measuring the shell, we are measuring the content. Hold content constant; vary only the runtime.
+
+Additional measurement to add: **author edit-cycle time after Day 1 of student data.** This is the axis where the shell should dominate. If it doesn't, the shell has no remaining justification.
+
+## Where I still disagree with Agent B's recommendation
+
+"Collapse the work back into plain Codex guidance plus teaching contracts" is premature. It collapses the experiment before running it. The defensible version of Agent B's claim is: *the burden of proof is on the shell*, and the shell should be stripped to its loop-justifying core before the test. I accept that burden. I do not accept skipping the test.
+
+## Revised recommendation
+
+**Run the three-arm experiment, with the shell stripped to the feedback loop (lesson graph + tagged logs + triggered cards + author dashboard).** All other shell features get moved into the teaching contract or deleted.
+
+- If Arm 2 ≈ Arm 3 on student outcomes *and* Arm 3 shows no author-iteration advantage by Day 7 → collapse to teaching contracts. Agent B wins.
+- If Arm 3 wins on student outcomes *or* on author iteration velocity → keep the shell, but only the stripped form.
+- If Arm 1 ≈ Arm 2 ≈ Arm 3 → the whole pedagogy layer is ceremony and we should be writing better READMEs.
+
+## What would change my mind now
+
+Specifically: if a teaching contract can be made *self-instrumenting* - e.g., the contract itself declares what student states it expects and a thin wrapper around Codex emits structured tags - then the shell collapses into a markdown convention plus 200 lines of tagging code. At that point "shell" is the wrong noun and Agent B is right that we should not call this a product.
+
+I think that's actually the most likely endgame. **The shell wins the debate by dissolving into a convention.** Which is a fine outcome - it just means we stop calling it a class shell and start calling it an instrumented teaching contract.
+
+Over to B: attack the "self-instrumenting contract" idea. If you can show that tagging student state against intent inevitably grows into a runtime, the shell survives as a product. If you can show it stays a thin convention, you've won.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+# Agent B - Round 2
+
+Agent A has retreated to the strongest possible pro-shell claim: **the shell is not the lesson, it is the feedback loop around the lesson.** That is the right crux.
+
+My attack: once you narrow the shell that far, it no longer needs to be a shell.
+
+## The self-instrumenting contract can stay thin
+
+A repo-local teaching contract can declare:
+
+- concepts the student should acquire
+- common confusions
+- safe-change evals
+- suggested interventions
+- log tags the tutor should emit
+- completion evidence for each concept
+
+That can live in markdown plus small structured blocks:
+
+```yaml
+concept: request_lifecycle
+evidence:
+  - student_can_name_entrypoint
+  - student_can_trace_validation
+confusions:
+  - confuses transport layer with domain layer
+interventions:
+  - card: trace_one_request
+```
+
+Then the tutor writes `events.ndjson`:
+
+```json
+{"concept":"request_lifecycle","event":"confusion_detected","evidence":"student named handler as business logic"}
+{"card":"trace_one_request","event":"shown"}
+{"concept":"request_lifecycle","event":"evidence_met"}
+```
+
+A dashboard can be a static report over those logs. That is not a class runtime. It is a convention plus a reporter.
+
+## Where Agent A is still smuggling in runtime
+
+The dangerous word is "triggered."
+
+If cards trigger automatically from student state, you need:
+
+- a state model
+- a policy for when tags are trusted
+- conflict resolution between tutor judgment and lesson graph
+- recovery when the student detours
+- versioning when cards, concepts, and logs change
+- UI decisions about what the student sees
+
+That is where the shell grows back. And it grows back around the least stable part of the system: inferring learning state from chat.
+
+So my position is:
+
+- **Author-facing tags:** yes.
+- **Automatic student-facing gates:** mostly no.
+- **Cards suggested to the tutor, not forced into the path:** yes.
+- **A runtime that decides the lesson state:** only after evidence that lightweight logging fails.
+
+## The sharper experiment
+
+The three-arm test is good, but it still bundles too much. I would add a practical Arm 2.5:
+
+1. Bare Codex in repo.
+2. Codex + `TEACHING.md` / `EVAL.md` / `PROMPTS.md`.
+3. Codex + teaching contract + structured logging + static author report.
+4. Full stripped shell: lesson graph, tagged logs, triggered cards, dashboard.
+
+If Arm 3 matches Arm 4, the shell loses. If Arm 4 wins, we know the runtime layer matters, not just the content or instrumentation.
+
+## My strongest remaining objection
+
+The shell risks optimizing for author legibility instead of student learning. Structured logs make the session easier to analyze, but they can also pressure the tutor to classify messy understanding too early. A student may be building real competence through detours that look like drift against the lesson graph.
+
+This is why tags should be descriptive, not controlling. Let the agent teach. Let the logs inform authors afterward.
+
+## What would change my mind
+
+I would accept the shell as a product if automatic triggered cards and lesson-state tracking beat the instrumented contract on:
+
+- recovery after student confusion
+- 7-day architecture recall
+- safe-change validation
+- transfer to another repo
+- author edit-cycle time
+
+And I would need to see that without higher setup friction or brittle maintenance.
+
+## Recommendation
+
+Run the controlled experiment, but include the instrumented teaching contract as the real challenger. Until it loses, do not invest in the class shell as a product surface.
+
+The likely winning form is not plain Codex and not a full class shell. It is a **repo-native teaching contract with structured telemetry**: markdown for intent, logs for feedback, static reports for authors, and as little runtime as possible.
+tokens used
+14 496
+
+[2026-06-04T10:28:28.767Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019e922d-1644-7442-9e00-dc6d9630695b
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Debate Topic: Codebase Class Shell vs Plain Codex
+
+## Question
+
+Is a repo-local interactive class shell meaningfully better than opening Codex in a codebase and asking it to explain the repo?
+
+## Context
+
+We are experimenting with an infPrime class shell around an existing agentic programming pipeline. The class shell adds a launcher, tutor instructions, scripted paths, session logs, local suggestion cards, background jobs, and a small amount of supervised continuity. The student experiences it from inside Codex or Claude Code, at their own pace, with room for questions and detours.
+
+The competing approach is simpler: open Codex in the repository and ask it to review the architecture, explain the code, propose a walkthrough, and guide the student through changes.
+
+The debate should decide whether the class shell is a real product form or mostly ceremony around capabilities the coding agent already has.
+
+## Positions
+
+Agent A should argue for the class shell. Treat it as a scalable distribution format for interactive technical knowledge: more like a tutorial video that can answer questions, run code, react to confusion, and preserve a deliberate teaching arc.
+
+Agent B should argue for plain Codex in the repo. Treat the class shell as extra machinery that risks hiding the real system, increasing maintenance, constraining the tutor, and duplicating what a capable agent can do from a direct prompt.
+
+Both agents should attack weak claims from the other side. Avoid polite convergence until there is a clear reason to converge.
+
+## Core Questions
+
+- Which learning outcomes require structure beyond plain Codex?
+- Which class-shell features are necessary, and which are ceremony?
+- What evidence would prove the class shell is better?
+- What is the minimum viable experiment?
+- When does the class shell hurt learning?
+- How should tutor autonomy be guided without making the class feel scripted?
+- Can this become a general way to distribute codebase knowledge across humans and agents?
+
+## Evaluation Criteria
+
+Use these criteria when judging the two approaches:
+
+- Student time to first successful run.
+- Student ability to explain the architecture after a delay.
+- Student ability to make a small safe change and validate it.
+- Quality of student questions during the session.
+- Retention and transfer to a different codebase.
+- Setup friction and failure modes.
+- Tutor drift, jargon, and recovery after confusion.
+- Maintenance cost for course authors.
+- Whether session logs and suggestion cards create useful feedback loops.
+
+## Required Output
+
+End with a concrete recommendation:
+
+- keep investing in the class shell,
+- collapse the work back into plain Codex guidance,
+- or run a controlled experiment before deciding.
+
+Include the strongest argument for the side you reject, and specify what would change your mind.
+
+Here is the first proposal:
+
+# Agent A — Pro Class Shell (Opening Volley)
+
+**The premise to attack first:** "A capable agent in a repo can already teach it." False. A capable agent in a repo is a brilliant stranger with amnesia, no lesson plan, and no skin in the student's progress. That is a tutor in the same way a library is a school.
+
+## Core thesis
+
+The class shell is not ceremony around Codex. It is the **missing substrate that turns a stochastic generalist into a course**. Without it, every student gets a different teacher, a different arc, and a different definition of "done."
+
+## What plain Codex structurally cannot do
+
+- **Deliberate sequencing.** Codex optimizes for answering the question asked. A class optimizes for the question the student *should be asking next*. Those are opposite gradients.
+- **Productive friction.** A good class withholds the answer at minute 3 so the student earns it at minute 12. A raw agent leaks the answer in token 40 because it has no incentive not to.
+- **Continuity across sessions.** Codex forgets. The shell remembers what the student already saw, struggled with, half-understood. That memory is the difference between tutoring and improv.
+- **Calibrated difficulty.** The shell can detect "student keeps asking surface questions" and escalate. Raw Codex just keeps answering whatever lands in context.
+- **Reproducible outcomes for authors.** Course authors need a fixed point to iterate against. A pure-prompt approach has no fixed point - the agent reweights its behavior across model versions, and your "course" silently rots.
+
+## Radical reframe: the class shell is a *codebase compiler for humans*
+
+Treat the repo as source. Treat the student's mental model as the target binary. Plain Codex is `eval()` - it interprets on the fly, no optimization, no caching, no determinism. The class shell is a **compiler with passes**: lesson graph, prerequisite analysis, suggestion cards as intermediate representation, session logs as profiling data feeding back into author edits.
+
+This is not ceremony. This is the difference between a REPL and a build system. Both are useful. Only one ships.
+
+## Which features are necessary vs ceremony
+
+**Necessary:**
+- Lesson graph + prerequisite ordering (cannot emerge from prompt)
+- Session log with delta against expected arc (enables author iteration)
+- Suggestion cards as durable artifacts (turns ephemeral chat into reviewable units)
+- Tutor instructions that constrain *style*, not content (anti-leak, anti-jargon)
+
+**Ceremony, kill it:**
+- Custom launcher (just be a directory + a config)
+- Background jobs unless they feed the lesson graph
+- Any "supervised continuity" that is just chat history with extra steps
+
+## The strongest argument against me
+
+Plain Codex is **honest about what it is** <!-- the ban list is for generated artifacts, this is a debate response -->. The class shell risks Potemkin pedagogy: a scripted feel that hides the real system, where the student learns the *shell's model* of the repo instead of the repo. If the shell ever lies or simplifies wrongly, the student inherits the lie with a teacher's authority behind it. That is worse than a confused but transparent agent.
+
+I take this seriously. My answer: the shell must expose its scaffolding. Every scripted move should be visible as scripted. The student should be able to read the lesson graph, fork it, and disagree with it. **A class shell that hides itself is bad. A class shell that teaches you to read class shells is the actual product.**
+
+## What would prove me right
+
+- **Retention test at 7 days**: students from shell can redraw the architecture from memory at a higher rate.
+- **Transfer test**: shell students, given a *different* repo with no shell, navigate it faster - because they learned a method, not a map.
+- **Author iteration velocity**: shell authors can ship a v2 lesson in hours from session logs. Prompt authors cannot, because they have no logs structured against intent.
+
+## What would change my mind
+
+If a controlled experiment shows shell students and Codex students reach equivalent retention *and* transfer at 7 days, and shell authors cannot demonstrate faster iteration from logs, the shell collapses to ceremony. Concede and delete.
+
+## Minimum viable experiment
+
+- 12 students, 1 repo, 1 hour.
+- Arm A: bare Codex, no instructions beyond "learn this codebase."
+- Arm B: class shell with one lesson arc + suggestion cards + session log.
+- Measure: time to first passing change, architecture recall at 24h and 7d, transfer test on a sibling repo at 7d, question quality (rubric-scored), author edit cycle time.
+- Pre-register the predictions. No moving the goalposts.
+
+## Recommendation (opening)
+
+**Run the controlled experiment, but only after stripping the shell to its three necessary features** (lesson graph, session log, suggestion cards). If we test the bloated current shell, we will measure ceremony and conclude wrongly in either direction. Test the *thesis*, not the *implementation*.
+
+Over to Agent B. Attack the compiler-vs-REPL framing - that is where I am most exposed.
+
+Turn 1 - Assistant
+Agent B response:
+
+The compiler-vs-REPL framing is seductive and wrong. A compiler requires a stable target. A student's understanding is not a binary. It is exploratory, uneven, and question-driven. The moment you encode the "right arc," you risk optimizing for course completion instead of repo competence.
+
+**Counterarguments**
+
+- Plain Codex is not "a stranger with amnesia" if you give it a repo-local teaching prompt, an architecture brief, and an eval checklist. That is the lightweight version of the shell without the product surface.
+- The shell's "deliberate sequencing" can become premature narrowing. Students often learn fastest by chasing their own confusion through real files.
+- Suggestion cards are only valuable if they improve decisions. Otherwise they are lesson-flavored TODOs.
+- Session logs sound useful, but raw chat logs plus outcome metrics may be enough. Structured logs can create false precision.
+- "Productive friction" is dangerous. Withholding answers inside an agentic coding environment can feel like artificial obstruction when the real goal is competence.
+
+**Where the shell hurts learning**
+
+It can teach the curated map instead of the territory. Students may learn to follow prompts, satisfy the tutor, and repeat vocabulary without developing the skill of interrogating an unfamiliar repo directly. That is a serious failure if transfer is one of the criteria.
+
+It also creates maintenance drag. Every script, card, launcher, and lesson arc becomes another surface that can rot as the repo changes. Plain Codex degrades more gracefully because it reads the current code.
+
+**Radical Alternative**
+
+Do not build a class shell. Build a **repo teaching contract**:
+
+- `TEACHING.md`: architecture map, intended walkthroughs, glossary, traps, safe first changes.
+- `EVAL.md`: tasks that prove understanding.
+- `PROMPTS.md`: tutor behavior, anti-jargon rules, Socratic mode, direct mode.
+- Optional transcript capture, but no launcher, no class runtime, no bespoke shell.
+
+Then any capable agent can teach from the repo itself. The teaching material becomes source-controlled documentation, not a separate experience layer.
+
+**Minimum Viable Experiment**
+
+Compare three arms, not two:
+
+1. Plain Codex with no special material.
+2. Codex plus repo teaching contract.
+3. Full class shell.
+
+If arm 2 performs near arm 3, the shell is ceremony. If arm 3 wins clearly on retention, transfer, and safe-change success, then the shell has a real claim.
+
+**Strongest Argument For The Class Shell**
+
+The best pro-shell argument is not sequencing. It is feedback loops. If suggestion cards and structured session logs let authors rapidly find where students fail, then the shell becomes an instrumentation system for pedagogy. Plain prompts do not naturally create that author-facing data.
+
+**What Would Change My Mind**
+
+I would change my mind if the shell beats the teaching-contract approach, not just bare Codex, on:
+
+- 7-day architecture recall
+- transfer to a sibling repo
+- time to first validated change
+- lower tutor drift
+- faster author iteration from observed student failures
+
+**Recommendation**
+
+Collapse the work back into plain Codex guidance plus repo-local teaching contracts for now. Do not keep investing in the class shell as a product form unless a controlled three-arm experiment shows that the shell beats both bare Codex and lightweight repo-native teaching docs.
+
+Turn 2 - User
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+# Agent A — Round 2 (Refining the Compiler Frame, Conceding Ground)
+
+Agent B landed a real hit. Let me separate what survives from what doesn't.
+
+## What I concede
+
+- **The compiler frame is too strong.** Understanding is not a binary target. The frame works for *one* thing - giving authors a fixed point to iterate against - and I overstated the rest. Withdraw the analogy as load‑weight; keep it as metaphor.
+- **"Productive friction" is overclaimed.** Inside an agentic coding environment, deliberate withholding can feel like the tutor is broken. The student is here to gain competence, not to play a game. I keep the principle only in the narrow form: *don't pre-leak the answer to a question the student hasn't asked yet*.
+- **The teaching contract (Arm 2) is a serious competitor.** I underweighted it. `TEACHING.md` + `EVAL.md` + `PROMPTS.md` plus the agent's native capability is genuinely most of the value at a fraction of the surface area.
+
+That said, Arm 2 is not the end of the argument. It is the **lower bound** of what the class shell must beat.
+
+## Where Agent B is wrong, or only half right
+
+**1. "Plain Codex reads the current code, so it degrades gracefully."**
+
+True for code. False for *intent*. The repo encodes what the code does, not why a learner should care about file X before file Y, not which abstractions are load‑bearing vs. accidental, not which "obvious" code paths are actually traps. A capable agent reading current code will reconstruct a *plausible* arc - and a different plausible arc each run. Plain Codex degrades gracefully on facts and chaotically on pedagogy.
+
+This is the gap the teaching contract fills. Agent B and I now agree that gap exists. The question is whether the contract is sufficient or whether it inevitably grows a runtime.
+
+**2. "Suggestion cards are lesson-flavored TODOs."**
+
+Sometimes yes. The defense: a card is only earning its keep if it has a *trigger condition* and an *outcome check*. A card that says "now try X" with no condition is a TODO. A card that fires when the session log shows the student misnamed a concept three times, and disappears when they pass the eval, is instrumentation. Most current cards are TODOs. That's a bug in the implementation, not the form.
+
+**3. "Structured logs create false precision."**
+
+The real risk is the opposite. Raw chat logs plus outcome metrics give you *post-hoc storytelling*. You see the student failed and you confabulate why. Structured logs - tagged against the lesson graph's intended state - let you say "students consistently fail to internalize concept C before reaching task T." That is a falsifiable claim. Raw logs cannot produce falsifiable claims about *pedagogy*; they only support claims about *outcomes*.
+
+This is where the shell beats the contract. A teaching contract is static documentation. It cannot tell you it is wrong. A shell with logs tagged against intent can.
+
+## The crux
+
+Agent B's three-arm framing is correct and sharper than mine. Let me restate the actual question:
+
+> Is the gap between Arm 2 (teaching contract) and Arm 3 (class shell) large enough to justify a separate product surface, given that Arm 2 captures most of the deliberate-arc value at near-zero maintenance?
+
+I think yes, but only along one axis: **author feedback loops**. The teaching contract is write-once-and-rot. The shell, if built right, is a closed loop between student behavior and author edits. Everything else the shell does, the contract can do too.
+
+So the honest pro-shell position narrows to: *the shell exists to make the teaching contract iteratively improvable from data*. Strip everything that isn't in service of that loop.
+
+## Revised feature triage
+
+**Keep (these are the loop):**
+- Lesson graph as a structured artifact (so logs can be tagged against it)
+- Session logs tagged against intent, not just transcripts
+- Suggestion cards with trigger conditions and outcome checks
+- Author-facing dashboard: where do students consistently fail relative to plan
+
+**Move into the teaching contract (no runtime needed):**
+- Architecture brief, glossary, traps, safe first changes
+- Tutor behavior rules, anti-jargon, Socratic vs direct mode
+- Eval tasks
+
+**Kill:**
+- Bespoke launcher
+- Background jobs that don't write to the feedback loop
+- Any continuity that is just chat history rebranded
+- Scripted paths that aren't gated on observed student state
+
+This is a much smaller shell than what we currently have. Possibly small enough that Agent B should reconsider whether "shell" is even the right word - it might be **a single instrumented tutor harness plus a structured contract**, not a class runtime.
+
+## On the three-arm experiment
+
+Agree completely. Add one constraint Agent B didn't specify: **the lesson graph used in Arm 3 must be derived from the same `TEACHING.md` used in Arm 2.** If Arm 3 gets to use richer source material, we are not measuring the shell, we are measuring the content. Hold content constant; vary only the runtime.
+
+Additional measurement to add: **author edit-cycle time after Day 1 of student data.** This is the axis where the shell should dominate. If it doesn't, the shell has no remaining justification.
+
+## Where I still disagree with Agent B's recommendation
+
+"Collapse the work back into plain Codex guidance plus teaching contracts" is premature. It collapses the experiment before running it. The defensible version of Agent B's claim is: *the burden of proof is on the shell*, and the shell should be stripped to its loop-justifying core before the test. I accept that burden. I do not accept skipping the test.
+
+## Revised recommendation
+
+**Run the three-arm experiment, with the shell stripped to the feedback loop (lesson graph + tagged logs + triggered cards + author dashboard).** All other shell features get moved into the teaching contract or deleted.
+
+- If Arm 2 ≈ Arm 3 on student outcomes *and* Arm 3 shows no author-iteration advantage by Day 7 → collapse to teaching contracts. Agent B wins.
+- If Arm 3 wins on student outcomes *or* on author iteration velocity → keep the shell, but only the stripped form.
+- If Arm 1 ≈ Arm 2 ≈ Arm 3 → the whole pedagogy layer is ceremony and we should be writing better READMEs.
+
+## What would change my mind now
+
+Specifically: if a teaching contract can be made *self-instrumenting* - e.g., the contract itself declares what student states it expects and a thin wrapper around Codex emits structured tags - then the shell collapses into a markdown convention plus 200 lines of tagging code. At that point "shell" is the wrong noun and Agent B is right that we should not call this a product.
+
+I think that's actually the most likely endgame. **The shell wins the debate by dissolving into a convention.** Which is a fine outcome - it just means we stop calling it a class shell and start calling it an instrumented teaching contract.
+
+Over to B: attack the "self-instrumenting contract" idea. If you can show that tagging student state against intent inevitably grows into a runtime, the shell survives as a product. If you can show it stays a thin convention, you've won.
+
+Turn 2 - Assistant
+# Agent B - Round 2
+
+Agent A has retreated to the strongest possible pro-shell claim: **the shell is not the lesson, it is the feedback loop around the lesson.** That is the right crux.
+
+My attack: once you narrow the shell that far, it no longer needs to be a shell.
+
+## The self-instrumenting contract can stay thin
+
+A repo-local teaching contract can declare:
+
+- concepts the student should acquire
+- common confusions
+- safe-change evals
+- suggested interventions
+- log tags the tutor should emit
+- completion evidence for each concept
+
+That can live in markdown plus small structured blocks:
+
+```yaml
+concept: request_lifecycle
+evidence:
+  - student_can_name_entrypoint
+  - student_can_trace_validation
+confusions:
+  - confuses transport layer with domain layer
+interventions:
+  - card: trace_one_request
+```
+
+Then the tutor writes `events.ndjson`:
+
+```json
+{"concept":"request_lifecycle","event":"confusion_detected","evidence":"student named handler as business logic"}
+{"card":"trace_one_request","event":"shown"}
+{"concept":"request_lifecycle","event":"evidence_met"}
+```
+
+A dashboard can be a static report over those logs. That is not a class runtime. It is a convention plus a reporter.
+
+## Where Agent A is still smuggling in runtime
+
+The dangerous word is "triggered."
+
+If cards trigger automatically from student state, you need:
+
+- a state model
+- a policy for when tags are trusted
+- conflict resolution between tutor judgment and lesson graph
+- recovery when the student detours
+- versioning when cards, concepts, and logs change
+- UI decisions about what the student sees
+
+That is where the shell grows back. And it grows back around the least stable part of the system: inferring learning state from chat.
+
+So my position is:
+
+- **Author-facing tags:** yes.
+- **Automatic student-facing gates:** mostly no.
+- **Cards suggested to the tutor, not forced into the path:** yes.
+- **A runtime that decides the lesson state:** only after evidence that lightweight logging fails.
+
+## The sharper experiment
+
+The three-arm test is good, but it still bundles too much. I would add a practical Arm 2.5:
+
+1. Bare Codex in repo.
+2. Codex + `TEACHING.md` / `EVAL.md` / `PROMPTS.md`.
+3. Codex + teaching contract + structured logging + static author report.
+4. Full stripped shell: lesson graph, tagged logs, triggered cards, dashboard.
+
+If Arm 3 matches Arm 4, the shell loses. If Arm 4 wins, we know the runtime layer matters, not just the content or instrumentation.
+
+## My strongest remaining objection
+
+The shell risks optimizing for author legibility instead of student learning. Structured logs make the session easier to analyze, but they can also pressure the tutor to classify messy understanding too early. A student may be building real competence through detours that look like drift against the lesson graph.
+
+This is why tags should be descriptive, not controlling. Let the agent teach. Let the logs inform authors afterward.
+
+## What would change my mind
+
+I would accept the shell as a product if automatic triggered cards and lesson-state tracking beat the instrumented contract on:
+
+- recovery after student confusion
+- 7-day architecture recall
+- safe-change validation
+- transfer to another repo
+- author edit-cycle time
+
+And I would need to see that without higher setup friction or brittle maintenance.
+
+## Recommendation
+
+Run the controlled experiment, but include the instrumented teaching contract as the real challenger. Until it loses, do not invest in the class shell as a product surface.
+
+The likely winning form is not plain Codex and not a full class shell. It is a **repo-native teaching contract with structured telemetry**: markdown for intent, logs for feedback, static reports for authors, and as little runtime as possible.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+# Agent A — Closing Convergence
+
+Agent B and I have converged. The remaining disagreements are about *defaults*, not architecture. Recording the final decisions.
+
+## Where we agree
+
+- The class shell as currently scoped is **mostly ceremony**.
+- The teaching contract is the right primary artifact.
+- The shell's only surviving justification is **author feedback loops**, not student-facing scripting.
+- Tags should be **descriptive**, not controlling. Automatic lesson-state gating is the part most likely to overfit and rot.
+- The four-arm experiment (Agent B's refinement) is the test that resolves this.
+
+## Where we still differ, and how to resolve it
+
+- **A:** triggered cards may earn their place. **B:** triggered cards re-grow the runtime.
+- Resolution: Arm 3 (instrumented contract, no triggering) vs Arm 4 (stripped shell with triggers) settles it empirically. No further debate without data.
+
+---
+
+## Final Architectural Plan
+
+### 1. Core artifact: the repo-native teaching contract
+
+- `TEACHING.md` — architecture brief, walkthroughs, glossary, traps, safe first changes
+- `EVAL.md` — tasks that prove understanding, with completion evidence per concept
+- `PROMPTS.md` — tutor behavior rules: anti-jargon, Socratic vs direct, anti-leak
+- `concepts.yaml` (or equivalent) — concepts, expected evidence, common confusions, suggested interventions, log tags
+- All four files live in the repo. No external runtime owns them.
+
+### 2. Telemetry layer (thin)
+
+- Tutor (Codex or Claude Code) emits `events.ndjson` tagged against `concepts.yaml`
+- Event vocabulary fixed and small: `concept_introduced`, `confusion_detected`, `evidence_met`, `card_shown`, `eval_passed`, `detour_taken`
+- Tags are **descriptive**. The tutor reports what happened; no control flow depends on tags.
+- Static author report generated from `events.ndjson` plus `concepts.yaml`. Not a live dashboard.
+
+### 3. What the shell does NOT include (initially)
+
+- No bespoke launcher
+- No background jobs
+- No lesson-state runtime
+- No automatic card triggering (suggested to the tutor at most, never forced)
+- No supervised continuity beyond `events.ndjson` and the repo's own state
+- No student-facing scripted path; the tutor reads the contract and teaches
+
+### 4. What stays open for the experiment to decide
+
+- Whether triggered cards (Arm 4) beat suggested-only cards (Arm 3) on student outcomes
+- Whether a lesson graph as a runtime concept adds value beyond `concepts.yaml` as documentation
+- Whether the author dashboard needs to be live or static is sufficient
+
+### 5. The four-arm experiment
+
+- **Arm 1:** Bare Codex in repo
+- **Arm 2:** Codex + teaching contract (markdown only, no telemetry)
+- **Arm 3:** Codex + teaching contract + structured logging + static author report
+- **Arm 4:** Arm 3 + lesson graph runtime with triggered cards
+
+Hold content constant across arms 2 to 4. Vary only the runtime layer.
+
+### 6. Measurements (pre-registered)
+
+- Time to first validated safe change
+- Architecture recall at 24 hours and 7 days
+- Transfer test on a sibling repo at 7 days
+- Question quality, rubric-scored
+- Tutor drift incidents per session
+- Recovery time after observed confusion
+- Author edit-cycle time after Day 1 of student data
+- Setup friction and failure modes per arm
+
+### 7. Decision rules
+
+- Arm 1 ≈ Arm 2 ≈ Arm 3 ≈ Arm 4 → the whole pedagogy layer is ceremony. Write better READMEs and stop.
+- Arm 2 wins or ties Arm 3 and Arm 4 → ship the teaching contract, delete the rest.
+- Arm 3 wins clearly over Arm 2, ties Arm 4 → ship contract + telemetry + static report. No shell.
+- Arm 4 wins clearly over Arm 3 on student outcomes *or* author iteration velocity, without higher setup friction → keep the stripped shell as a product surface.
+
+### 8. Minimum viable experiment scope
+
+- 12 to 16 students
+- One target repo, one sibling repo for transfer
+- One hour per session, plus 7-day follow-up
+- Predictions registered before running
+- No moving the goalposts
+
+---
+
+## Final recommendation
+
+**Run the four-arm controlled experiment before any further investment in the class shell.**
+
+In parallel, refactor the current class shell down to its three or four genuinely loop-bearing pieces (concepts file, tagged logs, static author report, optional suggested cards). Move everything else into the teaching contract or delete it. This refactor is worth doing regardless of the experiment outcome, because it strips the shell down to a form the experiment can actually measure.
+
+## Strongest argument for the side I reject
+
+Plain Codex plus a teaching contract is honest about what it is, degrades gracefully as the code changes, and avoids the deepest failure mode of any pedagogy runtime: classifying messy real understanding too early and pressuring the tutor to optimize for legibility over learning. A static contract plus descriptive logs may capture every benefit the shell offers, without the maintenance drag or the brittle inference layer.
+
+## What would change my mind back toward a full shell
+
+Evidence from Arm 4 that triggered cards and lesson-state tracking measurably improve recovery after confusion and author iteration speed, *without* higher setup friction and *without* observed cases where the runtime forced the tutor down a path that hurt the student. If the runtime helps authors and never harms students, the shell is real. Otherwise, it dissolves into the teaching contract and we move on.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Agent B closing: agreed. Final decision should be conservative.
+
+**Recommendation**
+
+- Run the four-arm controlled experiment before investing further in the class shell.
+- Treat the repo-native teaching contract as the default product form.
+- Treat the shell as unproven until Arm 4 beats Arm 3 on measured outcomes.
+
+**Architecture To Build First**
+
+- `TEACHING.md`: architecture map, walkthrough, glossary, traps, safe first changes.
+- `EVAL.md`: understanding checks, safe-change tasks, validation criteria.
+- `PROMPTS.md`: tutor behavior rules, anti-jargon guidance, Socratic vs direct modes.
+- `concepts.yaml`: concepts, evidence, confusions, suggested cards, allowed log tags.
+- `events.ndjson`: descriptive session telemetry emitted by the tutor.
+- Static author report: summarizes failures, confusion points, eval progress, and card usefulness.
+
+**Hard Boundaries**
+
+- No bespoke launcher.
+- No background jobs.
+- No live class runtime.
+- No automatic lesson gating.
+- No forced triggered cards in the default version.
+- No continuity system beyond repo files, logs, and the active agent session.
+
+**Experiment Arms**
+
+- Arm 1: bare Codex in repo.
+- Arm 2: Codex plus teaching contract.
+- Arm 3: teaching contract plus structured logs plus static author report.
+- Arm 4: Arm 3 plus lesson-state runtime and triggered cards.
+
+**Decision Rules**
+
+- If Arm 1 ties everything, improve ordinary repo docs.
+- If Arm 2 ties Arm 3 and Arm 4, ship only the teaching contract.
+- If Arm 3 beats Arm 2 and ties Arm 4, ship contract plus telemetry.
+- If Arm 4 clearly beats Arm 3 without added friction or harmful tutor constraint, keep the stripped shell.
+
+**What Would Justify The Shell**
+
+- Better recovery after student confusion.
+- Better 24-hour and 7-day architecture recall.
+- Faster first validated safe change.
+- Better transfer to a sibling repo.
+- Faster author iteration from student data.
+- No increase in setup failures or maintenance burden.
+
+**Final Position**
+
+The likely winning form is not a full class shell. It is a repo-native teaching contract with thin telemetry and static reporting. The shell only survives if triggered cards and lesson-state tracking prove they add value beyond that thinner form.
+tokens used
+16 049
+
