@@ -1,0 +1,71 @@
+{
+  "overallScore": 8,
+  "expertScores": [
+    {
+      "expert": "Pragmatist",
+      "scores": {
+        "convergence": 9,
+        "depth": 8,
+        "feasibility": 7,
+        "dynamics": 8
+      },
+      "commentary": "The debate converged unusually well: it rejected the original embedding-only claim, named a fourth category, and produced concrete rollout gates, demotion triggers, and certificate requirements. The arguments were substantive and the agents corrected each other rather than merely restating positions. The plan is implementable in principle, but its feasibility depends heavily on extractor quality, ontology coverage, and enough family-level labels to make the gates meaningful.",
+      "bestIdea": "Recasting PF3 as family-by-family compiled-evidence replacement with a mandatory span-grounded certificate and blocking rollout gates.",
+      "weakness": "The final plan still assumes a difficult extraction and ontology layer can be built accurately enough across heterogeneous paper families."
+    },
+    {
+      "expert": "Devil's Advocate",
+      "scores": {
+        "convergence": 9,
+        "depth": 8,
+        "feasibility": 7,
+        "dynamics": 8
+      },
+      "commentary": "The debate converged cleanly by rejecting the original embedding-only claim and naming a fourth category with concrete gates, certificates, and rollback rules. The arguments were substantive, especially around abstention gaming, family-level rollout, and the distinction between retrieval value and verdict authority. The main concession came too easily at the end: the gates were declared sufficient without deeply testing label economics, ontology maintenance cost, or whether certificate validity actually predicts downstream trust.",
+      "bestIdea": "No certificate, no replacement, enforced family by family with demotion triggers.",
+      "weakness": "The final plan underexamines the cost and reliability of building and maintaining the extractor, ontology, typed rules, and adjudicated gold sets needed to make Motion 4 real."
+    },
+    {
+      "expert": "Architect",
+      "scores": {
+        "convergence": 9,
+        "depth": 8,
+        "feasibility": 7,
+        "dynamics": 8
+      },
+      "commentary": "The debate converged cleanly on rejecting raw embedding replacement and defining an amended compiled-evidence architecture with certificate contracts, rollout gates, and demotion triggers. The technical discussion was substantive, especially around span grounding, abstention gaming, family-level calibration, and audit rollback. Feasibility is credible but still depends on difficult ontology design, extraction quality, and enough per-family labeled support.",
+      "bestIdea": "Recasting PF3 as family-gated compiled-evidence replacement where typed, span-grounded certificates decide and embeddings only assist.",
+      "weakness": "The final plan relies on ambitious extraction and ontology accuracy targets that may be hard to meet in sparse or shifting families."
+    }
+  ],
+  "synthesis": {
+    "keyConclusions": [
+      "All three experts agree the debate converged strongly: raw embedding similarity does not replace shared-artefact reasoning, while Motion 4 is the actionable amended path.",
+      "The strongest output is the family-by-family compiled-evidence architecture: span-grounded certificates, typed rules, blocking rollout gates, abstention controls, and demotion triggers.",
+      "The plan is feasible in principle but only if extractor quality, ontology coverage, typed-rule maintenance, and per-family labeled support are strong enough to make the gates meaningful."
+    ],
+    "unresolvedDisagreements": [
+      "There is no score-level disagreement: all experts gave convergence 9, depth 8, feasibility 7, and dynamics 8. The main nuance is that Devil's Advocate is less satisfied that the gates were proven sufficient, emphasizing untested label economics, ontology maintenance cost, and whether certificate validity predicts real trust."
+    ],
+    "bestIdeas": [
+      "No certificate, no replacement, enforced family by family with rollback triggers.",
+      "Recasting PF3 as compiled-evidence replacement where embeddings assist discovery and retrieval, but typed span-grounded certificates decide verdicts."
+    ],
+    "weaknesses": [
+      "The plan assumes a difficult extractor and ontology layer can reach high accuracy across heterogeneous, sparse, or shifting families.",
+      "The debate underexamined the ongoing cost of maintaining typed rules, adjudicated gold sets, ontology coverage, and evidence certificates at production quality."
+    ],
+    "recommendation": "Proceed with Motion 4 as a gated pilot, not a global replacement claim. Treat extractor, ontology, and label economics as the first validation risks before retiring per-candidate drafting in any family."
+  },
+  "metadata": {
+    "topic": "# Motion\n\nA third pathfinder route built on dense embeddings (\"PF3\") can REPLACE the\npaper-vs-paper recourse to per-candidate agentic drafting that PF1 and PF2 both\ndepend on, without losing the share",
+    "rounds": 5,
+    "models": {
+      "A": "claude-opus-4-7",
+      "B": "gpt-5.5"
+    },
+    "moderatorEnabled": true,
+    "totalDebateSeconds": 455,
+    "totalPanelSeconds": 27
+  }
+}
