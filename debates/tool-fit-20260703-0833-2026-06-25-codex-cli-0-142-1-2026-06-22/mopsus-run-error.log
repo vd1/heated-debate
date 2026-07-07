@@ -1,0 +1,136 @@
+command: bun shelley.ts -f debates/tool-fit-20260703-0833-2026-06-25-codex-cli-0-142-1-2026-06-22/topic.md 5
+exit: 1
+
+stdout:
+PERIMENT=true`, then run one staged debate comparing transcript quality against the current mode.
+
+### Agent B · `gpt-5.5` · 21s
+
+Counterargument: the Mopsus proposal mistakes a Codex CLI default for a Mopsus feature. If tool search is already default when supported, changing Mopsus prompts to be thinner may not isolate the release change. It mostly tests whether Mopsus’ blackboard MCP descriptions are good enough. That is useful, but it is not clearly a pilot of the new Codex capability.
+
+Bigger risk: Mopsus is unattended and Telegram-facing. A failed discovery experiment degrades a live workflow with subtle failures: missing context, shallow debates, or false confidence. The “one staged debate” comparison is also too weak; debate quality is noisy and hard to attribute.
+
+I would pick a different pilot.
+
+1. **Tool worth piloting:** Claude Code stacked slash-skill invocations.
+2. **Project:** `/Users/v/Code_2026/heated-debate`.
+3. **Workflow/module to change:** `shelley.ts` topic execution, adding an optional Claude-only “skill prelude” for agent roles.
+4. **Smallest reversible experiment:** add a topic-local metadata line or sidecar such as `skills.txt` with:
+   ```text
+   agent_a=/skill-architect /skill-style-gates
+   agent_b=/skill-reviewer /skill-risk-analysis
+   ```
+   Then only the Claude backend prepends those leading slash-skill invocations. Codex receives the existing plain prompt. One debate transcript can compare Claude’s structured role loading against the current prose-only role framing.
+5. **Failure mode:** if stacked skills make Claude dominate the protocol, leak backend-specific assumptions into shared prompts, or produce less comparable transcripts, kill it and keep `heated-debate` backend-neutral.
+
+Recommendation: **No to Codex MCP discovery in Mopsus as the first pilot. Go with Claude stacked slash-skills in `heated-debate`.**
+
+Concrete next action: add an env-gated or topic-local `skills.txt` experiment in `heated-debate` for Claude-only stacked skill prefixes, then run one existing topic with and without the prefixes and compare transcript structure.
+
+---
+
+## Round 2/5 — Creative (4/5)
+
+### Agent A · `gpt-5.5` · 19s
+
+I accept the counterargument. The Mopsus idea is useful, but it is too indirect as a pilot of the Codex release item. It would mostly test MCP naming quality and prompt minimalism under noisy live conditions.
+
+The stronger pilot is:
+
+**Go: Claude stacked slash-skills in `heated-debate`.**
+
+Refinement: do not make this a general prompt feature yet. Make it a topic-local, Claude-only experiment that is fully visible in the transcript metadata.
+
+Concrete shape:
+
+- **Tool:** Claude Code stacked slash-skill invocation.
+- **Project:** `/Users/v/Code_2026/heated-debate`.
+- **Workflow/module:** `shelley.ts` prompt construction for Claude backends only.
+- **Experiment:** add optional `debates/<topic>/skills.txt`:
+  ```text
+  agent_a=/skill-a /skill-b
+  agent_b=/skill-c /skill-d
+  ```
+  If `MODEL_A` or `MODEL_B` starts with `claude:`, prepend that agent’s skill line before the normal task prompt. Codex gets unchanged prose.
+- **Reversibility:** one sidecar file plus one parser branch; delete the sidecar or unset an env flag to disable.
+- **Failure mode:** kill it if transcripts become backend-skewed, less comparable, or depend on private Claude skill state that is not captured in the repo.
+
+One improvement to your proposal: use a deliberately boring existing topic first, not a new complex one. The test should measure whether stacked skills improve role loading, not whether the topic happens to produce a better debate.
+
+**Recommendation:** no pilot for Codex MCP discovery in Mopsus. Pilot Claude stacked slash-skills in `heated-debate`.
+
+**Next action:** implement an env-gated `skills.txt` reader in `shelley.ts`, run one existing debate twice with Claude on one side, and compare transcript structure plus role consistency.
+
+### Agent B · `gpt-5.5` · 20s
+
+Agreed, with one important guardrail: first prove stacked slash-skills work in `heated-debate`’s actual headless path. If `shelley.ts` uses `claude -p`, Claude’s interactive slash-command behaviour may not apply the same way. That is the highest-risk assumption.
+
+**Go:** pilot Claude Code stacked slash-skills in `/Users/v/Code_2026/heated-debate`.
+
+Exact pilot:
+
+- **Tool:** Claude Code stacked slash-skill invocation.
+- **Project:** `heated-debate`.
+- **Workflow:** `shelley.ts` Claude backend prompt construction.
+- **Experiment:** topic-local `debates/<topic>/skills.txt`, read only when an explicit env flag is set, e.g. `HEATED_DEBATE_CLAUDE_SKILLS=1`.
+- **Transcript requirement:** record the resolved skill prefix in transcript metadata so the run is auditable.
+- **First topic:** an existing boring topic, preferably one already used for comparison.
+
+I would tighten the next action:
+
+1. Run a direct `claude -p` smoke test with a stacked skill prefix and confirm the skills actually load in non-interactive mode.
+2. Only if that works, add the env-gated `skills.txt` reader.
+3. Run one existing topic twice: baseline vs skill-prefixed Claude agent.
+
+Failure mode: if this depends on hidden local Claude skill state, does not work under `claude -p`, or makes transcripts backend-specific in a way the repo cannot explain from committed files, stop the pilot.
+
+Final recommendation: **Go, but only after the `claude -p` smoke test.** Concrete next action is the smoke test, not the parser branch yet.
+
+---
+
+## Round 3/5 — Balanced (3/5)
+
+### Agent A · `gpt-5.5` · 15s
+
+Agreed. The pilot is **go**, but the implementation is conditional.
+
+**Final recommendation:** pilot **Claude Code stacked slash-skills in `heated-debate`**, not Codex MCP discovery in Mopsus.
+
+The decisive open question is whether stacked slash-skill prefixes are honoured by `claude -p`, because `heated-debate` uses Claude headlessly. If that fails, the pilot stops before touching `shelley.ts`.
+
+**Concrete next action:**
+
+Run a direct non-interactive smoke test:
+
+```bash
+claude -p "/skill-a /skill-b Briefly state which skills loaded and what role instructions they contributed."
+```
+
+Use real local skill names that exist on this machine. If Claude confirms both leading skills are loaded in `-p` mode, then add the env-gated `debates/<topic>/skills.txt` reader to `shelley.ts`, record the resolved prefix in transcript metadata, and run baseline vs prefixed on one boring existing topic.
+
+**No-go condition:** if `claude -p` treats the slash prefixes as plain text, relies on hidden local skill state the transcript cannot explain, or makes Claude transcripts incomparable with Codex runs, do not implement the parser branch.
+
+### Agent B · `gpt-5.5` · 15s
+
+Go, conditionally.
+
+1. **Tool:** Claude Code stacked slash-skill invocation.
+2. **Project:** `/Users/v/Code_2026/heated-debate`.
+3. **Workflow:** `shelley.ts` Claude backend prompt construction, only for `MODEL_*` values starting with `claude:`.
+4. **Smallest reversible experiment:** first run a `claude -p` smoke test with two real installed skills. If that works, add an env-gated `debates/<topic>/skills.txt` reader and record the resolved prefix in transcript metadata.
+5. **Failure mode:** no pilot if `claude -p` treats slash-skills as plain text, depends on hidden local skill state, or makes Claude/Codex transcripts meaningfully incomparable.
+
+One refinement: do not trust “which skills loaded?” as the only smoke-test signal. Claude can self-report wrongly. Use two harmless real skills with visibly distinct behavioural constraints, then check whether both constraints affect the answer in `-p` mode.
+
+**Final recommendation:** pilot **Claude stacked slash-skills in `heated-debate`**. No Codex MCP discovery pilot in Mopsus.
+
+**Concrete next action:** run the non-interactive `claude -p` smoke test with real local skill names. Only after that passes should `shelley.ts` be touched.
+
+---
+
+## Round 4/5 — Focused (2/5)
+
+> **ERROR:** Agent A failed in round 4: Error: codex timed out after 420000ms
+
+stderr:
+
