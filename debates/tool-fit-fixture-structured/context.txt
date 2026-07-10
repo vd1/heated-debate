@@ -1,0 +1,3 @@
+debates/tool-fit-fixture-structured/fixtures.md
+debates/tool-fit-fixture-structured/rubric.md
+debates/tool-fit-fixture-structured/protocol.md

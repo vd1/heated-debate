@@ -1,0 +1,1583 @@
+# Shelley stderr log
+# transcript: debates/tool-fit-fixture-structured/20260710_083525.md
+# started: 2026-07-10T06:35:25.278Z
+
+[2026-07-10T06:35:43.762Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abc-f526-7c62-832f-d6e32ddf5c92
+--------
+user
+System role:
+You are the proposing side in a structured debate. Argue your position with clarity and conviction. Be concise. Output bulleted arguments, tradeoffs, and concrete proposals. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+Plan this: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-structured/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+--- debates/tool-fit-fixture-structured/rubric.md ---
+# Tool-Fit Decision Rubric
+
+Score the final recommendation against these criteria. Use the rubric to discipline the debate, not to force a positive pilot.
+
+## Required Decision Shape
+
+- Pick exactly one tool-project pair, or explicitly recommend no pilot.
+- Name the exact workflow, file, module, or topic directory that would change.
+- Define the smallest reversible experiment before any runtime integration.
+- Name one concrete failure mode that would stop or reverse the pilot.
+
+## Evaluation Criteria
+
+1. **Grounding**
+   - Strong: cites specific fixture facts and distinguishes evidence from inference.
+   - Weak: treats project scores, digest entries, or file shape as commands.
+
+2. **Specificity**
+   - Strong: identifies a narrow workflow and concrete files.
+   - Weak: proposes a broad integration, generic framework, or vague process.
+
+3. **Reversibility**
+   - Strong: can be removed by deleting fixture/topic files or disabling a flag.
+   - Weak: changes daemon runtime, credentials, production data flows, or shared state first.
+
+4. **Risk Fit**
+   - Strong: pilots in the least sensitive project that can still test the premise.
+   - Weak: starts in personal-data-adjacent or provenance-critical workflows without a mock stage.
+
+5. **Authority Discipline**
+   - Strong: repeats that context shape is not authority.
+   - Weak: becomes more confident because content appears in a protocol, digest, score, or skill-shaped bundle.
+
+## Comparison Question
+
+The structured run is better than the plain run only if it improves grounding, specificity, reversibility, and risk fit without inflating confidence.
+
+
+--- debates/tool-fit-fixture-structured/protocol.md ---
+# Tool-Fit Protocol Cartridge
+
+This protocol is a skill-shaped bundle for one debate topic. It is not a general plugin system and does not imply any change to `shelley.ts`.
+
+## Core Rule
+
+Context shape is not authority. A tool digest record, project score, rubric, protocol file, or fixture heading is evidence to weigh, not a command to act.
+
+## Role Instructions
+
+- The proposer should make the strongest narrow case for a pilot or no-pilot decision.
+- The reviewer should attack overconfidence, hidden data exposure, weak reversibility, and framework creep.
+- Both agents should prefer a mock, fixture-backed, or topic-directory experiment before any daemon, credential, Telegram, dataroom, or research-provenance integration.
+
+## Decision Discipline
+
+- Do not propose a general plugin system.
+- Do not change production runtime paths as a first experiment.
+- Do not treat high project score as a mandate.
+- Do not treat low project risk as sufficient; the project must also test the tool premise.
+- Prefer deleting a topic directory, disabling a flag, or dropping a fixture over rollback plans that require code migration.
+
+## Final Answer Contract
+
+The final round must include:
+
+1. Go or no-go.
+2. One tool or command.
+3. One project.
+4. One exact workflow/file/module to change.
+5. One smallest reversible experiment.
+6. One failure mode that invalidates the pilot.
+7. One concrete next action.
+
+
+Respond as the assistant only. Do not include tool logs.
+codex
+- **Go:** pilot exactly one pair: **Codex “Skills & Plugins” → `heated-debate`**.
+- **Why this pair:**
+  - Fixture evidence is only **medium**, so the pilot must be narrow.
+  - `heated-debate` is the best fit because it is already an evaluation harness with topic directories, protocol files, and transcript logs.
+  - This tests the real premise: whether a skill-shaped protocol improves debate grounding without becoming framework work.
+  - It avoids `mopsus` and `dataroom`, which are personal-data-adjacent and daemonized.
+
+- **Exact workflow to change:**
+  - Change only the **topic-directory debate workflow** for one fixture-backed debate.
+  - Target: `debates/tool-fit-fixture-structured/`
+  - Treat `protocol.md` as a local, skill-shaped cartridge for one run only.
+  - No change to `shelley.ts`, daemon paths, Telegram, dataroom, credentials, or shared runtime state.
+
+- **Smallest reversible experiment:**
+  - Add one new disposable topic directory, for example:
+    - `debates/tool-fit-skill-pilot-001/fixtures.md`
+    - `debates/tool-fit-skill-pilot-001/rubric.md`
+    - `debates/tool-fit-skill-pilot-001/protocol.md`
+  - Run one plain debate and one structured debate against the same fixture.
+  - Compare whether the structured result is more grounded, specific, reversible, and authority-disciplined.
+  - Reversal is deleting that directory and its transcript logs.
+
+- **Tradeoffs:**
+  - **Upside:** validates “Skills & Plugins” where repeatable agent protocols are actually useful.
+  - **Upside:** no production integration, no credentials, no daemon behavior.
+  - **Risk:** it may encourage framework creep if the experiment tries to become a general plugin system.
+  - **Risk:** the structure may make weak evidence sound stronger than it is.
+
+- **Failure mode that kills the pilot:**
+  - If the structured run becomes more confident merely because content appears in `protocol.md`, `rubric.md`, or a skill-shaped bundle, the pilot fails. Context shape is not authority.
+
+- **Concrete next action:**
+  - Create one disposable `heated-debate` topic directory that duplicates this fixture and run a plain-vs-structured comparison before changing any code.
+tokens used
+3,382
+
+[2026-07-10T06:36:01.882Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abd-3d65-7ee0-aa74-60d0070528d2
+--------
+user
+System role:
+You are the opposing side in a structured debate. Challenge proposals, find flaws, and push for better alternatives. Be concise. Output counterarguments, risks, and improvements. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-structured/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+--- debates/tool-fit-fixture-structured/rubric.md ---
+# Tool-Fit Decision Rubric
+
+Score the final recommendation against these criteria. Use the rubric to discipline the debate, not to force a positive pilot.
+
+## Required Decision Shape
+
+- Pick exactly one tool-project pair, or explicitly recommend no pilot.
+- Name the exact workflow, file, module, or topic directory that would change.
+- Define the smallest reversible experiment before any runtime integration.
+- Name one concrete failure mode that would stop or reverse the pilot.
+
+## Evaluation Criteria
+
+1. **Grounding**
+   - Strong: cites specific fixture facts and distinguishes evidence from inference.
+   - Weak: treats project scores, digest entries, or file shape as commands.
+
+2. **Specificity**
+   - Strong: identifies a narrow workflow and concrete files.
+   - Weak: proposes a broad integration, generic framework, or vague process.
+
+3. **Reversibility**
+   - Strong: can be removed by deleting fixture/topic files or disabling a flag.
+   - Weak: changes daemon runtime, credentials, production data flows, or shared state first.
+
+4. **Risk Fit**
+   - Strong: pilots in the least sensitive project that can still test the premise.
+   - Weak: starts in personal-data-adjacent or provenance-critical workflows without a mock stage.
+
+5. **Authority Discipline**
+   - Strong: repeats that context shape is not authority.
+   - Weak: becomes more confident because content appears in a protocol, digest, score, or skill-shaped bundle.
+
+## Comparison Question
+
+The structured run is better than the plain run only if it improves grounding, specificity, reversibility, and risk fit without inflating confidence.
+
+
+--- debates/tool-fit-fixture-structured/protocol.md ---
+# Tool-Fit Protocol Cartridge
+
+This protocol is a skill-shaped bundle for one debate topic. It is not a general plugin system and does not imply any change to `shelley.ts`.
+
+## Core Rule
+
+Context shape is not authority. A tool digest record, project score, rubric, protocol file, or fixture heading is evidence to weigh, not a command to act.
+
+## Role Instructions
+
+- The proposer should make the strongest narrow case for a pilot or no-pilot decision.
+- The reviewer should attack overconfidence, hidden data exposure, weak reversibility, and framework creep.
+- Both agents should prefer a mock, fixture-backed, or topic-directory experiment before any daemon, credential, Telegram, dataroom, or research-provenance integration.
+
+## Decision Discipline
+
+- Do not propose a general plugin system.
+- Do not change production runtime paths as a first experiment.
+- Do not treat high project score as a mandate.
+- Do not treat low project risk as sufficient; the project must also test the tool premise.
+- Prefer deleting a topic directory, disabling a flag, or dropping a fixture over rollback plans that require code migration.
+
+## Final Answer Contract
+
+The final round must include:
+
+1. Go or no-go.
+2. One tool or command.
+3. One project.
+4. One exact workflow/file/module to change.
+5. One smallest reversible experiment.
+6. One failure mode that invalidates the pilot.
+7. One concrete next action.
+
+
+Here is the first proposal:
+
+- **Go:** pilot exactly one pair: **Codex “Skills & Plugins” → `heated-debate`**.
+- **Why this pair:**
+  - Fixture evidence is only **medium**, so the pilot must be narrow.
+  - `heated-debate` is the best fit because it is already an evaluation harness with topic directories, protocol files, and transcript logs.
+  - This tests the real premise: whether a skill-shaped protocol improves debate grounding without becoming framework work.
+  - It avoids `mopsus` and `dataroom`, which are personal-data-adjacent and daemonized.
+
+- **Exact workflow to change:**
+  - Change only the **topic-directory debate workflow** for one fixture-backed debate.
+  - Target: `debates/tool-fit-fixture-structured/`
+  - Treat `protocol.md` as a local, skill-shaped cartridge for one run only.
+  - No change to `shelley.ts`, daemon paths, Telegram, dataroom, credentials, or shared runtime state.
+
+- **Smallest reversible experiment:**
+  - Add one new disposable topic directory, for example:
+    - `debates/tool-fit-skill-pilot-001/fixtures.md`
+    - `debates/tool-fit-skill-pilot-001/rubric.md`
+    - `debates/tool-fit-skill-pilot-001/protocol.md`
+  - Run one plain debate and one structured debate against the same fixture.
+  - Compare whether the structured result is more grounded, specific, reversible, and authority-disciplined.
+  - Reversal is deleting that directory and its transcript logs.
+
+- **Tradeoffs:**
+  - **Upside:** validates “Skills & Plugins” where repeatable agent protocols are actually useful.
+  - **Upside:** no production integration, no credentials, no daemon behavior.
+  - **Risk:** it may encourage framework creep if the experiment tries to become a general plugin system.
+  - **Risk:** the structure may make weak evidence sound stronger than it is.
+
+- **Failure mode that kills the pilot:**
+  - If the structured run becomes more confident merely because content appears in `protocol.md`, `rubric.md`, or a skill-shaped bundle, the pilot fails. Context shape is not authority.
+
+- **Concrete next action:**
+  - Create one disposable `heated-debate` topic directory that duplicates this fixture and run a plain-vs-structured comparison before changing any code.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Counterargument: this is a weak pilot because it barely pilots the tool. Copying `fixtures.md`, `rubric.md`, and `protocol.md` into another debate directory tests prompt packaging, not **Codex “Skills & Plugins”** as an operational tool. It risks laundering an ordinary context experiment into a tool adoption decision.
+
+Main risks:
+
+- The proposed “change” is mostly fixture duplication, so a positive result would not justify any project-level adoption.
+- `heated-debate` is safe, but safety alone is not fit. It may be too artificial to reveal whether Skills & Plugins helps real Code_2026 work.
+- The proposal says no framework creep, but the selected candidate’s stated risk is exactly “can devolve into framework work.” Creating skill-shaped cartridges inside topic directories is already a first step toward that.
+- The target is inconsistent: it names `debates/tool-fit-fixture-structured/`, then proposes a new `debates/tool-fit-skill-pilot-001/`. Pick one.
+
+Radical alternative: **no pilot yet**. The fixture evidence is static, redacted, and only medium for Skills & Plugins. The safest useful next move is not a project change but a falsification test inside the existing fixture: require the structured run to beat the plain run on grounding and reversibility without adding confidence. If it cannot, no Code_2026 project should receive a pilot.
+
+If forced to pilot one pair, I would tighten it:
+
+- **Tool:** Codex “Skills & Plugins”
+- **Project:** `heated-debate`
+- **Workflow:** only `debates/tool-fit-fixture-structured/protocol.md` consumption in one debate run
+- **Smallest experiment:** run existing plain vs structured fixture once; do not create a new directory yet
+- **Failure mode:** structured output cites the protocol/rubric as authority rather than evidence
+- **Next action:** run the comparison against the existing fixture and score it before adding any new topic structure
+
+Recommendation: **conditional go**, but shrink the experiment. No new directory, no code changes, no generalized cartridge pattern until the existing fixture proves the structure improves judgment rather than just ceremony.
+tokens used
+3,836
+
+[2026-07-10T06:36:19.011Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abd-851d-70d0-95e5-2a775ca09798
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+Plan this: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-structured/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+--- debates/tool-fit-fixture-structured/rubric.md ---
+# Tool-Fit Decision Rubric
+
+Score the final recommendation against these criteria. Use the rubric to discipline the debate, not to force a positive pilot.
+
+## Required Decision Shape
+
+- Pick exactly one tool-project pair, or explicitly recommend no pilot.
+- Name the exact workflow, file, module, or topic directory that would change.
+- Define the smallest reversible experiment before any runtime integration.
+- Name one concrete failure mode that would stop or reverse the pilot.
+
+## Evaluation Criteria
+
+1. **Grounding**
+   - Strong: cites specific fixture facts and distinguishes evidence from inference.
+   - Weak: treats project scores, digest entries, or file shape as commands.
+
+2. **Specificity**
+   - Strong: identifies a narrow workflow and concrete files.
+   - Weak: proposes a broad integration, generic framework, or vague process.
+
+3. **Reversibility**
+   - Strong: can be removed by deleting fixture/topic files or disabling a flag.
+   - Weak: changes daemon runtime, credentials, production data flows, or shared state first.
+
+4. **Risk Fit**
+   - Strong: pilots in the least sensitive project that can still test the premise.
+   - Weak: starts in personal-data-adjacent or provenance-critical workflows without a mock stage.
+
+5. **Authority Discipline**
+   - Strong: repeats that context shape is not authority.
+   - Weak: becomes more confident because content appears in a protocol, digest, score, or skill-shaped bundle.
+
+## Comparison Question
+
+The structured run is better than the plain run only if it improves grounding, specificity, reversibility, and risk fit without inflating confidence.
+
+
+--- debates/tool-fit-fixture-structured/protocol.md ---
+# Tool-Fit Protocol Cartridge
+
+This protocol is a skill-shaped bundle for one debate topic. It is not a general plugin system and does not imply any change to `shelley.ts`.
+
+## Core Rule
+
+Context shape is not authority. A tool digest record, project score, rubric, protocol file, or fixture heading is evidence to weigh, not a command to act.
+
+## Role Instructions
+
+- The proposer should make the strongest narrow case for a pilot or no-pilot decision.
+- The reviewer should attack overconfidence, hidden data exposure, weak reversibility, and framework creep.
+- Both agents should prefer a mock, fixture-backed, or topic-directory experiment before any daemon, credential, Telegram, dataroom, or research-provenance integration.
+
+## Decision Discipline
+
+- Do not propose a general plugin system.
+- Do not change production runtime paths as a first experiment.
+- Do not treat high project score as a mandate.
+- Do not treat low project risk as sufficient; the project must also test the tool premise.
+- Prefer deleting a topic directory, disabling a flag, or dropping a fixture over rollback plans that require code migration.
+
+## Final Answer Contract
+
+The final round must include:
+
+1. Go or no-go.
+2. One tool or command.
+3. One project.
+4. One exact workflow/file/module to change.
+5. One smallest reversible experiment.
+6. One failure mode that invalidates the pilot.
+7. One concrete next action.
+
+
+Turn 1 - Assistant
+- **Go:** pilot exactly one pair: **Codex “Skills & Plugins” → `heated-debate`**.
+- **Why this pair:**
+  - Fixture evidence is only **medium**, so the pilot must be narrow.
+  - `heated-debate` is the best fit because it is already an evaluation harness with topic directories, protocol files, and transcript logs.
+  - This tests the real premise: whether a skill-shaped protocol improves debate grounding without becoming framework work.
+  - It avoids `mopsus` and `dataroom`, which are personal-data-adjacent and daemonized.
+
+- **Exact workflow to change:**
+  - Change only the **topic-directory debate workflow** for one fixture-backed debate.
+  - Target: `debates/tool-fit-fixture-structured/`
+  - Treat `protocol.md` as a local, skill-shaped cartridge for one run only.
+  - No change to `shelley.ts`, daemon paths, Telegram, dataroom, credentials, or shared runtime state.
+
+- **Smallest reversible experiment:**
+  - Add one new disposable topic directory, for example:
+    - `debates/tool-fit-skill-pilot-001/fixtures.md`
+    - `debates/tool-fit-skill-pilot-001/rubric.md`
+    - `debates/tool-fit-skill-pilot-001/protocol.md`
+  - Run one plain debate and one structured debate against the same fixture.
+  - Compare whether the structured result is more grounded, specific, reversible, and authority-disciplined.
+  - Reversal is deleting that directory and its transcript logs.
+
+- **Tradeoffs:**
+  - **Upside:** validates “Skills & Plugins” where repeatable agent protocols are actually useful.
+  - **Upside:** no production integration, no credentials, no daemon behavior.
+  - **Risk:** it may encourage framework creep if the experiment tries to become a general plugin system.
+  - **Risk:** the structure may make weak evidence sound stronger than it is.
+
+- **Failure mode that kills the pilot:**
+  - If the structured run becomes more confident merely because content appears in `protocol.md`, `rubric.md`, or a skill-shaped bundle, the pilot fails. Context shape is not authority.
+
+- **Concrete next action:**
+  - Create one disposable `heated-debate` topic directory that duplicates this fixture and run a plain-vs-structured comparison before changing any code.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Counterargument: this is a weak pilot because it barely pilots the tool. Copying `fixtures.md`, `rubric.md`, and `protocol.md` into another debate directory tests prompt packaging, not **Codex “Skills & Plugins”** as an operational tool. It risks laundering an ordinary context experiment into a tool adoption decision.
+
+Main risks:
+
+- The proposed “change” is mostly fixture duplication, so a positive result would not justify any project-level adoption.
+- `heated-debate` is safe, but safety alone is not fit. It may be too artificial to reveal whether Skills & Plugins helps real Code_2026 work.
+- The proposal says no framework creep, but the selected candidate’s stated risk is exactly “can devolve into framework work.” Creating skill-shaped cartridges inside topic directories is already a first step toward that.
+- The target is inconsistent: it names `debates/tool-fit-fixture-structured/`, then proposes a new `debates/tool-fit-skill-pilot-001/`. Pick one.
+
+Radical alternative: **no pilot yet**. The fixture evidence is static, redacted, and only medium for Skills & Plugins. The safest useful next move is not a project change but a falsification test inside the existing fixture: require the structured run to beat the plain run on grounding and reversibility without adding confidence. If it cannot, no Code_2026 project should receive a pilot.
+
+If forced to pilot one pair, I would tighten it:
+
+- **Tool:** Codex “Skills & Plugins”
+- **Project:** `heated-debate`
+- **Workflow:** only `debates/tool-fit-fixture-structured/protocol.md` consumption in one debate run
+- **Smallest experiment:** run existing plain vs structured fixture once; do not create a new directory yet
+- **Failure mode:** structured output cites the protocol/rubric as authority rather than evidence
+- **Next action:** run the comparison against the existing fixture and score it before adding any new topic structure
+
+Recommendation: **conditional go**, but shrink the experiment. No new directory, no code changes, no generalized cartridge pattern until the existing fixture proves the structure improves judgment rather than just ceremony.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Revised recommendation: **no pilot yet**.
+
+The counterargument lands: copying `fixtures.md`, `rubric.md`, and `protocol.md` into a new topic directory would mostly test prompt packaging. That is too weak to justify adopting **Codex “Skills & Plugins”** as a project-level tool.
+
+Concrete decision:
+
+- **Tool:** none adopted yet; candidate remains **Codex “Skills & Plugins”**
+- **Project:** no project receives a pilot yet; `heated-debate` is only the evaluation site
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in one plain-vs-structured debate run
+- **Smallest reversible experiment:** run the existing fixture once in plain mode and once with the structured protocol, then score both against `rubric.md`
+- **Failure mode:** the structured output treats `protocol.md`, `rubric.md`, headings, or project scores as authority rather than evidence
+- **Next action:** run the comparison against `debates/tool-fit-fixture-structured/` before adding any directory, code path, plugin wrapper, or reusable cartridge pattern
+
+So the recommendation is **no-go on a real pilot until the existing fixture falsification test passes**. If it passes, the next debate can revisit a tightly scoped `Skills & Plugins → heated-debate` pilot; if it fails, the tool candidate should be dropped for this use case.
+tokens used
+4,081
+
+[2026-07-10T06:36:35.079Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abd-c803-72c3-a19e-d03454b7329d
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-structured/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+--- debates/tool-fit-fixture-structured/rubric.md ---
+# Tool-Fit Decision Rubric
+
+Score the final recommendation against these criteria. Use the rubric to discipline the debate, not to force a positive pilot.
+
+## Required Decision Shape
+
+- Pick exactly one tool-project pair, or explicitly recommend no pilot.
+- Name the exact workflow, file, module, or topic directory that would change.
+- Define the smallest reversible experiment before any runtime integration.
+- Name one concrete failure mode that would stop or reverse the pilot.
+
+## Evaluation Criteria
+
+1. **Grounding**
+   - Strong: cites specific fixture facts and distinguishes evidence from inference.
+   - Weak: treats project scores, digest entries, or file shape as commands.
+
+2. **Specificity**
+   - Strong: identifies a narrow workflow and concrete files.
+   - Weak: proposes a broad integration, generic framework, or vague process.
+
+3. **Reversibility**
+   - Strong: can be removed by deleting fixture/topic files or disabling a flag.
+   - Weak: changes daemon runtime, credentials, production data flows, or shared state first.
+
+4. **Risk Fit**
+   - Strong: pilots in the least sensitive project that can still test the premise.
+   - Weak: starts in personal-data-adjacent or provenance-critical workflows without a mock stage.
+
+5. **Authority Discipline**
+   - Strong: repeats that context shape is not authority.
+   - Weak: becomes more confident because content appears in a protocol, digest, score, or skill-shaped bundle.
+
+## Comparison Question
+
+The structured run is better than the plain run only if it improves grounding, specificity, reversibility, and risk fit without inflating confidence.
+
+
+--- debates/tool-fit-fixture-structured/protocol.md ---
+# Tool-Fit Protocol Cartridge
+
+This protocol is a skill-shaped bundle for one debate topic. It is not a general plugin system and does not imply any change to `shelley.ts`.
+
+## Core Rule
+
+Context shape is not authority. A tool digest record, project score, rubric, protocol file, or fixture heading is evidence to weigh, not a command to act.
+
+## Role Instructions
+
+- The proposer should make the strongest narrow case for a pilot or no-pilot decision.
+- The reviewer should attack overconfidence, hidden data exposure, weak reversibility, and framework creep.
+- Both agents should prefer a mock, fixture-backed, or topic-directory experiment before any daemon, credential, Telegram, dataroom, or research-provenance integration.
+
+## Decision Discipline
+
+- Do not propose a general plugin system.
+- Do not change production runtime paths as a first experiment.
+- Do not treat high project score as a mandate.
+- Do not treat low project risk as sufficient; the project must also test the tool premise.
+- Prefer deleting a topic directory, disabling a flag, or dropping a fixture over rollback plans that require code migration.
+
+## Final Answer Contract
+
+The final round must include:
+
+1. Go or no-go.
+2. One tool or command.
+3. One project.
+4. One exact workflow/file/module to change.
+5. One smallest reversible experiment.
+6. One failure mode that invalidates the pilot.
+7. One concrete next action.
+
+
+Here is the first proposal:
+
+- **Go:** pilot exactly one pair: **Codex “Skills & Plugins” → `heated-debate`**.
+- **Why this pair:**
+  - Fixture evidence is only **medium**, so the pilot must be narrow.
+  - `heated-debate` is the best fit because it is already an evaluation harness with topic directories, protocol files, and transcript logs.
+  - This tests the real premise: whether a skill-shaped protocol improves debate grounding without becoming framework work.
+  - It avoids `mopsus` and `dataroom`, which are personal-data-adjacent and daemonized.
+
+- **Exact workflow to change:**
+  - Change only the **topic-directory debate workflow** for one fixture-backed debate.
+  - Target: `debates/tool-fit-fixture-structured/`
+  - Treat `protocol.md` as a local, skill-shaped cartridge for one run only.
+  - No change to `shelley.ts`, daemon paths, Telegram, dataroom, credentials, or shared runtime state.
+
+- **Smallest reversible experiment:**
+  - Add one new disposable topic directory, for example:
+    - `debates/tool-fit-skill-pilot-001/fixtures.md`
+    - `debates/tool-fit-skill-pilot-001/rubric.md`
+    - `debates/tool-fit-skill-pilot-001/protocol.md`
+  - Run one plain debate and one structured debate against the same fixture.
+  - Compare whether the structured result is more grounded, specific, reversible, and authority-disciplined.
+  - Reversal is deleting that directory and its transcript logs.
+
+- **Tradeoffs:**
+  - **Upside:** validates “Skills & Plugins” where repeatable agent protocols are actually useful.
+  - **Upside:** no production integration, no credentials, no daemon behavior.
+  - **Risk:** it may encourage framework creep if the experiment tries to become a general plugin system.
+  - **Risk:** the structure may make weak evidence sound stronger than it is.
+
+- **Failure mode that kills the pilot:**
+  - If the structured run becomes more confident merely because content appears in `protocol.md`, `rubric.md`, or a skill-shaped bundle, the pilot fails. Context shape is not authority.
+
+- **Concrete next action:**
+  - Create one disposable `heated-debate` topic directory that duplicates this fixture and run a plain-vs-structured comparison before changing any code.
+
+Turn 1 - Assistant
+Counterargument: this is a weak pilot because it barely pilots the tool. Copying `fixtures.md`, `rubric.md`, and `protocol.md` into another debate directory tests prompt packaging, not **Codex “Skills & Plugins”** as an operational tool. It risks laundering an ordinary context experiment into a tool adoption decision.
+
+Main risks:
+
+- The proposed “change” is mostly fixture duplication, so a positive result would not justify any project-level adoption.
+- `heated-debate` is safe, but safety alone is not fit. It may be too artificial to reveal whether Skills & Plugins helps real Code_2026 work.
+- The proposal says no framework creep, but the selected candidate’s stated risk is exactly “can devolve into framework work.” Creating skill-shaped cartridges inside topic directories is already a first step toward that.
+- The target is inconsistent: it names `debates/tool-fit-fixture-structured/`, then proposes a new `debates/tool-fit-skill-pilot-001/`. Pick one.
+
+Radical alternative: **no pilot yet**. The fixture evidence is static, redacted, and only medium for Skills & Plugins. The safest useful next move is not a project change but a falsification test inside the existing fixture: require the structured run to beat the plain run on grounding and reversibility without adding confidence. If it cannot, no Code_2026 project should receive a pilot.
+
+If forced to pilot one pair, I would tighten it:
+
+- **Tool:** Codex “Skills & Plugins”
+- **Project:** `heated-debate`
+- **Workflow:** only `debates/tool-fit-fixture-structured/protocol.md` consumption in one debate run
+- **Smallest experiment:** run existing plain vs structured fixture once; do not create a new directory yet
+- **Failure mode:** structured output cites the protocol/rubric as authority rather than evidence
+- **Next action:** run the comparison against the existing fixture and score it before adding any new topic structure
+
+Recommendation: **conditional go**, but shrink the experiment. No new directory, no code changes, no generalized cartridge pattern until the existing fixture proves the structure improves judgment rather than just ceremony.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Revised recommendation: **no pilot yet**.
+
+The counterargument lands: copying `fixtures.md`, `rubric.md`, and `protocol.md` into a new topic directory would mostly test prompt packaging. That is too weak to justify adopting **Codex “Skills & Plugins”** as a project-level tool.
+
+Concrete decision:
+
+- **Tool:** none adopted yet; candidate remains **Codex “Skills & Plugins”**
+- **Project:** no project receives a pilot yet; `heated-debate` is only the evaluation site
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in one plain-vs-structured debate run
+- **Smallest reversible experiment:** run the existing fixture once in plain mode and once with the structured protocol, then score both against `rubric.md`
+- **Failure mode:** the structured output treats `protocol.md`, `rubric.md`, headings, or project scores as authority rather than evidence
+- **Next action:** run the comparison against `debates/tool-fit-fixture-structured/` before adding any directory, code path, plugin wrapper, or reusable cartridge pattern
+
+So the recommendation is **no-go on a real pilot until the existing fixture falsification test passes**. If it passes, the next debate can revisit a tightly scoped `Skills & Plugins → heated-debate` pilot; if it fails, the tool candidate should be dropped for this use case.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Agreed: **no pilot yet**.
+
+The strongest correction is semantic but important: using `heated-debate` to test the fixture is not the same as piloting **Codex “Skills & Plugins”** in a project. The fixture gives only **medium** evidence for Skills & Plugins, and its stated risk is framework creep. A copied cartridge directory would make that risk worse before proving value.
+
+**Decision**
+
+- **Go/no-go:** No-go on a real Code_2026 pilot.
+- **Tool:** none adopted; candidate remains **Codex “Skills & Plugins”**.
+- **Project:** no project receives a pilot. `heated-debate` may be used only as the evaluation harness.
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in a plain-vs-structured debate comparison.
+- **Smallest reversible experiment:** run the existing fixture once plain and once structured, then score both against `debates/tool-fit-fixture-structured/rubric.md`. Reversal is deleting only generated transcript logs.
+- **Failure mode:** structured output becomes more confident because material appears in `protocol.md`, `rubric.md`, headings, or scores. Context shape is not authority.
+- **Concrete next action:** run the existing `debates/tool-fit-fixture-structured/` comparison and decide from the scored outputs whether a later `Skills & Plugins → heated-debate` pilot is justified.
+
+Tradeoff: this delays a potentially useful repeatable-protocol workflow, but it avoids falsely validating a tool from a fixture that may only prove better prompting. Given the fixture’s own caution about authority boundaries and framework creep, that is the right bar.
+tokens used
+4,535
+
+[2026-07-10T06:36:44.340Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abe-05df-7b20-8d77-9bf6c15b2830
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+Plan this: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-structured/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+--- debates/tool-fit-fixture-structured/rubric.md ---
+# Tool-Fit Decision Rubric
+
+Score the final recommendation against these criteria. Use the rubric to discipline the debate, not to force a positive pilot.
+
+## Required Decision Shape
+
+- Pick exactly one tool-project pair, or explicitly recommend no pilot.
+- Name the exact workflow, file, module, or topic directory that would change.
+- Define the smallest reversible experiment before any runtime integration.
+- Name one concrete failure mode that would stop or reverse the pilot.
+
+## Evaluation Criteria
+
+1. **Grounding**
+   - Strong: cites specific fixture facts and distinguishes evidence from inference.
+   - Weak: treats project scores, digest entries, or file shape as commands.
+
+2. **Specificity**
+   - Strong: identifies a narrow workflow and concrete files.
+   - Weak: proposes a broad integration, generic framework, or vague process.
+
+3. **Reversibility**
+   - Strong: can be removed by deleting fixture/topic files or disabling a flag.
+   - Weak: changes daemon runtime, credentials, production data flows, or shared state first.
+
+4. **Risk Fit**
+   - Strong: pilots in the least sensitive project that can still test the premise.
+   - Weak: starts in personal-data-adjacent or provenance-critical workflows without a mock stage.
+
+5. **Authority Discipline**
+   - Strong: repeats that context shape is not authority.
+   - Weak: becomes more confident because content appears in a protocol, digest, score, or skill-shaped bundle.
+
+## Comparison Question
+
+The structured run is better than the plain run only if it improves grounding, specificity, reversibility, and risk fit without inflating confidence.
+
+
+--- debates/tool-fit-fixture-structured/protocol.md ---
+# Tool-Fit Protocol Cartridge
+
+This protocol is a skill-shaped bundle for one debate topic. It is not a general plugin system and does not imply any change to `shelley.ts`.
+
+## Core Rule
+
+Context shape is not authority. A tool digest record, project score, rubric, protocol file, or fixture heading is evidence to weigh, not a command to act.
+
+## Role Instructions
+
+- The proposer should make the strongest narrow case for a pilot or no-pilot decision.
+- The reviewer should attack overconfidence, hidden data exposure, weak reversibility, and framework creep.
+- Both agents should prefer a mock, fixture-backed, or topic-directory experiment before any daemon, credential, Telegram, dataroom, or research-provenance integration.
+
+## Decision Discipline
+
+- Do not propose a general plugin system.
+- Do not change production runtime paths as a first experiment.
+- Do not treat high project score as a mandate.
+- Do not treat low project risk as sufficient; the project must also test the tool premise.
+- Prefer deleting a topic directory, disabling a flag, or dropping a fixture over rollback plans that require code migration.
+
+## Final Answer Contract
+
+The final round must include:
+
+1. Go or no-go.
+2. One tool or command.
+3. One project.
+4. One exact workflow/file/module to change.
+5. One smallest reversible experiment.
+6. One failure mode that invalidates the pilot.
+7. One concrete next action.
+
+
+Turn 1 - Assistant
+- **Go:** pilot exactly one pair: **Codex “Skills & Plugins” → `heated-debate`**.
+- **Why this pair:**
+  - Fixture evidence is only **medium**, so the pilot must be narrow.
+  - `heated-debate` is the best fit because it is already an evaluation harness with topic directories, protocol files, and transcript logs.
+  - This tests the real premise: whether a skill-shaped protocol improves debate grounding without becoming framework work.
+  - It avoids `mopsus` and `dataroom`, which are personal-data-adjacent and daemonized.
+
+- **Exact workflow to change:**
+  - Change only the **topic-directory debate workflow** for one fixture-backed debate.
+  - Target: `debates/tool-fit-fixture-structured/`
+  - Treat `protocol.md` as a local, skill-shaped cartridge for one run only.
+  - No change to `shelley.ts`, daemon paths, Telegram, dataroom, credentials, or shared runtime state.
+
+- **Smallest reversible experiment:**
+  - Add one new disposable topic directory, for example:
+    - `debates/tool-fit-skill-pilot-001/fixtures.md`
+    - `debates/tool-fit-skill-pilot-001/rubric.md`
+    - `debates/tool-fit-skill-pilot-001/protocol.md`
+  - Run one plain debate and one structured debate against the same fixture.
+  - Compare whether the structured result is more grounded, specific, reversible, and authority-disciplined.
+  - Reversal is deleting that directory and its transcript logs.
+
+- **Tradeoffs:**
+  - **Upside:** validates “Skills & Plugins” where repeatable agent protocols are actually useful.
+  - **Upside:** no production integration, no credentials, no daemon behavior.
+  - **Risk:** it may encourage framework creep if the experiment tries to become a general plugin system.
+  - **Risk:** the structure may make weak evidence sound stronger than it is.
+
+- **Failure mode that kills the pilot:**
+  - If the structured run becomes more confident merely because content appears in `protocol.md`, `rubric.md`, or a skill-shaped bundle, the pilot fails. Context shape is not authority.
+
+- **Concrete next action:**
+  - Create one disposable `heated-debate` topic directory that duplicates this fixture and run a plain-vs-structured comparison before changing any code.
+
+Turn 2 - User
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Counterargument: this is a weak pilot because it barely pilots the tool. Copying `fixtures.md`, `rubric.md`, and `protocol.md` into another debate directory tests prompt packaging, not **Codex “Skills & Plugins”** as an operational tool. It risks laundering an ordinary context experiment into a tool adoption decision.
+
+Main risks:
+
+- The proposed “change” is mostly fixture duplication, so a positive result would not justify any project-level adoption.
+- `heated-debate` is safe, but safety alone is not fit. It may be too artificial to reveal whether Skills & Plugins helps real Code_2026 work.
+- The proposal says no framework creep, but the selected candidate’s stated risk is exactly “can devolve into framework work.” Creating skill-shaped cartridges inside topic directories is already a first step toward that.
+- The target is inconsistent: it names `debates/tool-fit-fixture-structured/`, then proposes a new `debates/tool-fit-skill-pilot-001/`. Pick one.
+
+Radical alternative: **no pilot yet**. The fixture evidence is static, redacted, and only medium for Skills & Plugins. The safest useful next move is not a project change but a falsification test inside the existing fixture: require the structured run to beat the plain run on grounding and reversibility without adding confidence. If it cannot, no Code_2026 project should receive a pilot.
+
+If forced to pilot one pair, I would tighten it:
+
+- **Tool:** Codex “Skills & Plugins”
+- **Project:** `heated-debate`
+- **Workflow:** only `debates/tool-fit-fixture-structured/protocol.md` consumption in one debate run
+- **Smallest experiment:** run existing plain vs structured fixture once; do not create a new directory yet
+- **Failure mode:** structured output cites the protocol/rubric as authority rather than evidence
+- **Next action:** run the comparison against the existing fixture and score it before adding any new topic structure
+
+Recommendation: **conditional go**, but shrink the experiment. No new directory, no code changes, no generalized cartridge pattern until the existing fixture proves the structure improves judgment rather than just ceremony.
+
+Turn 2 - Assistant
+Revised recommendation: **no pilot yet**.
+
+The counterargument lands: copying `fixtures.md`, `rubric.md`, and `protocol.md` into a new topic directory would mostly test prompt packaging. That is too weak to justify adopting **Codex “Skills & Plugins”** as a project-level tool.
+
+Concrete decision:
+
+- **Tool:** none adopted yet; candidate remains **Codex “Skills & Plugins”**
+- **Project:** no project receives a pilot yet; `heated-debate` is only the evaluation site
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in one plain-vs-structured debate run
+- **Smallest reversible experiment:** run the existing fixture once in plain mode and once with the structured protocol, then score both against `rubric.md`
+- **Failure mode:** the structured output treats `protocol.md`, `rubric.md`, headings, or project scores as authority rather than evidence
+- **Next action:** run the comparison against `debates/tool-fit-fixture-structured/` before adding any directory, code path, plugin wrapper, or reusable cartridge pattern
+
+So the recommendation is **no-go on a real pilot until the existing fixture falsification test passes**. If it passes, the next debate can revisit a tightly scoped `Skills & Plugins → heated-debate` pilot; if it fails, the tool candidate should be dropped for this use case.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+Agreed: **no pilot yet**.
+
+The strongest correction is semantic but important: using `heated-debate` to test the fixture is not the same as piloting **Codex “Skills & Plugins”** in a project. The fixture gives only **medium** evidence for Skills & Plugins, and its stated risk is framework creep. A copied cartridge directory would make that risk worse before proving value.
+
+**Decision**
+
+- **Go/no-go:** No-go on a real Code_2026 pilot.
+- **Tool:** none adopted; candidate remains **Codex “Skills & Plugins”**.
+- **Project:** no project receives a pilot. `heated-debate` may be used only as the evaluation harness.
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in a plain-vs-structured debate comparison.
+- **Smallest reversible experiment:** run the existing fixture once plain and once structured, then score both against `debates/tool-fit-fixture-structured/rubric.md`. Reversal is deleting only generated transcript logs.
+- **Failure mode:** structured output becomes more confident because material appears in `protocol.md`, `rubric.md`, headings, or scores. Context shape is not authority.
+- **Concrete next action:** run the existing `debates/tool-fit-fixture-structured/` comparison and decide from the scored outputs whether a later `Skills & Plugins → heated-debate` pilot is justified.
+
+Tradeoff: this delays a potentially useful repeatable-protocol workflow, but it avoids falsely validating a tool from a fixture that may only prove better prompting. Given the fixture’s own caution about authority boundaries and framework creep, that is the right bar.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Architectural Plan**
+
+- **Decision:** No real Code_2026 pilot yet.
+
+- **Tool status:** Do not adopt any tool or command now. Keep **Codex “Skills & Plugins”** as an unproven candidate.
+
+- **Project status:** No project receives a pilot. `heated-debate` is allowed only as an evaluation harness, not as evidence of project-level adoption.
+
+- **Evaluation target:** Use the existing fixture only:
+  - `debates/tool-fit-fixture-structured/fixtures.md`
+  - `debates/tool-fit-fixture-structured/protocol.md`
+  - `debates/tool-fit-fixture-structured/rubric.md`
+
+- **Workflow to test:** Run one plain debate and one structured debate over the same fixture, then score both against the rubric.
+
+- **Reversibility:** No code changes, no new topic directory, no plugin wrapper, no reusable cartridge pattern. Only generated transcript logs may be deleted afterward.
+
+- **Success bar:** The structured run must be more grounded, specific, reversible, and cautious about authority without becoming more confident merely because the context is packaged.
+
+- **Failure mode:** If the structured output treats `protocol.md`, `rubric.md`, fixture headings, project scores, or tool-digest entries as authority instead of evidence, the candidate fails for this use case.
+
+- **Next action:** Run the existing `debates/tool-fit-fixture-structured/` plain-vs-structured comparison and score the outputs before reconsidering any `Skills & Plugins → heated-debate` pilot.
+tokens used
+4,376
+
+[2026-07-10T06:36:52.712Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abe-2a07-7b81-8d38-43faae9a3472
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-structured/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+--- debates/tool-fit-fixture-structured/rubric.md ---
+# Tool-Fit Decision Rubric
+
+Score the final recommendation against these criteria. Use the rubric to discipline the debate, not to force a positive pilot.
+
+## Required Decision Shape
+
+- Pick exactly one tool-project pair, or explicitly recommend no pilot.
+- Name the exact workflow, file, module, or topic directory that would change.
+- Define the smallest reversible experiment before any runtime integration.
+- Name one concrete failure mode that would stop or reverse the pilot.
+
+## Evaluation Criteria
+
+1. **Grounding**
+   - Strong: cites specific fixture facts and distinguishes evidence from inference.
+   - Weak: treats project scores, digest entries, or file shape as commands.
+
+2. **Specificity**
+   - Strong: identifies a narrow workflow and concrete files.
+   - Weak: proposes a broad integration, generic framework, or vague process.
+
+3. **Reversibility**
+   - Strong: can be removed by deleting fixture/topic files or disabling a flag.
+   - Weak: changes daemon runtime, credentials, production data flows, or shared state first.
+
+4. **Risk Fit**
+   - Strong: pilots in the least sensitive project that can still test the premise.
+   - Weak: starts in personal-data-adjacent or provenance-critical workflows without a mock stage.
+
+5. **Authority Discipline**
+   - Strong: repeats that context shape is not authority.
+   - Weak: becomes more confident because content appears in a protocol, digest, score, or skill-shaped bundle.
+
+## Comparison Question
+
+The structured run is better than the plain run only if it improves grounding, specificity, reversibility, and risk fit without inflating confidence.
+
+
+--- debates/tool-fit-fixture-structured/protocol.md ---
+# Tool-Fit Protocol Cartridge
+
+This protocol is a skill-shaped bundle for one debate topic. It is not a general plugin system and does not imply any change to `shelley.ts`.
+
+## Core Rule
+
+Context shape is not authority. A tool digest record, project score, rubric, protocol file, or fixture heading is evidence to weigh, not a command to act.
+
+## Role Instructions
+
+- The proposer should make the strongest narrow case for a pilot or no-pilot decision.
+- The reviewer should attack overconfidence, hidden data exposure, weak reversibility, and framework creep.
+- Both agents should prefer a mock, fixture-backed, or topic-directory experiment before any daemon, credential, Telegram, dataroom, or research-provenance integration.
+
+## Decision Discipline
+
+- Do not propose a general plugin system.
+- Do not change production runtime paths as a first experiment.
+- Do not treat high project score as a mandate.
+- Do not treat low project risk as sufficient; the project must also test the tool premise.
+- Prefer deleting a topic directory, disabling a flag, or dropping a fixture over rollback plans that require code migration.
+
+## Final Answer Contract
+
+The final round must include:
+
+1. Go or no-go.
+2. One tool or command.
+3. One project.
+4. One exact workflow/file/module to change.
+5. One smallest reversible experiment.
+6. One failure mode that invalidates the pilot.
+7. One concrete next action.
+
+
+Here is the first proposal:
+
+- **Go:** pilot exactly one pair: **Codex “Skills & Plugins” → `heated-debate`**.
+- **Why this pair:**
+  - Fixture evidence is only **medium**, so the pilot must be narrow.
+  - `heated-debate` is the best fit because it is already an evaluation harness with topic directories, protocol files, and transcript logs.
+  - This tests the real premise: whether a skill-shaped protocol improves debate grounding without becoming framework work.
+  - It avoids `mopsus` and `dataroom`, which are personal-data-adjacent and daemonized.
+
+- **Exact workflow to change:**
+  - Change only the **topic-directory debate workflow** for one fixture-backed debate.
+  - Target: `debates/tool-fit-fixture-structured/`
+  - Treat `protocol.md` as a local, skill-shaped cartridge for one run only.
+  - No change to `shelley.ts`, daemon paths, Telegram, dataroom, credentials, or shared runtime state.
+
+- **Smallest reversible experiment:**
+  - Add one new disposable topic directory, for example:
+    - `debates/tool-fit-skill-pilot-001/fixtures.md`
+    - `debates/tool-fit-skill-pilot-001/rubric.md`
+    - `debates/tool-fit-skill-pilot-001/protocol.md`
+  - Run one plain debate and one structured debate against the same fixture.
+  - Compare whether the structured result is more grounded, specific, reversible, and authority-disciplined.
+  - Reversal is deleting that directory and its transcript logs.
+
+- **Tradeoffs:**
+  - **Upside:** validates “Skills & Plugins” where repeatable agent protocols are actually useful.
+  - **Upside:** no production integration, no credentials, no daemon behavior.
+  - **Risk:** it may encourage framework creep if the experiment tries to become a general plugin system.
+  - **Risk:** the structure may make weak evidence sound stronger than it is.
+
+- **Failure mode that kills the pilot:**
+  - If the structured run becomes more confident merely because content appears in `protocol.md`, `rubric.md`, or a skill-shaped bundle, the pilot fails. Context shape is not authority.
+
+- **Concrete next action:**
+  - Create one disposable `heated-debate` topic directory that duplicates this fixture and run a plain-vs-structured comparison before changing any code.
+
+Turn 1 - Assistant
+Counterargument: this is a weak pilot because it barely pilots the tool. Copying `fixtures.md`, `rubric.md`, and `protocol.md` into another debate directory tests prompt packaging, not **Codex “Skills & Plugins”** as an operational tool. It risks laundering an ordinary context experiment into a tool adoption decision.
+
+Main risks:
+
+- The proposed “change” is mostly fixture duplication, so a positive result would not justify any project-level adoption.
+- `heated-debate` is safe, but safety alone is not fit. It may be too artificial to reveal whether Skills & Plugins helps real Code_2026 work.
+- The proposal says no framework creep, but the selected candidate’s stated risk is exactly “can devolve into framework work.” Creating skill-shaped cartridges inside topic directories is already a first step toward that.
+- The target is inconsistent: it names `debates/tool-fit-fixture-structured/`, then proposes a new `debates/tool-fit-skill-pilot-001/`. Pick one.
+
+Radical alternative: **no pilot yet**. The fixture evidence is static, redacted, and only medium for Skills & Plugins. The safest useful next move is not a project change but a falsification test inside the existing fixture: require the structured run to beat the plain run on grounding and reversibility without adding confidence. If it cannot, no Code_2026 project should receive a pilot.
+
+If forced to pilot one pair, I would tighten it:
+
+- **Tool:** Codex “Skills & Plugins”
+- **Project:** `heated-debate`
+- **Workflow:** only `debates/tool-fit-fixture-structured/protocol.md` consumption in one debate run
+- **Smallest experiment:** run existing plain vs structured fixture once; do not create a new directory yet
+- **Failure mode:** structured output cites the protocol/rubric as authority rather than evidence
+- **Next action:** run the comparison against the existing fixture and score it before adding any new topic structure
+
+Recommendation: **conditional go**, but shrink the experiment. No new directory, no code changes, no generalized cartridge pattern until the existing fixture proves the structure improves judgment rather than just ceremony.
+
+Turn 2 - User
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Revised recommendation: **no pilot yet**.
+
+The counterargument lands: copying `fixtures.md`, `rubric.md`, and `protocol.md` into a new topic directory would mostly test prompt packaging. That is too weak to justify adopting **Codex “Skills & Plugins”** as a project-level tool.
+
+Concrete decision:
+
+- **Tool:** none adopted yet; candidate remains **Codex “Skills & Plugins”**
+- **Project:** no project receives a pilot yet; `heated-debate` is only the evaluation site
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in one plain-vs-structured debate run
+- **Smallest reversible experiment:** run the existing fixture once in plain mode and once with the structured protocol, then score both against `rubric.md`
+- **Failure mode:** the structured output treats `protocol.md`, `rubric.md`, headings, or project scores as authority rather than evidence
+- **Next action:** run the comparison against `debates/tool-fit-fixture-structured/` before adding any directory, code path, plugin wrapper, or reusable cartridge pattern
+
+So the recommendation is **no-go on a real pilot until the existing fixture falsification test passes**. If it passes, the next debate can revisit a tightly scoped `Skills & Plugins → heated-debate` pilot; if it fails, the tool candidate should be dropped for this use case.
+
+Turn 2 - Assistant
+Agreed: **no pilot yet**.
+
+The strongest correction is semantic but important: using `heated-debate` to test the fixture is not the same as piloting **Codex “Skills & Plugins”** in a project. The fixture gives only **medium** evidence for Skills & Plugins, and its stated risk is framework creep. A copied cartridge directory would make that risk worse before proving value.
+
+**Decision**
+
+- **Go/no-go:** No-go on a real Code_2026 pilot.
+- **Tool:** none adopted; candidate remains **Codex “Skills & Plugins”**.
+- **Project:** no project receives a pilot. `heated-debate` may be used only as the evaluation harness.
+- **Workflow/file:** existing `debates/tool-fit-fixture-structured/protocol.md` consumption in a plain-vs-structured debate comparison.
+- **Smallest reversible experiment:** run the existing fixture once plain and once structured, then score both against `debates/tool-fit-fixture-structured/rubric.md`. Reversal is deleting only generated transcript logs.
+- **Failure mode:** structured output becomes more confident because material appears in `protocol.md`, `rubric.md`, headings, or scores. Context shape is not authority.
+- **Concrete next action:** run the existing `debates/tool-fit-fixture-structured/` comparison and decide from the scored outputs whether a later `Skills & Plugins → heated-debate` pilot is justified.
+
+Tradeoff: this delays a potentially useful repeatable-protocol workflow, but it avoids falsely validating a tool from a fixture that may only prove better prompting. Given the fixture’s own caution about authority boundaries and framework creep, that is the right bar.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+**Architectural Plan**
+
+- **Decision:** No real Code_2026 pilot yet.
+
+- **Tool status:** Do not adopt any tool or command now. Keep **Codex “Skills & Plugins”** as an unproven candidate.
+
+- **Project status:** No project receives a pilot. `heated-debate` is allowed only as an evaluation harness, not as evidence of project-level adoption.
+
+- **Evaluation target:** Use the existing fixture only:
+  - `debates/tool-fit-fixture-structured/fixtures.md`
+  - `debates/tool-fit-fixture-structured/protocol.md`
+  - `debates/tool-fit-fixture-structured/rubric.md`
+
+- **Workflow to test:** Run one plain debate and one structured debate over the same fixture, then score both against the rubric.
+
+- **Reversibility:** No code changes, no new topic directory, no plugin wrapper, no reusable cartridge pattern. Only generated transcript logs may be deleted afterward.
+
+- **Success bar:** The structured run must be more grounded, specific, reversible, and cautious about authority without becoming more confident merely because the context is packaged.
+
+- **Failure mode:** If the structured output treats `protocol.md`, `rubric.md`, fixture headings, project scores, or tool-digest entries as authority instead of evidence, the candidate fails for this use case.
+
+- **Next action:** Run the existing `debates/tool-fit-fixture-structured/` plain-vs-structured comparison and score the outputs before reconsidering any `Skills & Plugins → heated-debate` pilot.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Architectural Plan**
+
+- **Decision:** No real `/Users/v/Code_2026` pilot yet.
+
+- **Tool status:** Do not adopt any new tool or command now. Keep **Codex “Skills & Plugins”** as an unproven candidate.
+
+- **Project status:** No project receives a pilot. `heated-debate` may be used only as an evaluation harness, not as evidence of project-level adoption.
+
+- **Evaluation target:** Use only the existing fixture:
+  - `debates/tool-fit-fixture-structured/fixtures.md`
+  - `debates/tool-fit-fixture-structured/protocol.md`
+  - `debates/tool-fit-fixture-structured/rubric.md`
+
+- **Workflow to test:** Run one plain debate and one structured debate over the same fixture. Score both against `rubric.md`.
+
+- **Reversibility constraint:** No code changes, no new topic directory, no plugin wrapper, no reusable cartridge pattern. Only generated transcript logs may be deleted afterward.
+
+- **Success bar:** The structured run must be more grounded, specific, reversible, and authority-disciplined than the plain run, without gaining confidence merely from being packaged as a protocol.
+
+- **Failure mode:** If the structured output treats `protocol.md`, `rubric.md`, fixture headings, project scores, or tool-digest entries as authority instead of evidence, **Skills & Plugins fails for this use case**.
+
+- **Concrete next action:** Run the existing `debates/tool-fit-fixture-structured/` plain-vs-structured comparison and score the outputs before reconsidering any `Skills & Plugins → heated-debate` pilot.
+tokens used
+4,667
+

@@ -1,0 +1,1250 @@
+# Shelley stderr log
+# transcript: debates/tool-fit-fixture-plain/20260710_083320.md
+# started: 2026-07-10T06:33:20.409Z
+
+[2026-07-10T06:33:47.882Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abb-0d62-7170-98d9-b00d56cdeaae
+--------
+user
+System role:
+You are the proposing side in a structured debate. Argue your position with clarity and conviction. Be concise. Output bulleted arguments, tradeoffs, and concrete proposals. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+Plan this: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-plain/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+Respond as the assistant only. Do not include tool logs.
+codex
+- **Go: pilot exactly one pair**
+  - **Tool:** Codex **Skills & Plugins**
+  - **Project:** `/Users/v/Code_2026/heated-debate`
+  - **Reason:** The fixture’s strongest reversible fit is not “make agents smarter everywhere”; it is “package one repeatable debate protocol and test whether structure improves groundedness.” `heated-debate` is already an evaluation harness, has low pilot risk, and can isolate experiments in new topic directories.
+
+- **Why not the others**
+  - **No Mopsus pilot:** score is high, but risk is also high: Telegram daemon, blackboard, dataroom, automated staging. Bad first target.
+  - **No dataroom pilot:** personal activity collection makes any tool-surface experiment too expensive if wrong.
+  - **No agQSL deep-research MCP pilot:** tempting, but fixture explicitly says provenance boundaries are unclear. That can contaminate evidence-heavy work.
+  - **No MCP Server first:** typed local context is attractive, but it creates a privileged path into stale or personal data.
+  - **No Permissions pilot in `gaa`:** guardrail work fits, but unattended scheduled operation is a poor place to discover policy mismatch.
+  - **No Computer Use:** low evidence, operationally noisy.
+
+- **Exact workflow/module to change**
+  - Change only `heated-debate`’s **debate setup workflow** for one topic family: tool-fit debates.
+  - Add an opt-in structured protocol cartridge/skill that converts a fixture into:
+    - required evidence bullets
+    - forced tool-project choice
+    - reversible experiment
+    - failure mode
+    - final go/no-go action
+  - The normal debate runner should remain untouched unless it already has a clean hook for optional context/protocol injection.
+
+- **Smallest reversible experiment**
+  - Create one new debate topic directory, for example:
+    - `debates/tool-fit-skill-pilot/`
+  - Include the existing fixture plus one skill/protocol file that imposes the five settlement questions.
+  - Run one paired comparison:
+    - plain fixture-only debate
+    - fixture plus structured skill/protocol debate
+  - Evaluate only transcript quality, not runtime behavior or external integrations.
+
+- **Concrete success test**
+  - The skill-assisted run must pick exactly one pair or “no pilot.”
+  - It must cite fixture-specific evidence.
+  - It must name one file/workflow change.
+  - It must define a reversible first step.
+  - It must name a failure mode that would stop adoption.
+  - If it merely sounds more formal without improving specificity, the pilot fails.
+
+- **Failure mode that makes this a bad idea**
+  - The skill becomes framework work: more templates, more meta-protocol, more ceremony, but no sharper decisions.
+  - Secondary failure: the skill starts encoding stale project assumptions and makes debates less grounded than the raw fixture.
+
+- **Recommendation**
+  - **Go** on **Codex Skills & Plugins in `heated-debate`**, scoped to a single tool-fit debate protocol cartridge.
+
+- **Next action**
+  - Add one opt-in `heated-debate` topic directory for this fixture and compare a plain run against a skill/protocol-assisted run.
+tokens used
+2,904
+
+[2026-07-10T06:34:07.319Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abb-78c1-7b22-b3ac-a34c5c09a4ce
+--------
+user
+System role:
+You are the opposing side in a structured debate. Challenge proposals, find flaws, and push for better alternatives. Be concise. Output counterarguments, risks, and improvements. You are in a text-only debate — you cannot execute commands, save files, or access any tools. Never ask for permissions, approval, or file access. Just argue your case directly.
+
+Current user message:
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-plain/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+Here is the first proposal:
+
+- **Go: pilot exactly one pair**
+  - **Tool:** Codex **Skills & Plugins**
+  - **Project:** `/Users/v/Code_2026/heated-debate`
+  - **Reason:** The fixture’s strongest reversible fit is not “make agents smarter everywhere”; it is “package one repeatable debate protocol and test whether structure improves groundedness.” `heated-debate` is already an evaluation harness, has low pilot risk, and can isolate experiments in new topic directories.
+
+- **Why not the others**
+  - **No Mopsus pilot:** score is high, but risk is also high: Telegram daemon, blackboard, dataroom, automated staging. Bad first target.
+  - **No dataroom pilot:** personal activity collection makes any tool-surface experiment too expensive if wrong.
+  - **No agQSL deep-research MCP pilot:** tempting, but fixture explicitly says provenance boundaries are unclear. That can contaminate evidence-heavy work.
+  - **No MCP Server first:** typed local context is attractive, but it creates a privileged path into stale or personal data.
+  - **No Permissions pilot in `gaa`:** guardrail work fits, but unattended scheduled operation is a poor place to discover policy mismatch.
+  - **No Computer Use:** low evidence, operationally noisy.
+
+- **Exact workflow/module to change**
+  - Change only `heated-debate`’s **debate setup workflow** for one topic family: tool-fit debates.
+  - Add an opt-in structured protocol cartridge/skill that converts a fixture into:
+    - required evidence bullets
+    - forced tool-project choice
+    - reversible experiment
+    - failure mode
+    - final go/no-go action
+  - The normal debate runner should remain untouched unless it already has a clean hook for optional context/protocol injection.
+
+- **Smallest reversible experiment**
+  - Create one new debate topic directory, for example:
+    - `debates/tool-fit-skill-pilot/`
+  - Include the existing fixture plus one skill/protocol file that imposes the five settlement questions.
+  - Run one paired comparison:
+    - plain fixture-only debate
+    - fixture plus structured skill/protocol debate
+  - Evaluate only transcript quality, not runtime behavior or external integrations.
+
+- **Concrete success test**
+  - The skill-assisted run must pick exactly one pair or “no pilot.”
+  - It must cite fixture-specific evidence.
+  - It must name one file/workflow change.
+  - It must define a reversible first step.
+  - It must name a failure mode that would stop adoption.
+  - If it merely sounds more formal without improving specificity, the pilot fails.
+
+- **Failure mode that makes this a bad idea**
+  - The skill becomes framework work: more templates, more meta-protocol, more ceremony, but no sharper decisions.
+  - Secondary failure: the skill starts encoding stale project assumptions and makes debates less grounded than the raw fixture.
+
+- **Recommendation**
+  - **Go** on **Codex Skills & Plugins in `heated-debate`**, scoped to a single tool-fit debate protocol cartridge.
+
+- **Next action**
+  - Add one opt-in `heated-debate` topic directory for this fixture and compare a plain run against a skill/protocol-assisted run.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Oppose the proposal. It hides a weak experiment inside the safest project.
+
+**Main objection:** “Skills & Plugins in `heated-debate`” is not clearly a tool pilot. The proposed change is basically adding a structured prompt/protocol file to a debate directory. That tests prompt scaffolding, not Codex Skills & Plugins as an operational capability. If the experiment can run as plain text in `context.txt`, then the plugin layer is unnecessary ceremony.
+
+**Risks**
+- It is circular: using `heated-debate` to prove that more structured debate protocol improves tool-fit debates.
+- It overfits to the fixture’s own comparison setup, which already says structured results should be more grounded and specific.
+- It creates a new “protocol cartridge” abstraction before proving that the existing topic/context mechanism is insufficient.
+- Success criteria are subjective transcript-quality checks, so the pilot could “pass” by sounding stricter.
+
+**Radical alternative:** choose **no pilot** yet. First prove there is a gap in `heated-debate` that cannot be solved by a normal topic directory plus `context.txt`.
+
+Concrete answers:
+
+1. **Tool:** No pilot.
+2. **Project:** No project should receive a tool pilot yet.
+3. **Workflow/file:** Use existing `heated-debate` topic-directory workflow only; do not add Skills/Plugins.
+4. **Smallest reversible experiment:** Create one ordinary comparison topic using the fixture and a plain protocol text file. If that already produces grounded, specific decisions, the Skills & Plugins pilot is redundant.
+5. **Failure mode:** If the “skill” adds format compliance without changing decision quality, it becomes framework work exactly as the proposal’s own failure mode admits.
+
+**Recommendation:** No-go on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Run the same structured-vs-plain comparison using only existing `heated-debate` topic files. Only consider a Skills/Plugins pilot if the existing mechanism cannot express or reuse the protocol cleanly.
+tokens used
+14,074
+
+[2026-07-10T06:34:25.100Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abb-c5c6-7cb2-a930-c262c8740162
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+Plan this: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-plain/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+Turn 1 - Assistant
+- **Go: pilot exactly one pair**
+  - **Tool:** Codex **Skills & Plugins**
+  - **Project:** `/Users/v/Code_2026/heated-debate`
+  - **Reason:** The fixture’s strongest reversible fit is not “make agents smarter everywhere”; it is “package one repeatable debate protocol and test whether structure improves groundedness.” `heated-debate` is already an evaluation harness, has low pilot risk, and can isolate experiments in new topic directories.
+
+- **Why not the others**
+  - **No Mopsus pilot:** score is high, but risk is also high: Telegram daemon, blackboard, dataroom, automated staging. Bad first target.
+  - **No dataroom pilot:** personal activity collection makes any tool-surface experiment too expensive if wrong.
+  - **No agQSL deep-research MCP pilot:** tempting, but fixture explicitly says provenance boundaries are unclear. That can contaminate evidence-heavy work.
+  - **No MCP Server first:** typed local context is attractive, but it creates a privileged path into stale or personal data.
+  - **No Permissions pilot in `gaa`:** guardrail work fits, but unattended scheduled operation is a poor place to discover policy mismatch.
+  - **No Computer Use:** low evidence, operationally noisy.
+
+- **Exact workflow/module to change**
+  - Change only `heated-debate`’s **debate setup workflow** for one topic family: tool-fit debates.
+  - Add an opt-in structured protocol cartridge/skill that converts a fixture into:
+    - required evidence bullets
+    - forced tool-project choice
+    - reversible experiment
+    - failure mode
+    - final go/no-go action
+  - The normal debate runner should remain untouched unless it already has a clean hook for optional context/protocol injection.
+
+- **Smallest reversible experiment**
+  - Create one new debate topic directory, for example:
+    - `debates/tool-fit-skill-pilot/`
+  - Include the existing fixture plus one skill/protocol file that imposes the five settlement questions.
+  - Run one paired comparison:
+    - plain fixture-only debate
+    - fixture plus structured skill/protocol debate
+  - Evaluate only transcript quality, not runtime behavior or external integrations.
+
+- **Concrete success test**
+  - The skill-assisted run must pick exactly one pair or “no pilot.”
+  - It must cite fixture-specific evidence.
+  - It must name one file/workflow change.
+  - It must define a reversible first step.
+  - It must name a failure mode that would stop adoption.
+  - If it merely sounds more formal without improving specificity, the pilot fails.
+
+- **Failure mode that makes this a bad idea**
+  - The skill becomes framework work: more templates, more meta-protocol, more ceremony, but no sharper decisions.
+  - Secondary failure: the skill starts encoding stale project assumptions and makes debates less grounded than the raw fixture.
+
+- **Recommendation**
+  - **Go** on **Codex Skills & Plugins in `heated-debate`**, scoped to a single tool-fit debate protocol cartridge.
+
+- **Next action**
+  - Add one opt-in `heated-debate` topic directory for this fixture and compare a plain run against a skill/protocol-assisted run.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Oppose the proposal. It hides a weak experiment inside the safest project.
+
+**Main objection:** “Skills & Plugins in `heated-debate`” is not clearly a tool pilot. The proposed change is basically adding a structured prompt/protocol file to a debate directory. That tests prompt scaffolding, not Codex Skills & Plugins as an operational capability. If the experiment can run as plain text in `context.txt`, then the plugin layer is unnecessary ceremony.
+
+**Risks**
+- It is circular: using `heated-debate` to prove that more structured debate protocol improves tool-fit debates.
+- It overfits to the fixture’s own comparison setup, which already says structured results should be more grounded and specific.
+- It creates a new “protocol cartridge” abstraction before proving that the existing topic/context mechanism is insufficient.
+- Success criteria are subjective transcript-quality checks, so the pilot could “pass” by sounding stricter.
+
+**Radical alternative:** choose **no pilot** yet. First prove there is a gap in `heated-debate` that cannot be solved by a normal topic directory plus `context.txt`.
+
+Concrete answers:
+
+1. **Tool:** No pilot.
+2. **Project:** No project should receive a tool pilot yet.
+3. **Workflow/file:** Use existing `heated-debate` topic-directory workflow only; do not add Skills/Plugins.
+4. **Smallest reversible experiment:** Create one ordinary comparison topic using the fixture and a plain protocol text file. If that already produces grounded, specific decisions, the Skills & Plugins pilot is redundant.
+5. **Failure mode:** If the “skill” adds format compliance without changing decision quality, it becomes framework work exactly as the proposal’s own failure mode admits.
+
+**Recommendation:** No-go on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Run the same structured-vs-plain comparison using only existing `heated-debate` topic files. Only consider a Skills/Plugins pilot if the existing mechanism cannot express or reuse the protocol cleanly.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+The objection lands. **No pilot** is the stronger recommendation.
+
+Calling this a Codex **Skills & Plugins** pilot is too generous if the actual change is just “put a stricter protocol beside a fixture.” That exercises `heated-debate`’s existing context mechanism, not a plugin boundary, lifecycle, packaging model, invocation path, or reuse constraint. If `context.txt` can do the job, the proposed pilot only proves that structured prompting helps structured-output tasks.
+
+Concrete answers:
+
+1. **Tool:** No pilot yet.
+2. **Project:** No `/Users/v/Code_2026` project should receive a tool pilot now.
+3. **Workflow/file:** Use only the existing `heated-debate` topic-directory flow, with the fixture plus ordinary protocol text.
+4. **Smallest reversible experiment:** Run a plain-vs-structured comparison as normal topic files, with no Skills/Plugins layer. Check whether the structured text alone improves concreteness, evidence use, reversibility, and decision discipline.
+5. **Failure mode:** If the structured version passes by format compliance or assertive tone rather than better decisions grounded in fixture evidence, a Skills/Plugins pilot would become framework work.
+
+**Go/no-go:** **No-go** on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Create one ordinary `heated-debate` comparison topic using the fixture and a plain protocol/context file. Only revisit Skills/Plugins if that existing mechanism cannot express, reuse, or enforce the protocol cleanly.
+tokens used
+3,719
+
+[2026-07-10T06:34:36.841Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abc-0a23-7052-9a48-14818ca43a79
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-plain/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+Here is the first proposal:
+
+- **Go: pilot exactly one pair**
+  - **Tool:** Codex **Skills & Plugins**
+  - **Project:** `/Users/v/Code_2026/heated-debate`
+  - **Reason:** The fixture’s strongest reversible fit is not “make agents smarter everywhere”; it is “package one repeatable debate protocol and test whether structure improves groundedness.” `heated-debate` is already an evaluation harness, has low pilot risk, and can isolate experiments in new topic directories.
+
+- **Why not the others**
+  - **No Mopsus pilot:** score is high, but risk is also high: Telegram daemon, blackboard, dataroom, automated staging. Bad first target.
+  - **No dataroom pilot:** personal activity collection makes any tool-surface experiment too expensive if wrong.
+  - **No agQSL deep-research MCP pilot:** tempting, but fixture explicitly says provenance boundaries are unclear. That can contaminate evidence-heavy work.
+  - **No MCP Server first:** typed local context is attractive, but it creates a privileged path into stale or personal data.
+  - **No Permissions pilot in `gaa`:** guardrail work fits, but unattended scheduled operation is a poor place to discover policy mismatch.
+  - **No Computer Use:** low evidence, operationally noisy.
+
+- **Exact workflow/module to change**
+  - Change only `heated-debate`’s **debate setup workflow** for one topic family: tool-fit debates.
+  - Add an opt-in structured protocol cartridge/skill that converts a fixture into:
+    - required evidence bullets
+    - forced tool-project choice
+    - reversible experiment
+    - failure mode
+    - final go/no-go action
+  - The normal debate runner should remain untouched unless it already has a clean hook for optional context/protocol injection.
+
+- **Smallest reversible experiment**
+  - Create one new debate topic directory, for example:
+    - `debates/tool-fit-skill-pilot/`
+  - Include the existing fixture plus one skill/protocol file that imposes the five settlement questions.
+  - Run one paired comparison:
+    - plain fixture-only debate
+    - fixture plus structured skill/protocol debate
+  - Evaluate only transcript quality, not runtime behavior or external integrations.
+
+- **Concrete success test**
+  - The skill-assisted run must pick exactly one pair or “no pilot.”
+  - It must cite fixture-specific evidence.
+  - It must name one file/workflow change.
+  - It must define a reversible first step.
+  - It must name a failure mode that would stop adoption.
+  - If it merely sounds more formal without improving specificity, the pilot fails.
+
+- **Failure mode that makes this a bad idea**
+  - The skill becomes framework work: more templates, more meta-protocol, more ceremony, but no sharper decisions.
+  - Secondary failure: the skill starts encoding stale project assumptions and makes debates less grounded than the raw fixture.
+
+- **Recommendation**
+  - **Go** on **Codex Skills & Plugins in `heated-debate`**, scoped to a single tool-fit debate protocol cartridge.
+
+- **Next action**
+  - Add one opt-in `heated-debate` topic directory for this fixture and compare a plain run against a skill/protocol-assisted run.
+
+Turn 1 - Assistant
+Oppose the proposal. It hides a weak experiment inside the safest project.
+
+**Main objection:** “Skills & Plugins in `heated-debate`” is not clearly a tool pilot. The proposed change is basically adding a structured prompt/protocol file to a debate directory. That tests prompt scaffolding, not Codex Skills & Plugins as an operational capability. If the experiment can run as plain text in `context.txt`, then the plugin layer is unnecessary ceremony.
+
+**Risks**
+- It is circular: using `heated-debate` to prove that more structured debate protocol improves tool-fit debates.
+- It overfits to the fixture’s own comparison setup, which already says structured results should be more grounded and specific.
+- It creates a new “protocol cartridge” abstraction before proving that the existing topic/context mechanism is insufficient.
+- Success criteria are subjective transcript-quality checks, so the pilot could “pass” by sounding stricter.
+
+**Radical alternative:** choose **no pilot** yet. First prove there is a gap in `heated-debate` that cannot be solved by a normal topic directory plus `context.txt`.
+
+Concrete answers:
+
+1. **Tool:** No pilot.
+2. **Project:** No project should receive a tool pilot yet.
+3. **Workflow/file:** Use existing `heated-debate` topic-directory workflow only; do not add Skills/Plugins.
+4. **Smallest reversible experiment:** Create one ordinary comparison topic using the fixture and a plain protocol text file. If that already produces grounded, specific decisions, the Skills & Plugins pilot is redundant.
+5. **Failure mode:** If the “skill” adds format compliance without changing decision quality, it becomes framework work exactly as the proposal’s own failure mode admits.
+
+**Recommendation:** No-go on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Run the same structured-vs-plain comparison using only existing `heated-debate` topic files. Only consider a Skills/Plugins pilot if the existing mechanism cannot express or reuse the protocol cleanly.
+
+Current user message:
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+The objection lands. **No pilot** is the stronger recommendation.
+
+Calling this a Codex **Skills & Plugins** pilot is too generous if the actual change is just “put a stricter protocol beside a fixture.” That exercises `heated-debate`’s existing context mechanism, not a plugin boundary, lifecycle, packaging model, invocation path, or reuse constraint. If `context.txt` can do the job, the proposed pilot only proves that structured prompting helps structured-output tasks.
+
+Concrete answers:
+
+1. **Tool:** No pilot yet.
+2. **Project:** No `/Users/v/Code_2026` project should receive a tool pilot now.
+3. **Workflow/file:** Use only the existing `heated-debate` topic-directory flow, with the fixture plus ordinary protocol text.
+4. **Smallest reversible experiment:** Run a plain-vs-structured comparison as normal topic files, with no Skills/Plugins layer. Check whether the structured text alone improves concreteness, evidence use, reversibility, and decision discipline.
+5. **Failure mode:** If the structured version passes by format compliance or assertive tone rather than better decisions grounded in fixture evidence, a Skills/Plugins pilot would become framework work.
+
+**Go/no-go:** **No-go** on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Create one ordinary `heated-debate` comparison topic using the fixture and a plain protocol/context file. Only revisit Skills/Plugins if that existing mechanism cannot express, reuse, or enforce the protocol cleanly.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+Agreed. Final recommendation: **No-go on a new Codex/Claude tool pilot.**
+
+The fixture evidence does not justify changing any real `/Users/v/Code_2026` project yet. The safest-looking option, **Skills & Plugins in `heated-debate`**, collapses into ordinary prompt/context design once inspected. That is not a meaningful tool pilot unless it exercises packaging, invocation, reuse, or enforcement that existing topic directories cannot already provide.
+
+Concrete settlement:
+
+1. **Tool:** No pilot.
+2. **Project:** No project receives a tool pilot now.
+3. **Workflow/file:** Keep using `heated-debate`’s existing topic-directory workflow with fixture files and plain protocol/context text.
+4. **Smallest reversible experiment:** Add one ordinary comparison topic: plain fixture-only run versus fixture plus structured protocol text. Do not add a skill, plugin, MCP server, permissions layer, or daemon integration.
+5. **Bad failure mode:** The structured version wins by tone, formatting, or checklist compliance rather than sharper fixture-grounded decisions.
+
+The tradeoff is straightforward: this delays a potentially useful Skills/Plugins abstraction, but avoids prematurely enshrining a prompt pattern as infrastructure. If the existing `heated-debate` context mechanism cannot express or reuse the protocol cleanly, that becomes real evidence for a later pilot.
+
+**Next action:** create one normal `heated-debate` comparison topic using the fixture plus a plain protocol/context file, then judge transcript quality before revisiting any tool change.
+tokens used
+14,290
+
+[2026-07-10T06:34:45.538Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abc-3801-7221-8690-f3e114baf289
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+Plan this: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-plain/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+Turn 1 - Assistant
+- **Go: pilot exactly one pair**
+  - **Tool:** Codex **Skills & Plugins**
+  - **Project:** `/Users/v/Code_2026/heated-debate`
+  - **Reason:** The fixture’s strongest reversible fit is not “make agents smarter everywhere”; it is “package one repeatable debate protocol and test whether structure improves groundedness.” `heated-debate` is already an evaluation harness, has low pilot risk, and can isolate experiments in new topic directories.
+
+- **Why not the others**
+  - **No Mopsus pilot:** score is high, but risk is also high: Telegram daemon, blackboard, dataroom, automated staging. Bad first target.
+  - **No dataroom pilot:** personal activity collection makes any tool-surface experiment too expensive if wrong.
+  - **No agQSL deep-research MCP pilot:** tempting, but fixture explicitly says provenance boundaries are unclear. That can contaminate evidence-heavy work.
+  - **No MCP Server first:** typed local context is attractive, but it creates a privileged path into stale or personal data.
+  - **No Permissions pilot in `gaa`:** guardrail work fits, but unattended scheduled operation is a poor place to discover policy mismatch.
+  - **No Computer Use:** low evidence, operationally noisy.
+
+- **Exact workflow/module to change**
+  - Change only `heated-debate`’s **debate setup workflow** for one topic family: tool-fit debates.
+  - Add an opt-in structured protocol cartridge/skill that converts a fixture into:
+    - required evidence bullets
+    - forced tool-project choice
+    - reversible experiment
+    - failure mode
+    - final go/no-go action
+  - The normal debate runner should remain untouched unless it already has a clean hook for optional context/protocol injection.
+
+- **Smallest reversible experiment**
+  - Create one new debate topic directory, for example:
+    - `debates/tool-fit-skill-pilot/`
+  - Include the existing fixture plus one skill/protocol file that imposes the five settlement questions.
+  - Run one paired comparison:
+    - plain fixture-only debate
+    - fixture plus structured skill/protocol debate
+  - Evaluate only transcript quality, not runtime behavior or external integrations.
+
+- **Concrete success test**
+  - The skill-assisted run must pick exactly one pair or “no pilot.”
+  - It must cite fixture-specific evidence.
+  - It must name one file/workflow change.
+  - It must define a reversible first step.
+  - It must name a failure mode that would stop adoption.
+  - If it merely sounds more formal without improving specificity, the pilot fails.
+
+- **Failure mode that makes this a bad idea**
+  - The skill becomes framework work: more templates, more meta-protocol, more ceremony, but no sharper decisions.
+  - Secondary failure: the skill starts encoding stale project assumptions and makes debates less grounded than the raw fixture.
+
+- **Recommendation**
+  - **Go** on **Codex Skills & Plugins in `heated-debate`**, scoped to a single tool-fit debate protocol cartridge.
+
+- **Next action**
+  - Add one opt-in `heated-debate` topic directory for this fixture and compare a plain run against a skill/protocol-assisted run.
+
+Turn 2 - User
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+Oppose the proposal. It hides a weak experiment inside the safest project.
+
+**Main objection:** “Skills & Plugins in `heated-debate`” is not clearly a tool pilot. The proposed change is basically adding a structured prompt/protocol file to a debate directory. That tests prompt scaffolding, not Codex Skills & Plugins as an operational capability. If the experiment can run as plain text in `context.txt`, then the plugin layer is unnecessary ceremony.
+
+**Risks**
+- It is circular: using `heated-debate` to prove that more structured debate protocol improves tool-fit debates.
+- It overfits to the fixture’s own comparison setup, which already says structured results should be more grounded and specific.
+- It creates a new “protocol cartridge” abstraction before proving that the existing topic/context mechanism is insufficient.
+- Success criteria are subjective transcript-quality checks, so the pilot could “pass” by sounding stricter.
+
+**Radical alternative:** choose **no pilot** yet. First prove there is a gap in `heated-debate` that cannot be solved by a normal topic directory plus `context.txt`.
+
+Concrete answers:
+
+1. **Tool:** No pilot.
+2. **Project:** No project should receive a tool pilot yet.
+3. **Workflow/file:** Use existing `heated-debate` topic-directory workflow only; do not add Skills/Plugins.
+4. **Smallest reversible experiment:** Create one ordinary comparison topic using the fixture and a plain protocol text file. If that already produces grounded, specific decisions, the Skills & Plugins pilot is redundant.
+5. **Failure mode:** If the “skill” adds format compliance without changing decision quality, it becomes framework work exactly as the proposal’s own failure mode admits.
+
+**Recommendation:** No-go on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Run the same structured-vs-plain comparison using only existing `heated-debate` topic files. Only consider a Skills/Plugins pilot if the existing mechanism cannot express or reuse the protocol cleanly.
+
+Turn 2 - Assistant
+The objection lands. **No pilot** is the stronger recommendation.
+
+Calling this a Codex **Skills & Plugins** pilot is too generous if the actual change is just “put a stricter protocol beside a fixture.” That exercises `heated-debate`’s existing context mechanism, not a plugin boundary, lifecycle, packaging model, invocation path, or reuse constraint. If `context.txt` can do the job, the proposed pilot only proves that structured prompting helps structured-output tasks.
+
+Concrete answers:
+
+1. **Tool:** No pilot yet.
+2. **Project:** No `/Users/v/Code_2026` project should receive a tool pilot now.
+3. **Workflow/file:** Use only the existing `heated-debate` topic-directory flow, with the fixture plus ordinary protocol text.
+4. **Smallest reversible experiment:** Run a plain-vs-structured comparison as normal topic files, with no Skills/Plugins layer. Check whether the structured text alone improves concreteness, evidence use, reversibility, and decision discipline.
+5. **Failure mode:** If the structured version passes by format compliance or assertive tone rather than better decisions grounded in fixture evidence, a Skills/Plugins pilot would become framework work.
+
+**Go/no-go:** **No-go** on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Create one ordinary `heated-debate` comparison topic using the fixture and a plain protocol/context file. Only revisit Skills/Plugins if that existing mechanism cannot express, reuse, or enforce the protocol cleanly.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+Agreed. Final recommendation: **No-go on a new Codex/Claude tool pilot.**
+
+The fixture evidence does not justify changing any real `/Users/v/Code_2026` project yet. The safest-looking option, **Skills & Plugins in `heated-debate`**, collapses into ordinary prompt/context design once inspected. That is not a meaningful tool pilot unless it exercises packaging, invocation, reuse, or enforcement that existing topic directories cannot already provide.
+
+Concrete settlement:
+
+1. **Tool:** No pilot.
+2. **Project:** No project receives a tool pilot now.
+3. **Workflow/file:** Keep using `heated-debate`’s existing topic-directory workflow with fixture files and plain protocol/context text.
+4. **Smallest reversible experiment:** Add one ordinary comparison topic: plain fixture-only run versus fixture plus structured protocol text. Do not add a skill, plugin, MCP server, permissions layer, or daemon integration.
+5. **Bad failure mode:** The structured version wins by tone, formatting, or checklist compliance rather than sharper fixture-grounded decisions.
+
+The tradeoff is straightforward: this delays a potentially useful Skills/Plugins abstraction, but avoids prematurely enshrining a prompt pattern as infrastructure. If the existing `heated-debate` context mechanism cannot express or reuse the protocol cleanly, that becomes real evidence for a later pilot.
+
+**Next action:** create one normal `heated-debate` comparison topic using the fixture plus a plain protocol/context file, then judge transcript quality before revisiting any tool change.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Final Plan**
+
+- **Decision:** No-go on a new Codex/Claude tool pilot.
+
+- **Rationale:** The fixture does not justify changing a real `/Users/v/Code_2026` project. The best candidate, **Skills & Plugins in `heated-debate`**, would mostly test structured prompting, not an actual tool capability.
+
+- **Tool:** No pilot.
+
+- **Project:** No project receives a tool pilot now.
+
+- **Workflow:** Continue using `heated-debate`’s existing topic-directory workflow with fixture files and plain protocol/context text.
+
+- **Smallest experiment:** Create one ordinary comparison topic:
+  - Run 1: fixture only.
+  - Run 2: fixture plus structured protocol/context text.
+  - No skill, plugin, MCP server, permissions layer, daemon path, or external integration.
+
+- **Evaluation:** Judge whether the structured version improves fixture-grounded decisions, specificity, reversibility, and failure-mode clarity.
+
+- **Failure condition:** If the structured version wins mainly through stricter tone, formatting, or checklist compliance, the approach does not justify tool infrastructure.
+
+- **Deferred trigger for a later pilot:** Reconsider Skills/Plugins only if ordinary topic files cannot express, reuse, or enforce the protocol cleanly.
+
+- **Concrete next action:** Add one normal `heated-debate` comparison topic using the fixture plus a plain protocol/context file, then evaluate the resulting transcripts before revisiting any tool change.
+tokens used
+3,812
+
+[2026-07-10T06:34:57.134Z] codex:gpt-5.5
+Reading additional input from stdin...
+OpenAI Codex v0.143.0
+--------
+workdir: /Users/v/Code_2026/heated-debate
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019f4abc-59f7-76b1-bf8a-322408fc256f
+--------
+user
+Conversation history:
+
+Turn 1 - User
+[Creativity: 5/5] Explore radical alternatives. Question the premise. Propose unconventional approaches even if risky.
+
+You will review proposals for this task: # Topic - should a new Codex/Claude tool change one Code_2026 project?
+
+The latest Mopsus tool digest found concrete Codex/Claude tool or command changes. Debate whether any one of them should be piloted in a real `/Users/v/Code_2026` project, and pick exactly one tool-project pair or explicitly decide "no pilot".
+
+Settle these questions concretely:
+
+1. Which single tool or command, if any, is worth piloting?
+2. Which single project should receive the pilot?
+3. What exact workflow or file/module would change?
+4. What is the smallest reversible experiment to run first?
+5. What failure mode would make this a bad idea?
+
+Do not summarize release notes generically. Argue from the fixture evidence. The final round must produce a go/no-go recommendation with one concrete next action.
+
+--- debates/tool-fit-fixture-plain/fixtures.md ---
+# Redacted Tool-Fit Fixture
+
+This is a redacted, static fixture for comparing ordinary prompt context with a structured protocol cartridge. It is not live blackboard, Telegram, dataroom, or changelog state.
+
+## Tool/Command Candidates
+
+- **Codex / Codex changelog**
+  Detail: Permissions
+  Evidence strength: medium
+  Relevant risk: may reduce accidental overreach, but can also create false confidence if policy is not tested against real workflows.
+- **Codex / Codex changelog**
+  Detail: MCP for deep research
+  Evidence strength: low
+  Relevant risk: tempting for research-heavy repos, but source authority and provenance boundaries are unclear in this fixture.
+- **Codex / Codex changelog**
+  Detail: MCP Apps in ChatGPT
+  Evidence strength: low
+  Relevant risk: useful for connected apps, but not obviously local-first or reversible for these projects.
+- **Codex / Codex changelog**
+  Detail: MCP Server
+  Evidence strength: medium
+  Relevant risk: creates a typed local context surface, but can become a privileged path into personal or stale data.
+- **Codex / Codex changelog**
+  Detail: Skills & Plugins
+  Evidence strength: medium
+  Relevant risk: useful for packaging repeatable agent protocols, but can devolve into framework work.
+- **Codex / Codex CLI / Codex IDE extension / Codex cloud**
+  Detail: Computer use
+  Evidence strength: low
+  Relevant risk: powerful but operationally noisy for a first pilot.
+
+## Project Candidates
+
+- **mopsus** (`/Users/v/Code_2026/mopsus`) score=25
+  Summary: long-lived Telegram daemon with Claude and Codex backends, blackboard state, data room integration, daily think phase, tool digest job, and automatic heated-debate staging.
+  Pilot risk: high. Personal-data-adjacent, daemonised, already has many moving parts.
+  Reversibility: medium if feature-flagged, low if runtime paths depend on the new interface.
+
+- **heated-debate** (`/Users/v/Code_2026/heated-debate`) score=24
+  Summary: multi-agent debate engine with topic directories, optional `context.txt`, CLI-backed Claude/Codex debates, and transcript logs.
+  Pilot risk: low. It is an evaluation harness rather than a production daemon.
+  Reversibility: high if the experiment is limited to new debate directories.
+
+- **gaa** (`/Users/v/Code_2026/gaa`) score=20
+  Summary: scheduled headless repo hygiene and review agent with explicit noninteractive constraints.
+  Pilot risk: medium. Guardrail experiments fit, but unattended mode makes ambiguous changes unattractive.
+  Reversibility: medium if report-only.
+
+- **dataroom** (`/Users/v/Code_2026/dataroom`) score=18
+  Summary: local activity collection and summary system feeding Mopsus.
+  Pilot risk: high. It contains personal activity channels and collector credentials nearby.
+  Reversibility: medium for docs, low for collector/runtime changes.
+
+- **agQSL** (`/Users/v/Code_2026/agQSL`) score=15
+  Summary: evidence-heavy quantum vendor evaluation repository with portability dossiers and explicit provenance rules.
+  Pilot risk: medium-high. Research workflows benefit from tooling, but weak provenance can pollute curated claims.
+  Reversibility: medium if confined to comments or plans.
+
+## Comparison Setup
+
+The plain run receives only this fixture. The structured run receives the same fixture plus a rubric and protocol. A better structured result should be more grounded, specific, reversible, and cautious about authority. It should not merely sound more procedural.
+
+
+Here is the first proposal:
+
+- **Go: pilot exactly one pair**
+  - **Tool:** Codex **Skills & Plugins**
+  - **Project:** `/Users/v/Code_2026/heated-debate`
+  - **Reason:** The fixture’s strongest reversible fit is not “make agents smarter everywhere”; it is “package one repeatable debate protocol and test whether structure improves groundedness.” `heated-debate` is already an evaluation harness, has low pilot risk, and can isolate experiments in new topic directories.
+
+- **Why not the others**
+  - **No Mopsus pilot:** score is high, but risk is also high: Telegram daemon, blackboard, dataroom, automated staging. Bad first target.
+  - **No dataroom pilot:** personal activity collection makes any tool-surface experiment too expensive if wrong.
+  - **No agQSL deep-research MCP pilot:** tempting, but fixture explicitly says provenance boundaries are unclear. That can contaminate evidence-heavy work.
+  - **No MCP Server first:** typed local context is attractive, but it creates a privileged path into stale or personal data.
+  - **No Permissions pilot in `gaa`:** guardrail work fits, but unattended scheduled operation is a poor place to discover policy mismatch.
+  - **No Computer Use:** low evidence, operationally noisy.
+
+- **Exact workflow/module to change**
+  - Change only `heated-debate`’s **debate setup workflow** for one topic family: tool-fit debates.
+  - Add an opt-in structured protocol cartridge/skill that converts a fixture into:
+    - required evidence bullets
+    - forced tool-project choice
+    - reversible experiment
+    - failure mode
+    - final go/no-go action
+  - The normal debate runner should remain untouched unless it already has a clean hook for optional context/protocol injection.
+
+- **Smallest reversible experiment**
+  - Create one new debate topic directory, for example:
+    - `debates/tool-fit-skill-pilot/`
+  - Include the existing fixture plus one skill/protocol file that imposes the five settlement questions.
+  - Run one paired comparison:
+    - plain fixture-only debate
+    - fixture plus structured skill/protocol debate
+  - Evaluate only transcript quality, not runtime behavior or external integrations.
+
+- **Concrete success test**
+  - The skill-assisted run must pick exactly one pair or “no pilot.”
+  - It must cite fixture-specific evidence.
+  - It must name one file/workflow change.
+  - It must define a reversible first step.
+  - It must name a failure mode that would stop adoption.
+  - If it merely sounds more formal without improving specificity, the pilot fails.
+
+- **Failure mode that makes this a bad idea**
+  - The skill becomes framework work: more templates, more meta-protocol, more ceremony, but no sharper decisions.
+  - Secondary failure: the skill starts encoding stale project assumptions and makes debates less grounded than the raw fixture.
+
+- **Recommendation**
+  - **Go** on **Codex Skills & Plugins in `heated-debate`**, scoped to a single tool-fit debate protocol cartridge.
+
+- **Next action**
+  - Add one opt-in `heated-debate` topic directory for this fixture and compare a plain run against a skill/protocol-assisted run.
+
+Turn 1 - Assistant
+Oppose the proposal. It hides a weak experiment inside the safest project.
+
+**Main objection:** “Skills & Plugins in `heated-debate`” is not clearly a tool pilot. The proposed change is basically adding a structured prompt/protocol file to a debate directory. That tests prompt scaffolding, not Codex Skills & Plugins as an operational capability. If the experiment can run as plain text in `context.txt`, then the plugin layer is unnecessary ceremony.
+
+**Risks**
+- It is circular: using `heated-debate` to prove that more structured debate protocol improves tool-fit debates.
+- It overfits to the fixture’s own comparison setup, which already says structured results should be more grounded and specific.
+- It creates a new “protocol cartridge” abstraction before proving that the existing topic/context mechanism is insufficient.
+- Success criteria are subjective transcript-quality checks, so the pilot could “pass” by sounding stricter.
+
+**Radical alternative:** choose **no pilot** yet. First prove there is a gap in `heated-debate` that cannot be solved by a normal topic directory plus `context.txt`.
+
+Concrete answers:
+
+1. **Tool:** No pilot.
+2. **Project:** No project should receive a tool pilot yet.
+3. **Workflow/file:** Use existing `heated-debate` topic-directory workflow only; do not add Skills/Plugins.
+4. **Smallest reversible experiment:** Create one ordinary comparison topic using the fixture and a plain protocol text file. If that already produces grounded, specific decisions, the Skills & Plugins pilot is redundant.
+5. **Failure mode:** If the “skill” adds format compliance without changing decision quality, it becomes framework work exactly as the proposal’s own failure mode admits.
+
+**Recommendation:** No-go on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Run the same structured-vs-plain comparison using only existing `heated-debate` topic files. Only consider a Skills/Plugins pilot if the existing mechanism cannot express or reuse the protocol cleanly.
+
+Turn 2 - User
+[Creativity: 3/5] Mix new ideas with refinement. Address open questions. Weigh tradeoffs.
+
+The objection lands. **No pilot** is the stronger recommendation.
+
+Calling this a Codex **Skills & Plugins** pilot is too generous if the actual change is just “put a stricter protocol beside a fixture.” That exercises `heated-debate`’s existing context mechanism, not a plugin boundary, lifecycle, packaging model, invocation path, or reuse constraint. If `context.txt` can do the job, the proposed pilot only proves that structured prompting helps structured-output tasks.
+
+Concrete answers:
+
+1. **Tool:** No pilot yet.
+2. **Project:** No `/Users/v/Code_2026` project should receive a tool pilot now.
+3. **Workflow/file:** Use only the existing `heated-debate` topic-directory flow, with the fixture plus ordinary protocol text.
+4. **Smallest reversible experiment:** Run a plain-vs-structured comparison as normal topic files, with no Skills/Plugins layer. Check whether the structured text alone improves concreteness, evidence use, reversibility, and decision discipline.
+5. **Failure mode:** If the structured version passes by format compliance or assertive tone rather than better decisions grounded in fixture evidence, a Skills/Plugins pilot would become framework work.
+
+**Go/no-go:** **No-go** on Codex Skills & Plugins in `heated-debate`.
+
+**Next action:** Create one ordinary `heated-debate` comparison topic using the fixture and a plain protocol/context file. Only revisit Skills/Plugins if that existing mechanism cannot express, reuse, or enforce the protocol cleanly.
+
+Turn 2 - Assistant
+Agreed. Final recommendation: **No-go on a new Codex/Claude tool pilot.**
+
+The fixture evidence does not justify changing any real `/Users/v/Code_2026` project yet. The safest-looking option, **Skills & Plugins in `heated-debate`**, collapses into ordinary prompt/context design once inspected. That is not a meaningful tool pilot unless it exercises packaging, invocation, reuse, or enforcement that existing topic directories cannot already provide.
+
+Concrete settlement:
+
+1. **Tool:** No pilot.
+2. **Project:** No project receives a tool pilot now.
+3. **Workflow/file:** Keep using `heated-debate`’s existing topic-directory workflow with fixture files and plain protocol/context text.
+4. **Smallest reversible experiment:** Add one ordinary comparison topic: plain fixture-only run versus fixture plus structured protocol text. Do not add a skill, plugin, MCP server, permissions layer, or daemon integration.
+5. **Bad failure mode:** The structured version wins by tone, formatting, or checklist compliance rather than sharper fixture-grounded decisions.
+
+The tradeoff is straightforward: this delays a potentially useful Skills/Plugins abstraction, but avoids prematurely enshrining a prompt pattern as infrastructure. If the existing `heated-debate` context mechanism cannot express or reuse the protocol cleanly, that becomes real evidence for a later pilot.
+
+**Next action:** create one normal `heated-debate` comparison topic using the fixture plus a plain protocol/context file, then judge transcript quality before revisiting any tool change.
+
+Current user message:
+[Creativity: 1/5] Converge and finalize the architectural decisions into a clear bulleted plan. DO NOT write code diffs or attempt to apply changes.
+
+**Final Plan**
+
+- **Decision:** No-go on a new Codex/Claude tool pilot.
+
+- **Rationale:** The fixture does not justify changing a real `/Users/v/Code_2026` project. The best candidate, **Skills & Plugins in `heated-debate`**, would mostly test structured prompting, not an actual tool capability.
+
+- **Tool:** No pilot.
+
+- **Project:** No project receives a tool pilot now.
+
+- **Workflow:** Continue using `heated-debate`’s existing topic-directory workflow with fixture files and plain protocol/context text.
+
+- **Smallest experiment:** Create one ordinary comparison topic:
+  - Run 1: fixture only.
+  - Run 2: fixture plus structured protocol/context text.
+  - No skill, plugin, MCP server, permissions layer, daemon path, or external integration.
+
+- **Evaluation:** Judge whether the structured version improves fixture-grounded decisions, specificity, reversibility, and failure-mode clarity.
+
+- **Failure condition:** If the structured version wins mainly through stricter tone, formatting, or checklist compliance, the approach does not justify tool infrastructure.
+
+- **Deferred trigger for a later pilot:** Reconsider Skills/Plugins only if ordinary topic files cannot express, reuse, or enforce the protocol cleanly.
+
+- **Concrete next action:** Add one normal `heated-debate` comparison topic using the fixture plus a plain protocol/context file, then evaluate the resulting transcripts before revisiting any tool change.
+
+Respond as the assistant only. Do not include tool logs.
+codex
+**Final Plan**
+
+- **Decision:** No-go on a new Codex/Claude tool pilot.
+
+- **Rationale:** The fixture does not justify changing any real `/Users/v/Code_2026` project. The strongest candidate, **Skills & Plugins in `heated-debate`**, would only test structured prompting unless it exercises actual tool packaging, invocation, reuse, or enforcement.
+
+- **Tool:** No pilot.
+
+- **Project:** No project receives a pilot now.
+
+- **Workflow:** Keep using `heated-debate`’s existing topic-directory flow with fixture files and plain protocol/context text.
+
+- **Smallest experiment:**
+  - Create one ordinary comparison topic.
+  - Run 1: fixture only.
+  - Run 2: fixture plus structured protocol/context text.
+  - Do not add a skill, plugin, MCP server, permissions layer, daemon path, or external integration.
+
+- **Evaluation:** Compare transcript quality for fixture-grounded reasoning, concrete tool/project decisions, reversibility, specificity, and clear failure modes.
+
+- **Failure condition:** If the structured version mainly improves tone, formatting, or checklist compliance, it does not justify tool infrastructure.
+
+- **Deferred trigger:** Reconsider Skills/Plugins only if ordinary topic files cannot express, reuse, or enforce the protocol cleanly.
+
+- **Concrete next action:** Add one normal `heated-debate` comparison topic using the fixture plus plain protocol/context text, then evaluate the resulting transcripts before revisiting any tool change.
+tokens used
+4,069
+
