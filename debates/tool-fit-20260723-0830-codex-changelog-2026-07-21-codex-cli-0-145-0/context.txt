@@ -1,0 +1,14 @@
+/Users/v/Code_2026/infPrime/README.md
+/Users/v/Code_2026/infPrime/CLAUDE.md
+/Users/v/Code_2026/infPrime/pyproject.toml
+/Users/v/Code_2026/mopsus/README.md
+/Users/v/Code_2026/mopsus/pyproject.toml
+/Users/v/Code_2026/mopsus/prompts/situation.md
+/Users/v/Code_2026/mopsus/prompts/soul.md
+/Users/v/Code_2026/heated-debate/README.md
+/Users/v/Code_2026/heated-debate/CLAUDE.md
+/Users/v/Code_2026/heated-debate/pyproject.toml
+/Users/v/Code_2026/heated-debate/package.json
+/Users/v/Code_2026/nanoGPT-agentic-class/README.md
+/Users/v/Code_2026/nanoGPT-agentic-class/CLAUDE.md
+/Users/v/Code_2026/pi/README.md
